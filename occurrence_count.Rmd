@@ -1,0 +1,35 @@
+---
+title: "R Notebook: Stringmatch"
+output: html_notebook
+---
+
+
+# Load data files
+```{r}
+setwd("~/enriquemontes01@gmail.com - Google Drive/My Drive/GDrive/OCED_AOML/WS_cruises/plankton_imaging/CPICS/TS.Subset.1")
+
+Chains <- read.table("class.Chains.txt", quote="\"", comment.char="")
+
+Copepods <- read.table("class.Copepods.txt", quote="\"", comment.char="")
+
+Eucampia <- read.table("class.Eucampia.txt", quote="\"", comment.char="")
+
+Noctiluca <- read.table("class.Noctiluca.txt", quote="\"", comment.char="")
+
+Polychaets <- read.table("class.Polychaets.txt", quote="\"", comment.char="")
+
+```
+
+# Match file name with string ID
+```{r}
+library(stringr)
+id_list <- c('20221206_01', '20221206_02')
+
+conc_occ_count <- matrix(ncol = 1, nrow = length(id_list))
+for ( i in 1:length(id_list)){
+  df <- as.data.frame(str_count(Chains$V1, id_list[i]))
+  occ_count <- colSums(df != 0)
+  conc_occ_count[i] <- occ_count
+}
+
+```
