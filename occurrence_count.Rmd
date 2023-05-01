@@ -122,5 +122,15 @@ for ( i in seq_along(id_list)){
 
 conc_occ_final <- arrange(conc_occ_count, date)
 
+```
+
+
+# Match image records with CTD metadata
+```{r}
+# Directory where the CTD metadata is located
+dir_path2 <- "~/enriquemontes01@gmail.com - Google Drive/My Drive/GDrive/OCED_AOML/WS_cruises/plankton_imaging/CPICS/ws_cruise_ctd/"
+file_name <- list.files(path = dir_path2, pattern = ".csv", full.names = TRUE)
+ctd_meta <- read.csv(file_name, fill = TRUE)
+
 
 ```
