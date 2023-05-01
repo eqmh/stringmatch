@@ -6,30 +6,121 @@ output: html_notebook
 
 # Load data files
 ```{r}
-setwd("~/enriquemontes01@gmail.com - Google Drive/My Drive/GDrive/OCED_AOML/WS_cruises/plankton_imaging/CPICS/TS.Subset.1")
+# specify the directory where the files are located
+dir_path <- "~/enriquemontes01@gmail.com - Google Drive/My Drive/GDrive/OCED_AOML/WS_cruises/plankton_imaging/CPICS/TS.Master/"
 
-Chains <- read.table("class.Chains.txt", quote="\"", comment.char="")
+# obtain a list of file names in the directory
+file_names <- list.files(path = dir_path, pattern = ".txt", full.names = TRUE)
 
-Copepods <- read.table("class.Copepods.txt", quote="\"", comment.char="")
-
-Eucampia <- read.table("class.Eucampia.txt", quote="\"", comment.char="")
-
-Noctiluca <- read.table("class.Noctiluca.txt", quote="\"", comment.char="")
-
-Polychaets <- read.table("class.Polychaets.txt", quote="\"", comment.char="")
+# loop over each file and import the tables
+for (file in file_names) {
+  table_name <- gsub(".txt", "", basename(file)) # get the name of the table from the file name
+  assign(table_name, read.table(file = file, header = FALSE, sep = "\t"))
+}
 
 ```
 
 # Match file name with string ID
 ```{r}
-library(stringr)
-id_list <- c('20221206_01', '20221206_02')
+library(tidyverse)
+library(lubridate)
+library(dplyr)
 
-conc_occ_count <- matrix(ncol = 1, nrow = length(id_list))
-for ( i in 1:length(id_list)){
-  df <- as.data.frame(str_count(Chains$V1, id_list[i]))
-  occ_count <- colSums(df != 0)
-  conc_occ_count[i] <- occ_count
+# extract relevant part of the strings
+df <- rbind(class.Copepods, 
+            class.Eucampia, 
+            class.Noctiluca, 
+            class.Polychaets,
+            class.Acantharea,
+            class.Centric,
+            class.Ceratium,
+            class.Chaetoceros,
+            class.Chain2,
+            class.Chain3,
+            class.Chain4,
+            class.Cladocera,
+            class.Jellies,
+            class.Larvaceans,
+            class.pellets)
+sub_strings <- substr(df$V1, start = 10, stop = 22)
+unique_all <- unique(sub_strings)
+  
+# select unique dates (this allows to search CTD records per date and time)
+# To find unique dates and times to extract CDT data use: unique_all[grepl("20221209", unique_all)]
+
+id_list <- unique_all
+
+conc_occ_count <- data.frame(date = as.Date(character()), stringsAsFactors = FALSE)
+
+for ( i in seq_along(id_list)){
+  acantha <- as.data.frame(str_count(class.Acantharea$V1, id_list[i]))
+  centric <- as.data.frame(str_count(class.Centric$V1, id_list[i]))
+  ceratium <- as.data.frame(str_count(class.Ceratium$V1, id_list[i]))
+  chaetoceros <- as.data.frame(str_count(class.Chaetoceros$V1, id_list[i]))
+  chaetog <- as.data.frame(str_count(class.Chaetognaths$V1, id_list[i])) 
+  chain2 <- as.data.frame(str_count(class.Chain2$V1, id_list[i]))
+  chain3 <- as.data.frame(str_count(class.Chain3$V1, id_list[i]))
+  chain4 <- as.data.frame(str_count(class.Chain4$V1, id_list[i]))
+  clado <- as.data.frame(str_count(class.Cladocera$V1, id_list[i]))
+  copepods <- as.data.frame(str_count(class.Copepods$V1, id_list[i]))
+  decapod <- as.data.frame(str_count(class.Decapods$V1, id_list[i])) 
+  echino <- as.data.frame(str_count(class.Echinoderms$V1, id_list[i]))
+  eucampia <- as.data.frame(str_count(class.Eucampia$V1, id_list[i]))
+  jellies <- as.data.frame(str_count(class.Jellies$V1, id_list[i]))
+  larvae <- as.data.frame(str_count(class.Larvaceans$V1, id_list[i]))
+  nocti <- as.data.frame(str_count(class.Noctiluca$V1, id_list[i]))
+  polychaetes <- as.data.frame(str_count(class.Polychaets$V1, id_list[i]))
+  tricho <- as.data.frame(str_count(class.Tricho$V1, id_list[i]))
+  
+  occ_acantha <- colSums(acantha != 0)
+  occ_centric <- colSums(centric != 0)
+  occ_ceratium <- colSums(ceratium != 0)
+  occ_chaetoceros <- colSums(chaetoceros != 0)
+  occ_chaetog <- colSums(chaetog != 0)
+  occ_chain2 <- colSums(chain2 != 0)
+  occ_chain3 <- colSums(chain3 != 0)
+  occ_chain4 <- colSums(chain4 != 0)
+  occ_clado <- colSums(clado != 0)
+  occ_copepods <- colSums(copepods != 0)
+  occ_decapod <- colSums(decapod != 0)
+  occ_echino <- colSums(echino != 0)
+  occ_eucampia <- colSums(eucampia != 0)
+  occ_jellies<- colSums(jellies != 0)
+  occ_larvae <- colSums(larvae != 0)
+  occ_nocti <- colSums(nocti != 0)
+  occ_polychaetes <- colSums(polychaetes != 0)
+  occ_tricho <- colSums(tricho != 0)
+  
+  # Parse the date-time string with ymd_hm()
+  occ_date <- ymd_hm(id_list[i], tz = "GMT")
+  occ_time <- substr(id_list[i], 10, 13)
+  
+  row_df <- data.frame(date = as_date(occ_date), occ_time,
+                       occ_acantha,
+                       occ_centric,
+                       occ_ceratium,
+                       occ_chaetoceros,
+                       occ_chaetog, 
+                       occ_chain2,
+                       occ_chain3,
+                       occ_chain4,
+                       occ_clado,
+                       occ_copepods,
+                       occ_decapod,
+                       occ_echino,
+                       occ_eucampia,
+                       occ_jellies,
+                       occ_larvae,
+                       occ_nocti,
+                       occ_polychaetes,
+                       occ_tricho
+                       )
+  rownames(row_df) <- i
+  
+  conc_occ_count <- rbind(conc_occ_count, row_df)
 }
+
+conc_occ_final <- arrange(conc_occ_count, date)
+
 
 ```
