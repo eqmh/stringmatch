@@ -153,7 +153,7 @@ library(tidyverse)
 library(hrbrthemes)
 library(viridis)
 
-# filter out rows with NA values in column "var1"
+# filter out rows with NA values in column seascapes
 df_filtered <- taxa_meta[complete.cases(taxa_meta$X8.day.seascapes),]
 
 # Convert the 'x' column to character
@@ -184,7 +184,6 @@ df_filtered %>%
 # Create stackplots showing relative abundance of plankton taxa per seascape category
 ```{r}
 # convert abundance columns to relative abundance
-df_filtered[, 24:41] <- df_filtered[, 24:41] / rowSums(df_filtered[, 24:41])
 
 # copepods: col 33
 # larvae: col 38
@@ -198,13 +197,20 @@ df_filtered[, 24:41] <- df_filtered[, 24:41] / rowSums(df_filtered[, 24:41])
 # occ_chaetoceros: col 37
 # X8.day.seascapes: col 20
 
-df_subset <- df_filtered[ , c(20, 24, 27, 29, 33, 36, 37, 38, 39, 40, 41)]
+df_subset <- df_filtered[ , c(20, 24, 27, 29, 33, 36, 37, 38, 39, 40, 41)] # subsets taxa
+# df_subset[, 2:11] <- df_subset[, 2:11] / rowSums(df_subset[, 2:11]) # computes relative abund
+# df_subset <-  df_subset[complete.cases(df_subset), ] # remove rows with nan
 
 # reshape the data to long format
 df_long <- tidyr::gather(df_subset, key = "Species", value = "Abundance", -X8.day.seascapes)
+df_sum <- df_long %>%
+  group_by(X8.day.seascapes, Species) %>% 
+  summarise(n = sum(Abundance)) %>% 
+  mutate(freq = n / sum(n)) 
 
 # create the stackplot
-ggplot(df_long, aes(x = X8.day.seascapes, y = Abundance, fill = Species)) +
+ggplot(df_sum, aes(x = X8.day.seascapes, y = freq, fill = Species)) +
+  scale_fill_viridis(option="magma", discrete = TRUE, alpha=0.6) +
   geom_bar(stat = "identity")
 
 ```
