@@ -167,10 +167,11 @@ df_filtered$X8.day.seascapes <- as.character(df_filtered$X8.day.seascapes)
 # DO..mg.L.
 
 # Plot
+# See https://cran.r-project.org/web/packages/viridis/vignettes/intro-to-viridis.html for color palette options
 df_filtered %>%
   ggplot( aes(x=X8.day.seascapes, y=Avg.chl.a..ug.L., fill=X8.day.seascapes)) +
     geom_boxplot() +
-    scale_fill_viridis(discrete = TRUE, alpha=0.6) +
+    scale_fill_viridis(option="plasma", discrete = TRUE, alpha=0.6) +
     geom_jitter(color="black", size=0.4, alpha=0.9) +
     theme_ipsum() +
     theme(
