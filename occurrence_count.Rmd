@@ -92,10 +92,10 @@ for ( i in seq_along(id_list)){
   occ_tricho <- colSums(tricho != 0)
   
   # Parse the date-time string with ymd_hm()
-  occ_date <- ymd_hm(id_list[i], tz = "GMT")
-  occ_time <- substr(id_list[i], 10, 13)
+  occ_datetime  <- as.POSIXct(id_list[i], format="%Y%m%d_%H%M", tz="UTC")
+  occ_datetime_str <- substr(id_list[i], 1, 13)
   
-  row_df <- data.frame(date = as_date(occ_date), occ_time,
+  row_df <- data.frame(date = occ_datetime, occ_datetime_str,
                        occ_acantha,
                        occ_centric,
                        occ_ceratium,
@@ -125,12 +125,87 @@ conc_occ_final <- arrange(conc_occ_count, date)
 ```
 
 
-# Match image records with CTD metadata
+# Match image records with CTD metadata and seascapes
 ```{r}
 # Directory where the CTD metadata is located
 dir_path2 <- "~/enriquemontes01@gmail.com - Google Drive/My Drive/GDrive/OCED_AOML/WS_cruises/plankton_imaging/CPICS/ws_cruise_ctd/"
 file_name <- list.files(path = dir_path2, pattern = ".csv", full.names = TRUE)
 ctd_meta <- read.csv(file_name, fill = TRUE)
 
+dt_list <- ctd_meta$GMT.datetime
+
+conc_event <- data.frame()
+
+for ( t in seq_along(dt_list)){
+  event <- str_count(conc_occ_final$occ_datetime_str, dt_list[t])
+  idx_event <- which(event == 1, arr.ind = TRUE)
+  occ_row <- conc_occ_final[idx_event, ]
+  event_meta <- ctd_meta[idx_event, ]
+  conc_event <- rbind(conc_event, occ_row)
+}
+
+taxa_meta <- cbind(ctd_meta, conc_event)
+```
+
+# Generate plots 
+```{r}
+library(tidyverse)
+library(hrbrthemes)
+library(viridis)
+
+# filter out rows with NA values in column "var1"
+df_filtered <- taxa_meta[complete.cases(taxa_meta$X8.day.seascapes),]
+
+# Convert the 'x' column to character
+df_filtered$X8.day.seascapes <- as.character(df_filtered$X8.day.seascapes)
+
+# Variables
+# Avg.chl.a..ug.L.
+# salinity
+# NH4...uM.
+# NO3.NO2..uM.
+# DO..mg.L.
+
+# Plot
+df_filtered %>%
+  ggplot( aes(x=X8.day.seascapes, y=Avg.chl.a..ug.L., fill=X8.day.seascapes)) +
+    geom_boxplot() +
+    scale_fill_viridis(discrete = TRUE, alpha=0.6) +
+    geom_jitter(color="black", size=0.4, alpha=0.9) +
+    theme_ipsum() +
+    theme(
+      legend.position="none",
+      plot.title = element_text(size=11)
+    ) +
+    ggtitle("A boxplot with jitter") +
+    xlab("")
+```
+
+# Create stackplots showing relative abundance of plankton taxa per seascape category
+```{r}
+# convert abundance columns to relative abundance
+df_filtered[, 24:41] <- df_filtered[, 24:41] / rowSums(df_filtered[, 24:41])
+
+# copepods: col 33
+# larvae: col 38
+# occ_polychaetes: 40
+# occ_jellies: col 37
+# acantha: col 24
+# eucampia: col 36
+# occ_nocti: col 39
+# occ_tricho: col 41
+# occ_chain2: col 27
+# occ_chaetoceros: col 37
+# X8.day.seascapes: col 20
+
+df_subset <- df_filtered[ , c(20, 24, 27, 29, 33, 36, 37, 38, 39, 40, 41)]
+
+# reshape the data to long format
+df_long <- tidyr::gather(df_subset, key = "Species", value = "Abundance", -X8.day.seascapes)
+
+# create the stackplot
+ggplot(df_long, aes(x = X8.day.seascapes, y = Abundance, fill = Species)) +
+  geom_bar(stat = "identity")
 
 ```
+
