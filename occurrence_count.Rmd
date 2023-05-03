@@ -72,48 +72,48 @@ for ( i in seq_along(id_list)){
   polychaetes <- as.data.frame(str_count(class.Polychaets$V1, id_list[i]))
   tricho <- as.data.frame(str_count(class.Tricho$V1, id_list[i]))
   
-  occ_acantha <- colSums(acantha != 0)
-  occ_centric <- colSums(centric != 0)
-  occ_ceratium <- colSums(ceratium != 0)
-  occ_chaetoceros <- colSums(chaetoceros != 0)
-  occ_chaetog <- colSums(chaetog != 0)
-  occ_chain2 <- colSums(chain2 != 0)
-  occ_chain3 <- colSums(chain3 != 0)
-  occ_chain4 <- colSums(chain4 != 0)
-  occ_clado <- colSums(clado != 0)
-  occ_copepods <- colSums(copepods != 0)
-  occ_decapod <- colSums(decapod != 0)
-  occ_echino <- colSums(echino != 0)
-  occ_eucampia <- colSums(eucampia != 0)
-  occ_jellies<- colSums(jellies != 0)
-  occ_larvae <- colSums(larvae != 0)
-  occ_nocti <- colSums(nocti != 0)
-  occ_polychaetes <- colSums(polychaetes != 0)
-  occ_tricho <- colSums(tricho != 0)
+  Acantharia <- colSums(acantha != 0)
+  Centric_diatoms <- colSums(centric != 0)
+  Ceratium_spp <- colSums(ceratium != 0)
+  Chaetoceros <- colSums(chaetoceros != 0)
+  Chaetognaths <- colSums(chaetog != 0)
+  Diatom_chains_1 <- colSums(chain2 != 0)
+  Diatom_chains_2 <- colSums(chain3 != 0)
+  Diatom_chains_3 <- colSums(chain4 != 0)
+  Cladocera <- colSums(clado != 0)
+  Copepods <- colSums(copepods != 0)
+  Decapods <- colSums(decapod != 0)
+  Echinoderms <- colSums(echino != 0)
+  Eucampia_spp <- colSums(eucampia != 0)
+  Jellies<- colSums(jellies != 0)
+  Larvaeceans <- colSums(larvae != 0)
+  Noctiluca_sp <- colSums(nocti != 0)
+  Polychaetes <- colSums(polychaetes != 0)
+  Trichodesmium_spp <- colSums(tricho != 0)
   
   # Parse the date-time string with ymd_hm()
   occ_datetime  <- as.POSIXct(id_list[i], format="%Y%m%d_%H%M", tz="UTC")
   occ_datetime_str <- substr(id_list[i], 1, 13)
   
   row_df <- data.frame(date = occ_datetime, occ_datetime_str,
-                       occ_acantha,
-                       occ_centric,
-                       occ_ceratium,
-                       occ_chaetoceros,
-                       occ_chaetog, 
-                       occ_chain2,
-                       occ_chain3,
-                       occ_chain4,
-                       occ_clado,
-                       occ_copepods,
-                       occ_decapod,
-                       occ_echino,
-                       occ_eucampia,
-                       occ_jellies,
-                       occ_larvae,
-                       occ_nocti,
-                       occ_polychaetes,
-                       occ_tricho
+                       Acantharia,
+                       Centric_diatoms,
+                       Ceratium_spp,
+                       Chaetoceros,
+                       Chaetognaths, 
+                       Diatom_chains_1,
+                       Diatom_chains_2,
+                       Diatom_chains_3,
+                       Cladocera,
+                       Copepods,
+                       Decapods,
+                       Echinoderms,
+                       Eucampia_spp,
+                       Jellies,
+                       Larvaeceans,
+                       Noctiluca_sp,
+                       Polychaetes,
+                       Trichodesmium_spp
                        )
   rownames(row_df) <- i
   
@@ -188,14 +188,14 @@ df_filtered %>%
 
 # copepods: col 33
 # larvae: col 38
-# occ_polychaetes: 40
-# occ_jellies: col 37
+# polychaetes: 40
+# jellies: col 37
 # acantha: col 24
 # eucampia: col 36
-# occ_nocti: col 39
-# occ_tricho: col 41
-# occ_chain2: col 27
-# occ_chaetoceros: col 37
+# nocti: col 39
+# tricho: col 41
+# chain1: col 27
+# chaetoceros: col 37
 # X8.day.seascapes: col 20
 
 df_subset <- df_filtered[ , c(20, 24, 27, 29, 33, 36, 37, 38, 39, 40, 41)] # subsets taxa
@@ -212,7 +212,11 @@ df_sum <- df_long %>%
 # create the stackplot
 ggplot(df_sum, aes(x = X8.day.seascapes, y = freq, fill = Species)) +
   scale_fill_viridis(option="magma", discrete = TRUE, alpha=0.6) +
-  geom_bar(stat = "identity")
+  geom_bar(stat = "identity") +
+  labs(x = "Seascape class") +
+  labs(y = "Relative abundance") +
+  scale_x_discrete(labels= c("Class 11", "Class 15", "Class 21", "Class 3", "Class 7")) +
+  theme(axis.text.x = element_text(angle = 90)) 
 
 ```
 
