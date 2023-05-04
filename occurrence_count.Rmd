@@ -169,33 +169,34 @@ df_filtered$X8.day.seascapes <- as.character(df_filtered$X8.day.seascapes)
 
 # Plot
 # See https://cran.r-project.org/web/packages/viridis/vignettes/intro-to-viridis.html for color palette options
-df_filtered %>%
-  ggplot( aes(x=X8.day.seascapes, y=temp..degC., fill=X8.day.seascapes)) +
+pp <- df_filtered %>%
+  ggplot( aes(x=X8.day.seascapes, y=Avg.chl.a..ug.L., fill=X8.day.seascapes)) +
     geom_boxplot() +
     scale_fill_viridis(option="plasma", discrete = TRUE, alpha=0.6) +
     geom_jitter(color="black", size=0.8, alpha=0.9) +
     labs(x = "Seascape class") +
-    # labs(y = expression("[Chl-a] (mg/L)")) +
+    labs(y = expression("[Chl-a] (mg/L)")) +
     # labs(y = expression("Salinity")) +
-    labs(y = expression(paste("Temperature (", degree, "C) at 1 m depth"))) +
+    # labs(y = expression(paste("Temperature (", degree, "C) at 1 m depth"))) +
     # theme(axis.title.y = element_text(hjust = 1))
-    scale_x_discrete(labels= c("Tropical/Subtropical Upwelling", 
-                             "Tropical Seas", 
-                             "Warm, Blooms, High Nuts", 
-                             "Tropical/Subtropical Transition", 
-                             "Temperate Transition")) +
+    # scale_x_discrete(labels= c("Tropical/Subtropical Upwelling", 
+    #                          "Tropical Seas", 
+    #                          "Warm, Blooms, High Nuts", 
+    #                          "Tropical/Subtropical Transition", 
+    #                          "Temperate Transition")) +
     theme_ipsum() +
     theme(
       legend.position="none",
       plot.title = element_text(size=11)
     ) +
     # ggtitle("A boxplot with jitter") +
-    theme(axis.text.x = element_text(angle = 45)) +
-    theme(axis.text.x = element_text(size = 16),  # Set X-axis label font size
-          axis.text.y = element_text(size = 16)) +
+    # theme(axis.text.x = element_text(angle = 45)) +
+    theme(axis.text.x = element_text(size = 32),  # Set X-axis label font size
+          axis.text.y = element_text(size = 32)) +
     theme(axis.title.x = element_text(size = 18),
           axis.title.y = element_text(size = 18)) +
-    theme(legend.text = element_text(size = 16)) 
+    theme(legend.text = element_text(size = 32)) 
+pp
 ```
 
 # Create stackplots showing relative abundance of plankton taxa per seascape category
@@ -234,24 +235,24 @@ df_sum <- df_long %>%
 
 
 # create the stackplot
-ggplot(df_sum, aes(x = X8.day.seascapes, y = freq, fill = Species)) +
+qq <- ggplot(df_sum, aes(x = X8.day.seascapes, y = freq, fill = Species)) +
   scale_fill_viridis(option="magma", discrete = TRUE, alpha=0.8) +
   geom_bar(stat = "identity") +
   labs(x = "Seascape class") +
   labs(y = "Relative abundance") +
-  scale_x_discrete(labels= c("Tropical/Subtropical Upwelling", 
-                             "Tropical Seas", 
-                             "Warm, Blooms, High Nuts", 
-                             "Tropical/Subtropical Transition", 
-                             "Temperate Transition")) +
-  theme(axis.text.x = element_text(angle = 45)) +
-  theme(axis.text.x = element_text(size = 14),  # Set X-axis label font size
-        axis.text.y = element_text(size = 14)) +
-  theme(axis.title.x = element_text(size = 16),
-        axis.title.y = element_text(size = 16)) +
-  theme(legend.text = element_text(size = 14)) 
+  # scale_x_discrete(labels= c("Tropical/Subtropical Upwelling", 
+  #                            "Tropical Seas", 
+  #                            "Warm, Blooms, High Nuts", 
+  #                            "Tropical/Subtropical Transition", 
+  #                            "Temperate Transition")) +
+  # theme(axis.text.x = element_text(angle = 45)) +
+  theme(axis.text.x = element_text(size = 32),  # Set X-axis label font size
+        axis.text.y = element_text(size = 32)) +
+  theme(axis.title.x = element_text(size = 32),
+        axis.title.y = element_text(size = 32)) +
+  theme(legend.text = element_text(size = 32)) 
   #theme(axis.text.x = element_text(hjust = 1))
-
+qq
 ```
 
 
@@ -266,21 +267,22 @@ shannon_df <- df_long %>%
   summarise(shannon = diversity(Abundance, index = "shannon"))
 
 # create the bar plot
-ggplot(shannon_df, aes(x = X8.day.seascapes, y = shannon, fill = X8.day.seascapes)) +
+ff <- ggplot(shannon_df, aes(x = X8.day.seascapes, y = shannon, fill = X8.day.seascapes)) +
   geom_bar(stat = "identity") +
   scale_fill_viridis(option="plasma", discrete = TRUE, alpha=0.6) +
   xlab("Seascape Class") +
   ylab("Shannon Diversity") +
-  scale_x_discrete(labels= c("Tropical/Subtropical Upwelling", 
-                             "Tropical Seas", 
-                             "Warm, Blooms, High Nuts", 
-                             "Tropical/Subtropical Transition", 
-                             "Temperate Transition")) +
-  theme(axis.text.x = element_text(angle = 45)) +
-  theme(axis.text.x = element_text(size = 14),  # Set X-axis label font size
-        axis.text.y = element_text(size = 14)) +
-  theme(axis.title.x = element_text(size = 16),
-        axis.title.y = element_text(size = 16)) +
-  theme(legend.text = element_text(size = 14)) +
+  # scale_x_discrete(labels= c("Tropical/Subtropical Upwelling", 
+  #                            "Tropical Seas", 
+  #                            "Warm, Blooms, High Nuts", 
+  #                            "Tropical/Subtropical Transition", 
+  #                            "Temperate Transition")) +
+  # theme(axis.text.x = element_text(angle = 45)) +
+  theme(axis.text.x = element_text(size = 32),  # Set X-axis label font size
+        axis.text.y = element_text(size = 32)) +
+  theme(axis.title.x = element_text(size = 32),
+        axis.title.y = element_text(size = 32)) +
+  theme(legend.text = element_text(size = 32)) +
   guides(fill = FALSE)
+ff
 ```
