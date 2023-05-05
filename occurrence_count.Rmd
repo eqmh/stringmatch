@@ -49,6 +49,7 @@ unique_all <- unique(sub_strings)
 # To find unique dates and times to extract CDT data use: unique_all[grepl("20221209", unique_all)]
 
 id_list <- unique_all
+id_list2  <- as.POSIXct(id_list, format="%Y%m%d_%H%M", tz="UTC")
 
 conc_occ_count <- data.frame(date = as.Date(character()), stringsAsFactors = FALSE)
 
@@ -72,7 +73,7 @@ for ( i in seq_along(id_list)){
   polychaetes <- as.data.frame(str_count(class.Polychaets$V1, id_list[i]))
   tricho <- as.data.frame(str_count(class.Tricho$V1, id_list[i]))
   
-  Acantharia <- colSums(acantha != 0)
+  Acantharea <- colSums(acantha != 0)
   Centric_diatoms <- colSums(centric != 0)
   Ceratium_spp <- colSums(ceratium != 0)
   Chaetoceros <- colSums(chaetoceros != 0)
@@ -96,7 +97,7 @@ for ( i in seq_along(id_list)){
   occ_datetime_str <- substr(id_list[i], 1, 13)
   
   row_df <- data.frame(date = occ_datetime, occ_datetime_str,
-                       Acantharia,
+                       Acantharea,
                        Centric_diatoms,
                        Ceratium_spp,
                        Chaetoceros,
@@ -138,6 +139,7 @@ conc_event <- data.frame()
 
 for ( t in seq_along(dt_list)){
   event <- str_count(conc_occ_final$occ_datetime_str, dt_list[t])
+  # event <- subset(conc_occ_final, conc_occ_final$date >= dt_list2[1] & conc_occ_final$date < dt_list2[2])
   idx_event <- which(event == 1, arr.ind = TRUE)
   occ_row <- conc_occ_final[idx_event, ]
   event_meta <- ctd_meta[idx_event, ]
