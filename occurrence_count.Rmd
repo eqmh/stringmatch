@@ -6,147 +6,112 @@ output: html_notebook
 
 # Load data files
 ```{r}
+library(dplyr)
+
 # specify the directory where the files are located
 dir_path <- "~/enriquemontes01@gmail.com - Google Drive/My Drive/GDrive/OCED_AOML/WS_cruises/plankton_imaging/CPICS/TS.Master/"
 
 # obtain a list of file names in the directory
 file_names <- list.files(path = dir_path, pattern = ".txt", full.names = TRUE)
 
-# loop over each file and import the tables
+# loop over each file and import the tables (use this for DATES)
 for (file in file_names) {
   table_name <- gsub(".txt", "", basename(file)) # get the name of the table from the file name
-  assign(table_name, read.table(file = file, header = FALSE, sep = "\t"))
+  assign(table_name, read.table(file = file, header = FALSE, sep = "\t") %>%
+           mutate(date = as.POSIXct(substr(V1, start = 24, stop = 36), format="%Y%m%d_%H%M", tz="UTC")))
 }
+
+# # loop over each file and import the tables (use this for STRINGS)
+# for (file in file_names) {
+#   table_name <- gsub(".txt", "", basename(file)) # get the name of the table from the file name
+#   assign(table_name, read.table(file = file, header = FALSE, sep = "\t"))
+# }
 
 ```
 
-# Match file name with string ID
+
+# Match file name using DATE values (not string matching)
 ```{r}
 library(tidyverse)
 library(lubridate)
 library(dplyr)
 
-# extract relevant part of the strings
-df <- rbind(class.Copepods, 
-            class.Eucampia, 
-            class.Noctiluca, 
-            class.Polychaets,
-            class.Acantharea,
-            class.Centric,
-            class.Ceratium,
-            class.Chaetoceros,
-            class.Chain2,
-            class.Chain3,
-            class.Chain4,
-            class.Cladocera,
-            class.Jellies,
-            class.Larvaceans,
-            class.pellets)
-sub_strings <- substr(df$V1, start = 10, stop = 22)
-unique_all <- unique(sub_strings)
-  
-# select unique dates (this allows to search CTD records per date and time)
-# To find unique dates and times to extract CDT data use: unique_all[grepl("20221209", unique_all)]
-
-id_list <- unique_all
-id_list2  <- as.POSIXct(id_list, format="%Y%m%d_%H%M", tz="UTC")
-
-conc_occ_count <- data.frame(date = as.Date(character()), stringsAsFactors = FALSE)
-
-for ( i in seq_along(id_list)){
-  acantha <- as.data.frame(str_count(class.Acantharea$V1, id_list[i]))
-  centric <- as.data.frame(str_count(class.Centric$V1, id_list[i]))
-  ceratium <- as.data.frame(str_count(class.Ceratium$V1, id_list[i]))
-  chaetoceros <- as.data.frame(str_count(class.Chaetoceros$V1, id_list[i]))
-  chaetog <- as.data.frame(str_count(class.Chaetognaths$V1, id_list[i])) 
-  chain2 <- as.data.frame(str_count(class.Chain2$V1, id_list[i]))
-  chain3 <- as.data.frame(str_count(class.Chain3$V1, id_list[i]))
-  chain4 <- as.data.frame(str_count(class.Chain4$V1, id_list[i]))
-  clado <- as.data.frame(str_count(class.Cladocera$V1, id_list[i]))
-  copepods <- as.data.frame(str_count(class.Copepods$V1, id_list[i]))
-  decapod <- as.data.frame(str_count(class.Decapods$V1, id_list[i])) 
-  echino <- as.data.frame(str_count(class.Echinoderms$V1, id_list[i]))
-  eucampia <- as.data.frame(str_count(class.Eucampia$V1, id_list[i]))
-  jellies <- as.data.frame(str_count(class.Jellies$V1, id_list[i]))
-  larvae <- as.data.frame(str_count(class.Larvaceans$V1, id_list[i]))
-  nocti <- as.data.frame(str_count(class.Noctiluca$V1, id_list[i]))
-  polychaetes <- as.data.frame(str_count(class.Polychaets$V1, id_list[i]))
-  tricho <- as.data.frame(str_count(class.Tricho$V1, id_list[i]))
-  
-  Acantharea <- colSums(acantha != 0)
-  Centric_diatoms <- colSums(centric != 0)
-  Ceratium_spp <- colSums(ceratium != 0)
-  Chaetoceros <- colSums(chaetoceros != 0)
-  Chaetognaths <- colSums(chaetog != 0)
-  Diatom_chains_1 <- colSums(chain2 != 0)
-  Diatom_chains_2 <- colSums(chain3 != 0)
-  Diatom_chains_3 <- colSums(chain4 != 0)
-  Cladocera <- colSums(clado != 0)
-  Copepods <- colSums(copepods != 0)
-  Decapods <- colSums(decapod != 0)
-  Echinoderms <- colSums(echino != 0)
-  Eucampia_spp <- colSums(eucampia != 0)
-  Jellies<- colSums(jellies != 0)
-  Larvaeceans <- colSums(larvae != 0)
-  Noctiluca_sp <- colSums(nocti != 0)
-  Polychaetes <- colSums(polychaetes != 0)
-  Trichodesmium_spp <- colSums(tricho != 0)
-  
-  # Parse the date-time string with ymd_hm()
-  occ_datetime  <- as.POSIXct(id_list[i], format="%Y%m%d_%H%M", tz="UTC")
-  occ_datetime_str <- substr(id_list[i], 1, 13)
-  
-  row_df <- data.frame(date = occ_datetime, occ_datetime_str,
-                       Acantharea,
-                       Centric_diatoms,
-                       Ceratium_spp,
-                       Chaetoceros,
-                       Chaetognaths, 
-                       Diatom_chains_1,
-                       Diatom_chains_2,
-                       Diatom_chains_3,
-                       Cladocera,
-                       Copepods,
-                       Decapods,
-                       Echinoderms,
-                       Eucampia_spp,
-                       Jellies,
-                       Larvaeceans,
-                       Noctiluca_sp,
-                       Polychaetes,
-                       Trichodesmium_spp
-                       )
-  rownames(row_df) <- i
-  
-  conc_occ_count <- rbind(conc_occ_count, row_df)
-}
-
-conc_occ_final <- arrange(conc_occ_count, date)
-
-```
-
-
-# Match image records with CTD metadata and seascapes
-```{r}
 # Directory where the CTD metadata is located
 dir_path2 <- "~/enriquemontes01@gmail.com - Google Drive/My Drive/GDrive/OCED_AOML/WS_cruises/plankton_imaging/CPICS/ws_cruise_ctd/"
 file_name <- list.files(path = dir_path2, pattern = ".csv", full.names = TRUE)
 ctd_meta <- read.csv(file_name, fill = TRUE)
 
-dt_list <- ctd_meta$GMT.datetime
+dt_list <- ctd_meta$GMT.datetime %>% as.POSIXct(unique_all, format="%Y%m%d_%H%M", tz="UTC")
+            
+# Create empty data frame to store results
+conc_occ_final <- data.frame(date = character(), count = numeric())
 
-conc_event <- data.frame()
+# Iterate over dt_list intervals
+for (i in 1:(length(dt_list))) {
+  
+  # Subset A for dates within current interval
+  acantha_subset <- subset(class.Acantharea, date >= dt_list[i] & date < dt_list[i+1]) 
+    acantha_count <- nrow(acantha_subset)
+  centric_subset <- subset(class.Centric, date >= dt_list[i] & date < dt_list[i+1])
+    centric_count <- nrow(centric_subset)
+  ceratium_subset <- subset(class.Ceratium, date >= dt_list[i] & date < dt_list[i+1])
+    ceratium_count <- nrow(ceratium_subset)
+  chaetoceros_subset <- subset(class.Chaetoceros, date >= dt_list[i] & date < dt_list[i+1])
+    chaetoceros_count <- nrow(chaetoceros_subset)    
+  chaetog_subset <- subset(class.Chaetognaths, date >= dt_list[i] & date < dt_list[i+1])
+    chaetog_count <- nrow(chaetog_subset)
+  chain1_subset <- subset(class.Chain2, date >= dt_list[i] & date < dt_list[i+1])
+    chain1_count <- nrow(chain1_subset)
+  chain2_subset <- subset(class.Chain3, date >= dt_list[i] & date < dt_list[i+1])
+    chain2_count <- nrow(chain2_subset) 
+  chain3_subset <- subset(class.Chain4, date >= dt_list[i] & date < dt_list[i+1])
+    chain3_count <- nrow(chain3_subset)
+  clado_subset <- subset(class.Cladocera, date >= dt_list[i] & date < dt_list[i+1])
+    clado_count <- nrow(clado_subset) 
+  copepod_subset <- subset(class.Copepods, date >= dt_list[i] & date < dt_list[i+1])
+    copepod_count <- nrow(copepod_subset) 
+  deca_subset <- subset(class.Decapods, date >= dt_list[i] & date < dt_list[i+1])
+    deca_count <- nrow(deca_subset) 
+  echino_subset <- subset(class.Echinoderms, date >= dt_list[i] & date < dt_list[i+1])
+    echino_count <- nrow(echino_subset) 
+  euc_subset <- subset(class.Eucampia, date >= dt_list[i] & date < dt_list[i+1])
+    euc_count <- nrow(euc_subset)   
+  jel_subset <- subset(class.Jellies, date >= dt_list[i] & date < dt_list[i+1])
+    jel_count <- nrow(jel_subset)   
+  larv_subset <- subset(class.Larvaceans, date >= dt_list[i] & date < dt_list[i+1])
+    larv_count <- nrow(larv_subset)   
+  nocti_subset <- subset(class.Noctiluca, date >= dt_list[i] & date < dt_list[i+1])
+    nocti_count <- nrow(nocti_subset) 
+  poly_subset <- subset(class.Polychaets, date >= dt_list[i] & date < dt_list[i+1])
+    poly_count <- nrow(poly_subset)   
+  tricho_subset <- subset(class.Tricho, date >= dt_list[i] & date < dt_list[i+1])
+    tricho_count <- nrow(tricho_subset)   
+    
+  # Add date and count to results data frame
+  result <- data.frame(date = dt_list[i], 
+                       Acantharea = acantha_count,
+                       Centric_diatoms = centric_count,
+                       Ceratium_spp = ceratium_count,
+                       Chaetoceros = chaetoceros_count,
+                       Chaetognaths = chaetog_count,
+                       Diatom_chains_1 = chain1_count,
+                       Diatom_chains_2 = chain2_count,
+                       Diatom_chains_3 = chain3_count,
+                       Cladocera = clado_count,
+                       Copepods = copepod_count,
+                       Decapods = deca_count,
+                       Echinoderms = echino_count,
+                       Eucampia_spp = euc_count,
+                       Jellies = jel_count,
+                       Larvaeceans = larv_count,
+                       Noctiluca_sp = nocti_count,
+                       Polychaetes = poly_count,
+                       Trichodesmium_spp = tricho_count)
+  conc_occ_final <- do.call(rbind, list(conc_occ_final, result))
+} 
 
-for ( t in seq_along(dt_list)){
-  event <- str_count(conc_occ_final$occ_datetime_str, dt_list[t])
-  # event <- subset(conc_occ_final, conc_occ_final$date >= dt_list2[1] & conc_occ_final$date < dt_list2[2])
-  idx_event <- which(event == 1, arr.ind = TRUE)
-  occ_row <- conc_occ_final[idx_event, ]
-  event_meta <- ctd_meta[idx_event, ]
-  conc_event <- rbind(conc_event, occ_row)
-}
+taxa_meta <- cbind(ctd_meta, conc_occ_final)
 
-taxa_meta <- cbind(ctd_meta, conc_event)
 ```
 
 # Generate plots 
@@ -172,7 +137,7 @@ df_filtered$X8.day.seascapes <- as.character(df_filtered$X8.day.seascapes)
 # Plot
 # See https://cran.r-project.org/web/packages/viridis/vignettes/intro-to-viridis.html for color palette options
 pp <- df_filtered %>%
-  ggplot( aes(x=X8.day.seascapes, y=Avg.chl.a..ug.L., fill=X8.day.seascapes)) +
+  ggplot( aes(x=X8.day.seascapes, y=NO3.NO2..uM., fill=X8.day.seascapes)) +
     geom_boxplot() +
     scale_fill_viridis(option="plasma", discrete = TRUE, alpha=0.6) +
     geom_jitter(color="black", size=0.8, alpha=0.9) +
@@ -193,7 +158,8 @@ pp <- df_filtered %>%
     ) +
     # ggtitle("A boxplot with jitter") +
     # theme(axis.text.x = element_text(angle = 45)) +
-    theme(axis.text.x = element_text(size = 32),  # Set X-axis label font size
+  ylim(0, 0.25) +  
+  theme(axis.text.x = element_text(size = 32),  # Set X-axis label font size
           axis.text.y = element_text(size = 32)) +
     theme(axis.title.x = element_text(size = 18),
           axis.title.y = element_text(size = 18)) +
@@ -205,21 +171,8 @@ pp
 ```{r}
 # convert abundance columns to relative abundance
 
-# copepods: col 33
-# larvae: col 38
-# polychaetes: 40
-# jellies: col 37
-# acantha: col 24
-# eucampia: col 36
-# nocti: col 39
-# tricho: col 41
-# chain1: col 27
-# chaetoceros: col 37
-# X8.day.seascapes: col 20
-
-df_subset <- df_filtered[ , c(20, 24, 27, 29, 33, 36, 37, 38, 39, 40, 41)] # subsets taxa
-# df_subset[, 2:11] <- df_subset[, 2:11] / rowSums(df_subset[, 2:11]) # computes relative abund
-# df_subset <-  df_subset[complete.cases(df_subset), ] # remove rows with nan
+# df_subset <- df_filtered[ , c(20, 24, 27, 29, 33, 36, 37, 38, 39, 40, 41)] # subsets taxa when using strings
+df_subset <- df_filtered[ , c(20, 23, 26, 28, 32, 35, 36, 37, 38, 39, 40)] # subsets taxa when using dates
 
 # reshape the data to long format
 df_long <- tidyr::gather(df_subset, key = "Species", value = "Abundance", -X8.day.seascapes)
@@ -287,4 +240,133 @@ ff <- ggplot(shannon_df, aes(x = X8.day.seascapes, y = shannon, fill = X8.day.se
   theme(legend.text = element_text(size = 32)) +
   guides(fill = FALSE)
 ff
+```
+
+
+# Match file name with string ID
+```{r}
+# library(tidyverse)
+# library(lubridate)
+# library(dplyr)
+# 
+# # extract relevant part of the strings
+# df <- rbind(class.Copepods,
+#             class.Eucampia,
+#             class.Noctiluca,
+#             class.Polychaets,
+#             class.Acantharea,
+#             class.Centric,
+#             class.Ceratium,
+#             class.Chaetoceros,
+#             class.Chain2,
+#             class.Chain3,
+#             class.Chain4,
+#             class.Cladocera,
+#             class.Jellies,
+#             class.Larvaceans,
+#             class.pellets)
+# sub_strings <- substr(df$V1, start = 10, stop = 22)
+# unique_all <- unique(sub_strings)
+# 
+# # select unique dates (this allows to search CTD records per date and time)
+# # To find unique dates and times to extract CDT data use: unique_all[grepl("20221209", unique_all)]
+# 
+# id_list <- unique_all
+# id_list2  <- as.POSIXct(id_list, format="%Y%m%d_%H%M", tz="UTC")
+# 
+# conc_occ_count <- data.frame(date = as.Date(character()), stringsAsFactors = FALSE)
+# 
+# for ( i in seq_along(id_list)){
+#   acantha <- as.data.frame(str_count(class.Acantharea$V1, id_list[i]))
+#   centric <- as.data.frame(str_count(class.Centric$V1, id_list[i]))
+#   ceratium <- as.data.frame(str_count(class.Ceratium$V1, id_list[i]))
+#   chaetoceros <- as.data.frame(str_count(class.Chaetoceros$V1, id_list[i]))
+#   chaetog <- as.data.frame(str_count(class.Chaetognaths$V1, id_list[i]))
+#   chain2 <- as.data.frame(str_count(class.Chain2$V1, id_list[i]))
+#   chain3 <- as.data.frame(str_count(class.Chain3$V1, id_list[i]))
+#   chain4 <- as.data.frame(str_count(class.Chain4$V1, id_list[i]))
+#   clado <- as.data.frame(str_count(class.Cladocera$V1, id_list[i]))
+#   copepods <- as.data.frame(str_count(class.Copepods$V1, id_list[i]))
+#   decapod <- as.data.frame(str_count(class.Decapods$V1, id_list[i]))
+#   echino <- as.data.frame(str_count(class.Echinoderms$V1, id_list[i]))
+#   eucampia <- as.data.frame(str_count(class.Eucampia$V1, id_list[i]))
+#   jellies <- as.data.frame(str_count(class.Jellies$V1, id_list[i]))
+#   larvae <- as.data.frame(str_count(class.Larvaceans$V1, id_list[i]))
+#   nocti <- as.data.frame(str_count(class.Noctiluca$V1, id_list[i]))
+#   polychaetes <- as.data.frame(str_count(class.Polychaets$V1, id_list[i]))
+#   tricho <- as.data.frame(str_count(class.Tricho$V1, id_list[i]))
+# 
+#   Acantharea <- colSums(acantha != 0)
+#   Centric_diatoms <- colSums(centric != 0)
+#   Ceratium_spp <- colSums(ceratium != 0)
+#   Chaetoceros <- colSums(chaetoceros != 0)
+#   Chaetognaths <- colSums(chaetog != 0)
+#   Diatom_chains_1 <- colSums(chain2 != 0)
+#   Diatom_chains_2 <- colSums(chain3 != 0)
+#   Diatom_chains_3 <- colSums(chain4 != 0)
+#   Cladocera <- colSums(clado != 0)
+#   Copepods <- colSums(copepods != 0)
+#   Decapods <- colSums(decapod != 0)
+#   Echinoderms <- colSums(echino != 0)
+#   Eucampia_spp <- colSums(eucampia != 0)
+#   Jellies<- colSums(jellies != 0)
+#   Larvaeceans <- colSums(larvae != 0)
+#   Noctiluca_sp <- colSums(nocti != 0)
+#   Polychaetes <- colSums(polychaetes != 0)
+#   Trichodesmium_spp <- colSums(tricho != 0)
+# 
+#   # Parse the date-time string with ymd_hm()
+#   occ_datetime  <- as.POSIXct(id_list[i], format="%Y%m%d_%H%M", tz="UTC")
+#   occ_datetime_str <- substr(id_list[i], 1, 13)
+# 
+#   row_df <- data.frame(date = occ_datetime, occ_datetime_str,
+#                        Acantharea,
+#                        Centric_diatoms,
+#                        Ceratium_spp,
+#                        Chaetoceros,
+#                        Chaetognaths,
+#                        Diatom_chains_1,
+#                        Diatom_chains_2,
+#                        Diatom_chains_3,
+#                        Cladocera,
+#                        Copepods,
+#                        Decapods,
+#                        Echinoderms,
+#                        Eucampia_spp,
+#                        Jellies,
+#                        Larvaeceans,
+#                        Noctiluca_sp,
+#                        Polychaetes,
+#                        Trichodesmium_spp
+#                        )
+#   rownames(row_df) <- i
+# 
+#   conc_occ_count <- rbind(conc_occ_count, row_df)
+# }
+# 
+# conc_occ_final <- arrange(conc_occ_count, date)
+
+```
+
+
+# Match image records with CTD metadata and seascapes (use with strings matching)
+```{r}
+# # Directory where the CTD metadata is located
+# dir_path2 <- "~/enriquemontes01@gmail.com - Google Drive/My Drive/GDrive/OCED_AOML/WS_cruises/plankton_imaging/CPICS/ws_cruise_ctd/"
+# file_name <- list.files(path = dir_path2, pattern = ".csv", full.names = TRUE)
+# ctd_meta <- read.csv(file_name, fill = TRUE)
+# 
+# dt_list <- ctd_meta$GMT.datetime
+# 
+# conc_event <- data.frame()
+# 
+# for ( t in seq_along(dt_list)){
+#   event <- str_count(conc_occ_final$occ_datetime_str, dt_list[t])
+#   idx_event <- which(event == 1, arr.ind = TRUE)
+#   occ_row <- conc_occ_final[idx_event, ]
+#   event_meta <- ctd_meta[idx_event, ]
+#   conc_event <- rbind(conc_event, occ_row)
+# }
+# 
+# taxa_meta <- cbind(ctd_meta, conc_event)
 ```
