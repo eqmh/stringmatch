@@ -244,10 +244,12 @@ ff
 
 # PC plot
 ```{r}
+library(ggalt)
+
 # Perform principal component analysis on the count data
 # pca <- prcomp(df_subset[, 2:11], scale. = TRUE) # for taxonomic analysis 
 filt_df <- taxa_meta[1:82, ]
-pca <- prcomp(filt_df[, 8:11], scale. = TRUE) # for hydrography
+pca <- prcomp(filt_df[, c(8,9,11,12)], scale. = TRUE) # for hydrography
 
 # Extract PC1 and PC2 scores for each sampling event
 # pc_scores <- data.frame(seascape = df_subset$X8.day.seascapes, # for taxonomic analysis 
@@ -259,6 +261,13 @@ pc_scores <- data.frame(seascape = as.character(filt_df$X8.day.seascapes), # for
 ggplot(pc_scores, aes(x = PC1, y = PC2, color = seascape)) + 
   geom_point() +
   labs(x = "PC1", y = "PC2", color = "Seascape") 
+
+# add circle around cluster of data points
+ggplot(pc_scores, aes(x = PC1, y = PC2, color = seascape)) + 
+  geom_point() +
+  stat_ellipse(level = 0.95, geom = "polygon", alpha = 0.2) +
+  scale_color_viridis(option = "plasma", discrete = TRUE, alpha = 0.6) +
+  theme_classic()
 ```
 
 
