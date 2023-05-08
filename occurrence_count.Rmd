@@ -245,10 +245,13 @@ ff
 # PC plot
 ```{r}
 # Perform principal component analysis on the count data
-pca <- prcomp(df_subset[, 2:11], scale. = TRUE)
+# pca <- prcomp(df_subset[, 2:11], scale. = TRUE) # for taxonomic analysis 
+filt_df <- taxa_meta[1:82, ]
+pca <- prcomp(filt_df[, 8:11], scale. = TRUE) # for hydrography
 
 # Extract PC1 and PC2 scores for each sampling event
-pc_scores <- data.frame(seascape = df_subset$X8.day.seascapes, 
+# pc_scores <- data.frame(seascape = df_subset$X8.day.seascapes, # for taxonomic analysis 
+pc_scores <- data.frame(seascape = as.character(filt_df$X8.day.seascapes), # for hydrography
                         PC1 = pca$x[, 1], 
                         PC2 = pca$x[, 2])
 
