@@ -9,7 +9,7 @@ output: html_notebook
 library(dplyr)
 
 # specify the directory where the files are located
-dir_path <- "~/enriquemontes01@gmail.com - Google Drive/My Drive/GDrive/OCED_AOML/WS_cruises/plankton_imaging/CPICS/TS.Master/"
+dir_path <- "~/enriquemontes01@gmail.com - Google Drive/My Drive/GDrive/OCED_AOML/WS_cruises/plankton_imaging/CPICS/TS.Master_selection/"
 
 # obtain a list of file names in the directory
 file_names <- list.files(path = dir_path, pattern = ".txt", full.names = TRUE)
@@ -38,7 +38,7 @@ library(dplyr)
 
 # Directory where the CTD metadata is located
 dir_path2 <- "~/enriquemontes01@gmail.com - Google Drive/My Drive/GDrive/OCED_AOML/WS_cruises/plankton_imaging/CPICS/ws_cruise_ctd/"
-file_name <- list.files(path = dir_path2, pattern = ".csv", full.names = TRUE)
+file_name <- list.files(path = dir_path2, pattern = "ctd_meta_v2.csv", full.names = TRUE)
 ctd_meta <- read.csv(file_name, fill = TRUE)
 
 dt_list <- ctd_meta$GMT.datetime %>% as.POSIXct(unique_all, format="%Y%m%d_%H%M", tz="UTC")
@@ -137,7 +137,7 @@ df_filtered$X8.day.seascapes <- as.character(df_filtered$X8.day.seascapes)
 # Plot
 # See https://cran.r-project.org/web/packages/viridis/vignettes/intro-to-viridis.html for color palette options
 pp <- df_filtered %>%
-  ggplot( aes(x=X8.day.seascapes, y=NO3.NO2..uM., fill=X8.day.seascapes)) +
+  ggplot( aes(x=X8.day.seascapes, y=Avg.chl.a..ug.L., fill=X8.day.seascapes)) +
     geom_boxplot() +
     scale_fill_viridis(option="plasma", discrete = TRUE, alpha=0.6) +
     geom_jitter(color="black", size=0.8, alpha=0.9) +
@@ -158,7 +158,7 @@ pp <- df_filtered %>%
     ) +
     # ggtitle("A boxplot with jitter") +
     # theme(axis.text.x = element_text(angle = 45)) +
-  ylim(0, 0.25) +  
+  ylim(0, 10) +  
   theme(axis.text.x = element_text(size = 32),  # Set X-axis label font size
           axis.text.y = element_text(size = 32)) +
     theme(axis.title.x = element_text(size = 18),
