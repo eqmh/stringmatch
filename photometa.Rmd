@@ -1,0 +1,28 @@
+---
+title: "photometa"
+output: html_document
+date: "2023-08-28"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Install packages
+```{r cars}
+# install.packages("magick")
+library(magick)
+```
+
+## Including Plots
+```{r pressure, echo=FALSE}
+# PNG image
+image_path <- "20230306_161549.635.0.png"
+
+# Load the PNG image from URL
+image <- image_read(image_path)
+
+# Get metadata
+metadata1 <- image_info(image)
+```
+
