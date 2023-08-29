@@ -5,7 +5,7 @@ date: "2023-08-28"
 ---
 
 ## Install packages and load libraries
-```{r cars}
+```{r, echo=FALSE}
 # install.packages("magick")
 library(magick)
 library(tidyverse)
@@ -51,7 +51,7 @@ ctd_meta <- read.csv(file_name, fill = TRUE) %>%
   mutate(GMT.datetime = as.POSIXct(GMT.datetime, format="%Y%m%d_%H%M", tz="UTC"))
 
 # Convert data frames to data.tables
-class_dt <- as.data.table(class.Acantharea) %>% rename(datetime = date)
+class_dt <- as.data.table(class.Decapods) %>% rename(datetime = date)
 class_dt <- class_dt %>% rename(filenameID = V1)
 
 # Initialize an empty list to store results
