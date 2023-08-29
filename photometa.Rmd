@@ -4,18 +4,18 @@ output: html_document
 date: "2023-08-28"
 ---
 
-```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
-```
-
-## Install packages
+## Install packages and load libraries
 ```{r cars}
 # install.packages("magick")
 library(magick)
+library(tidyverse)
+library(lubridate)
+library(dplyr)
+library(data.table)
 ```
 
-## Including Plots
-```{r pressure, echo=FALSE}
+## Extract metada from images
+```{r, echo=FALSE}
 # PNG image
 image_path <- "20230306_161549.635.0.png"
 
@@ -24,5 +24,62 @@ image <- image_read(image_path)
 
 # Get metadata
 metadata1 <- image_info(image)
+```
+
+## Load taxa lists
+```{r, echo=FALSE}
+# specify the directory where the files are located
+dir_path <- "~/enriquemontes01@gmail.com - Google Drive/My Drive/GDrive/OCED_AOML/WS_cruises/plankton_imaging/CPICS/TS.Master_selection/"
+
+# obtain a list of file names in the directory
+file_names <- list.files(path = dir_path, pattern = ".txt", full.names = TRUE)
+
+# loop over each file and import the tables (use this for DATES)
+for (file in file_names) {
+  table_name <- gsub(".txt", "", basename(file)) # get the name of the table from the file name
+  assign(table_name, read.table(file = file, header = FALSE, sep = "\t") %>%
+           mutate(date = as.POSIXct(substr(V1, start = 24, stop = 36), format="%Y%m%d_%H%M", tz="UTC")))
+}
+```
+
+## Create table
+```{r}
+# Directory where the CTD metadata is located
+dir_path2 <- "~/enriquemontes01@gmail.com - Google Drive/My Drive/GDrive/OCED_AOML/WS_cruises/plankton_imaging/CPICS/ws_cruise_ctd/"
+file_name <- list.files(path = dir_path2, pattern = "ctd_meta_v2.csv", full.names = TRUE)
+ctd_meta <- read.csv(file_name, fill = TRUE) %>%
+  mutate(GMT.datetime = as.POSIXct(GMT.datetime, format="%Y%m%d_%H%M", tz="UTC"))
+
+# Convert data frames to data.tables
+class_dt <- as.data.table(class.Acantharea) %>% rename(datetime = date)
+class_dt <- class_dt %>% rename(filenameID = V1)
+
+# Initialize an empty list to store results
+result_list <- list()
+
+# Iterate over each row in class_dt
+for (i in seq_len(nrow(class_dt))) {
+  # Find the index of the closest datetime in ctd_meta
+  closest_index <- which.min(abs(ctd_meta$GMT.datetime - class_dt$datetime[i]))
+  
+  # Extract corresponding data from ctd_meta
+  result <- data.table(
+    filenameID = class_dt$filenameID[i],
+    date = as.Date(ctd_meta$GMT.datetime[closest_index]),
+    time = format(ctd_meta$GMT.datetime[closest_index], format = "%H:%M:%S"),
+    latitude = ctd_meta$dec_lat[closest_index],
+    longitude = ctd_meta$dec_lon[closest_index]
+  )
+  
+  # Append the result to the result list
+  result_list[[i]] <- result
+}
+
+# Combine all results into a single data table
+final_table <- rbindlist(result_list)
+
+# Print the final table
+print(final_table)
+
 ```
 
