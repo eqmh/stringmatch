@@ -14,18 +14,6 @@ library(dplyr)
 library(data.table)
 ```
 
-## Extract metada from images
-```{r, echo=FALSE}
-# PNG image
-image_path <- "20230306_161549.635.0.png"
-
-# Load the PNG image from URL
-image <- image_read(image_path)
-
-# Get metadata
-metadata1 <- image_info(image)
-```
-
 ## Load taxa lists
 ```{r, echo=FALSE}
 # specify the directory where the files are located
@@ -38,11 +26,60 @@ file_names <- list.files(path = dir_path, pattern = ".txt", full.names = TRUE)
 for (file in file_names) {
   table_name <- gsub(".txt", "", basename(file)) # get the name of the table from the file name
   assign(table_name, read.table(file = file, header = FALSE, sep = "\t") %>%
-           mutate(date = as.POSIXct(substr(V1, start = 24, stop = 36), format="%Y%m%d_%H%M", tz="UTC")))
+           mutate(date = as.POSIXct(substr(V1, start = 24, stop = 38), format="%Y%m%d_%H%M%S", tz="UTC")))
 }
 ```
 
-## Create table
+## Extract metada from images
+```{r, echo=FALSE}
+# # PNG image
+# image_path <- "~/Desktop/20230305_050036.630.0.png"
+# 
+# # Load the PNG image
+# image <- image_read(image_path)
+# 
+# # Get metadata
+# metadata1 <- image_info(image)
+# print(metadata1)
+
+# Set path directory
+path_to_files <- "~/Desktop/test_pngs/"
+setwd(path_to_files)
+
+# 'filename_list' is a data frame with a column named 'img_file_name'
+filename_list <- class.Decapods %>% rename(img_file_name = V1)
+
+# Initialize a list to store metadata
+metadata_list <- list()
+
+# Iterate through each row in 'filename_list'
+for (row in 1:nrow(filename_list)) {
+  filename <- filename_list[row, "img_file_name"]
+  
+  # Construct the full path to the image file in directory
+  full_path <- file.path(path_to_files, filename)
+  
+  # Check if the file exists
+  if (file.exists(full_path)) {
+    # Read metadata using image_read function from magick
+    img <- image_read(full_path)
+    metadata <- image_info(img)
+    
+    # Append metadata to the list
+    metadata_list[[row]] <- c(filename = filename, metadata)
+  } else {
+    cat("File not found:", full_path, "\n")
+  }
+}
+
+# Convert the list of metadata to a data frame
+metadata_df <- do.call(rbind, metadata_list)
+
+# Print the resulting metadata data frame
+print(metadata_df)
+```
+
+## Match images to cruise data
 ```{r}
 # Directory where the CTD metadata is located
 dir_path2 <- "~/enriquemontes01@gmail.com - Google Drive/My Drive/GDrive/OCED_AOML/WS_cruises/plankton_imaging/CPICS/ws_cruise_ctd/"
@@ -52,7 +89,7 @@ ctd_meta <- read.csv(file_name, fill = TRUE) %>%
 
 # Convert data frames to data.tables
 class_dt <- as.data.table(class.Decapods) %>% rename(datetime = date)
-class_dt <- class_dt %>% rename(filenameID = V1)
+class_dt <- class_dt %>% rename(img_file_name = V1)
 
 # Initialize an empty list to store results
 result_list <- list()
@@ -64,12 +101,28 @@ for (i in seq_len(nrow(class_dt))) {
   
   # Extract corresponding data from ctd_meta
   result <- data.table(
-    filenameID = class_dt$filenameID[i],
-    date = as.Date(ctd_meta$GMT.datetime[closest_index]),
-    time = format(ctd_meta$GMT.datetime[closest_index], format = "%H:%M:%S"),
+    img_file_name = class_dt$img_file_name[i],
+    object_id = substr(class_dt$img_file_name[i], start = 24, stop = 44),
+    object_speciesID = "decapoda",
+    object_date = gsub("-", "", as.Date(class_dt$datetime[i])),
+    object_time = format(class_dt$datetime[i], format = "%H%M%S"),
+    cruiseID = ctd_meta$cruiseID[closest_index],
+    ctd_date = gsub("-", "", as.Date(ctd_meta$GMT.datetime[closest_index])),
+    ctd_time = format(ctd_meta$GMT.datetime[closest_index], format = "%H%M%S"),
     station = ctd_meta$Station[closest_index],
-    latitude = ctd_meta$dec_lat[closest_index],
-    longitude = ctd_meta$dec_lon[closest_index]
+    object_lat = ctd_meta$dec_lat[closest_index],
+    object_lon = ctd_meta$dec_lon[closest_index],
+    object_depth_min = 0,
+    object_depth_max = ctd_meta$depth_max[closest_index],
+    temp_degC = ctd_meta$temp..degC.[closest_index],
+    salinity = ctd_meta$salinity[closest_index],
+    chl_a = ctd_meta$Avg.chl.a..ug.L.[closest_index],
+    do = ctd_meta$DO..mg.L.[closest_index],
+    nitrate = ctd_meta$NO3....uM.[closest_index],
+    phosphate = ctd_meta$PO4...uM.[closest_index],
+    silicate = ctd_meta$Si.....uM.[closest_index],
+    seascape.8day = ctd_meta$X8.day.seascapes[closest_index],
+    seascape.monthly = ctd_meta$monthly.seascapes[closest_index]
   )
   
   # Append the result to the result list
@@ -84,3 +137,12 @@ print(final_table)
 
 ```
 
+## Merge cruise data and image metadata
+```{r, echo=FALSE}
+# Append selected columns to dfB
+dfB <- cbind(final_table, metadata_df)
+
+# Print the resulting data frame
+print(dfB)
+
+```
