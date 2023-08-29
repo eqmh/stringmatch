@@ -67,6 +67,7 @@ for (i in seq_len(nrow(class_dt))) {
     filenameID = class_dt$filenameID[i],
     date = as.Date(ctd_meta$GMT.datetime[closest_index]),
     time = format(ctd_meta$GMT.datetime[closest_index], format = "%H:%M:%S"),
+    station = ctd_meta$Station[closest_index],
     latitude = ctd_meta$dec_lat[closest_index],
     longitude = ctd_meta$dec_lon[closest_index]
   )
