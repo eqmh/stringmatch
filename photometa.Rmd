@@ -12,6 +12,8 @@ library(tidyverse)
 library(lubridate)
 library(dplyr)
 library(data.table)
+library(hrbrthemes)
+library(viridis)
 ```
 
 ## Load taxa lists
@@ -145,4 +147,68 @@ dfB <- cbind(final_table, metadata_df)
 # Print the resulting data frame
 print(dfB)
 
+```
+
+# Generate plots 
+```{r}
+library(tidyverse)
+library(hrbrthemes)
+library(viridis)
+
+# set RGB values for the plots
+r_vals <- round(c(0, 0, 0, 0.125, 0.375, 1, 1) * 255, 0)
+g_vals <- round(c(0, 0.375, 0.875, 1, 1, 0.875, 0.125) * 255, 0)
+b_vals <- round(c(0.875, 1, 1, 0.875, 0.625, 0, 0) * 255, 0)
+custom_pal <- cbind(r_vals, g_vals, b_vals)
+custom_pal_hex <- rgb(custom_pal[, 1], custom_pal[, 2], custom_pal[, 3], maxColorValue=255)
+# pal_final <- c(custom_pal_hex[3], custom_pal_hex[4], custom_pal_hex[5], )
+
+# filter out rows with NA values in column seascapes
+df_filtered <- final_table[complete.cases(final_table$seascape.8day),]
+
+# Convert the 'x' column to character
+df_filtered$seascape.8day <- as.character(df_filtered$seascape.8day)
+
+# Variables
+# Avg.chl.a..ug.L.
+# salinity
+# NH4...uM.
+# NO3.NO2..uM.
+# DO..mg.L.
+# temp..degC.
+
+# Plot
+# See https://cran.r-project.org/web/packages/viridis/vignettes/intro-to-viridis.html for color palette options
+pp <- df_filtered %>%
+  ggplot( aes(x=seascape.8day, y=nitrate, fill=seascape.8day)) +
+    geom_boxplot() +
+    # scale_fill_viridis(option="H", discrete = TRUE, alpha=0.6) +
+    scale_fill_manual(values = custom_pal_hex) +
+    geom_jitter(color="black", size=0.8, alpha=0.9) +
+    labs(x = "Seascape class") +
+    # labs(y = expression("[Chl-a] (mg/L)")) +
+    # labs(y = expression("Salinity")) +
+    # labs(y = expression(paste("Temperature (", degree, "C) at 1 m depth"))) +
+    # labs(y = expression("DO (mg/L)")) +
+    labs(y = expression("NO"["x"] ~ mu*"M")) +
+    # theme(axis.title.y = element_text(hjust = 1))
+    # scale_x_discrete(labels= c("Tropical/Subtropical Upwelling", 
+    #                          "Tropical Seas", 
+    #                          "Warm, Blooms, High Nuts", 
+    #                          "Tropical/Subtropical Transition", 
+    #                          "Temperate Transition")) +
+    theme_ipsum() +
+    theme(
+      legend.position="none",
+      plot.title = element_text(size=11)
+    ) +
+    # ggtitle("A boxplot with jitter") +
+    # theme(axis.text.x = element_text(angle = 45)) +
+  ylim(0, 0.2) +  
+  theme(axis.text.x = element_text(size = 32),  # Set X-axis label font size
+          axis.text.y = element_text(size = 32)) +
+    theme(axis.title.x = element_text(size = 18),
+          axis.title.y = element_text(size = 18)) +
+    theme(legend.text = element_text(size = 32)) 
+pp
 ```
