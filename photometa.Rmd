@@ -14,6 +14,8 @@ library(dplyr)
 library(data.table)
 library(hrbrthemes)
 library(viridis)
+library(magrittr)
+library(data.table)
 ```
 
 ## Load taxa lists
@@ -32,7 +34,7 @@ for (file in file_names) {
 }
 ```
 
-## Extract metada from images
+## Extract metada from images for individual taxa lists
 ```{r, echo=FALSE}
 # # PNG image
 # image_path <- "~/Desktop/20230305_050036.630.0.png"
@@ -81,7 +83,59 @@ metadata_df <- do.call(rbind, metadata_list)
 print(metadata_df)
 ```
 
-## Match images to cruise data
+
+## Extract metada from images looping through all taxa lists
+```{r, echo=FALSE}
+# Set path directory
+path_to_files <- "~/Desktop/test_pngs/"
+setwd(path_to_files)
+
+# List of data frames
+data_frame_names <- ls(pattern = "^class\\.")  # Get all data frames starting with "class."
+
+# Initialize a list to store metadata
+metadata_list <- list()
+
+# Loop through each data frame
+for (df_name in data_frame_names) {
+  # Get the data frame using the name
+  current_df <- get(df_name)
+  
+  # Rename filename column if needed
+  current_df <- current_df %>% rename(img_file_name = V1)
+  
+  # Get the data frame name without the "class." prefix
+  df_name_without_prefix <- sub("^class\\.", "", df_name)
+  
+  # Iterate through each row in the data frame
+  for (row in 1:nrow(current_df)) {
+    filename <- current_df[row, "img_file_name"]
+    
+    # Construct the full path to the image file in directory
+    full_path <- file.path(path_to_files, filename)
+    
+    # Check if the file exists
+    if (file.exists(full_path)) {
+      # Read metadata using image_read function from magick
+      img <- image_read(full_path)
+      metadata <- image_info(img)
+      
+      # Append metadata to the list along with data frame name
+      metadata_list[[length(metadata_list) + 1]] <- c(filename = filename, 
+                                                     data_frame = df_name_without_prefix,
+                                                     metadata)
+    } else {
+      cat("File not found:", full_path, "\n")
+    }
+  }
+}
+
+# Combine metadata from all data frames into a single data frame
+metadata_df2 <- bind_rows(metadata_list)
+
+```
+
+## Match images to cruise data with a single taxon list
 ```{r}
 # Directory where the CTD metadata is located
 dir_path2 <- "~/enriquemontes01@gmail.com - Google Drive/My Drive/GDrive/OCED_AOML/WS_cruises/plankton_imaging/CPICS/ws_cruise_ctd/"
@@ -139,6 +193,74 @@ print(final_table)
 
 ```
 
+
+## Match images to cruise data with all taxa lists
+```{r, echo=FALSE}
+# Directory where the CTD metadata is located
+dir_path2 <- "~/enriquemontes01@gmail.com - Google Drive/My Drive/GDrive/OCED_AOML/WS_cruises/plankton_imaging/CPICS/ws_cruise_ctd/"
+file_name <- list.files(path = dir_path2, pattern = "ctd_meta_v2.csv", full.names = TRUE)
+ctd_meta <- read.csv(file_name, fill = TRUE) %>%
+  mutate(GMT.datetime = as.POSIXct(GMT.datetime, format="%Y%m%d_%H%M", tz="UTC"))
+
+# List of data frame names
+data_frame_names <- ls(pattern = "^class\\.")
+
+# Initialize an empty list to store results
+result_list <- list()
+
+# Iterate over each data frame
+for (df_name in data_frame_names) {
+  # Get the data frame using the name
+  current_df <- get(df_name)
+  
+  # Rename columns if needed
+  current_df <- current_df %>% rename(datetime = date, img_file_name = V1)
+  
+  # Extract the species ID from data_frame_name
+  object_speciesID <- sub("^class\\.", "", df_name)
+  
+  # Iterate over each row in the data frame
+  for (i in seq_len(nrow(current_df))) {
+    # Find the index of the closest datetime in ctd_meta
+    closest_index <- which.min(abs(ctd_meta$GMT.datetime - current_df$datetime[i]))
+    
+    # Extract corresponding data from ctd_meta
+    result <- data.table(
+      img_file_name = current_df$img_file_name[i],
+      object_id = substr(current_df$img_file_name[i], start = 24, stop = 44),
+      object_speciesID = object_speciesID,  # Use the extracted object_speciesID
+      object_date = gsub("-", "", as.Date(current_df$datetime[i])),
+      object_time = format(current_df$datetime[i], format = "%H%M%S"),
+      cruiseID = ctd_meta$cruiseID[closest_index],
+      ctd_date = gsub("-", "", as.Date(ctd_meta$GMT.datetime[closest_index])),
+      ctd_time = format(ctd_meta$GMT.datetime[closest_index], format = "%H%M%S"),
+      station = ctd_meta$Station[closest_index],
+      object_lat = ctd_meta$dec_lat[closest_index],
+      object_lon = ctd_meta$dec_lon[closest_index],
+      object_depth_min = 0,
+      object_depth_max = ctd_meta$depth_max[closest_index],
+      temp_degC = ctd_meta$temp..degC.[closest_index],
+      salinity = ctd_meta$salinity[closest_index],
+      chl_a = ctd_meta$Avg.chl.a..ug.L.[closest_index],
+      do = ctd_meta$DO..mg.L.[closest_index],
+      nitrate = ctd_meta$NO3....uM.[closest_index],
+      phosphate = ctd_meta$PO4...uM.[closest_index],
+      silicate = ctd_meta$Si.....uM.[closest_index],
+      seascape.8day = ctd_meta$X8.day.seascapes[closest_index],
+      seascape.monthly = ctd_meta$monthly.seascapes[closest_index]
+    )
+    
+    # Append the result to the result list
+    result_list[[length(result_list) + 1]] <- result
+  }
+}
+
+# Combine all results into a single data table
+final_table2 <- rbindlist(result_list)
+
+```
+
+
 ## Merge cruise data and image metadata
 ```{r, echo=FALSE}
 # Append selected columns to dfB
@@ -164,10 +286,10 @@ custom_pal_hex <- rgb(custom_pal[, 1], custom_pal[, 2], custom_pal[, 3], maxColo
 # pal_final <- c(custom_pal_hex[3], custom_pal_hex[4], custom_pal_hex[5], )
 
 # filter out rows with NA values in column seascapes
-df_filtered <- final_table[complete.cases(final_table$seascape.8day),]
+df_filtered <- ctd_meta[complete.cases(ctd_meta$X8.day.seascapes),]
 
 # Convert the 'x' column to character
-df_filtered$seascape.8day <- as.character(df_filtered$seascape.8day)
+df_filtered$X8.day.seascapes <- as.character(df_filtered$X8.day.seascapes)
 
 # Variables
 # Avg.chl.a..ug.L.
@@ -180,17 +302,17 @@ df_filtered$seascape.8day <- as.character(df_filtered$seascape.8day)
 # Plot
 # See https://cran.r-project.org/web/packages/viridis/vignettes/intro-to-viridis.html for color palette options
 pp <- df_filtered %>%
-  ggplot( aes(x=seascape.8day, y=nitrate, fill=seascape.8day)) +
+  ggplot( aes(x=X8.day.seascapes, y=salinity, fill=X8.day.seascapes)) +
     geom_boxplot() +
     # scale_fill_viridis(option="H", discrete = TRUE, alpha=0.6) +
     scale_fill_manual(values = custom_pal_hex) +
     geom_jitter(color="black", size=0.8, alpha=0.9) +
     labs(x = "Seascape class") +
     # labs(y = expression("[Chl-a] (mg/L)")) +
-    # labs(y = expression("Salinity")) +
+    labs(y = expression("Salinity")) +
     # labs(y = expression(paste("Temperature (", degree, "C) at 1 m depth"))) +
     # labs(y = expression("DO (mg/L)")) +
-    labs(y = expression("NO"["x"] ~ mu*"M")) +
+    # labs(y = expression("NO"["x"] ~ mu*"M")) +
     # theme(axis.title.y = element_text(hjust = 1))
     # scale_x_discrete(labels= c("Tropical/Subtropical Upwelling", 
     #                          "Tropical Seas", 
@@ -204,7 +326,7 @@ pp <- df_filtered %>%
     ) +
     # ggtitle("A boxplot with jitter") +
     # theme(axis.text.x = element_text(angle = 45)) +
-  ylim(0, 0.2) +  
+  ylim(28, 37) +  
   theme(axis.text.x = element_text(size = 32),  # Set X-axis label font size
           axis.text.y = element_text(size = 32)) +
     theme(axis.title.x = element_text(size = 18),
