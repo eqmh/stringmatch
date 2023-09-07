@@ -47,7 +47,7 @@ for (file in file_names) {
 # print(metadata1)
 
 # Set path directory
-path_to_files <- "~/Desktop/test_pngs/"
+path_to_files <- "~/Desktop/cpics_img/"
 setwd(path_to_files)
 
 # 'filename_list' is a data frame with a column named 'img_file_name'
@@ -87,7 +87,7 @@ print(metadata_df)
 ## Extract metada from images looping through all taxa lists
 ```{r, echo=FALSE}
 # Set path directory
-path_to_files <- "~/Desktop/test_pngs/"
+path_to_files <- "~/Desktop/cpics_img/"
 setwd(path_to_files)
 
 # List of data frames
@@ -131,7 +131,7 @@ for (df_name in data_frame_names) {
 }
 
 # Combine metadata from all data frames into a single data frame
-metadata_df2 <- bind_rows(metadata_list)
+metadata_df_all <- bind_rows(metadata_list)
 
 ```
 
@@ -256,7 +256,7 @@ for (df_name in data_frame_names) {
 }
 
 # Combine all results into a single data table
-final_table2 <- rbindlist(result_list)
+final_table_all <- rbindlist(result_list)
 
 ```
 
@@ -264,10 +264,40 @@ final_table2 <- rbindlist(result_list)
 ## Merge cruise data and image metadata
 ```{r, echo=FALSE}
 # Append selected columns to dfB
-dfB <- cbind(final_table, metadata_df)
-
+df_merged <- cbind(final_table_all, metadata_df_all) %>%
+  mutate(across(everything(), as.character))
+# select columns for Ecotaxa table
+df_merged_sel <- df_merged[, c("img_file_name", 
+                               "object_id", 
+                               "object_date",
+                               "object_time",
+                               "cruiseID",
+                               "ctd_date",
+                               "ctd_time",
+                               "station",
+                               "object_lat",
+                               "object_lon",
+                               "object_depth_min",
+                               "object_depth_max",
+                               "format",
+                               "width",
+                               "height",
+                               "colorspace",
+                               "matte",
+                               "filesize",
+                               "density"
+                               )]
+  
 # Print the resulting data frame
-print(dfB)
+print(df_merged_sel)
+
+# Export table
+# - add data format codes; [f] for floats, [t] for text
+format_codes <- c("t", "t", "t", "t", "t", "t", "t", "t", "f", "f", "f", "f", "t", "f", "f", "t", "t", "f", "f")
+ecotaxa_table <- rows_insert(df_merged_sel, format_codes)
+
+# write.csv(df_merged, , row.names=FALSE)
+write.table(ecotaxa_table,"~/Desktop/ecotaxa_sfer-mbon.txt",sep="\t",row.names=FALSE)
 
 ```
 
