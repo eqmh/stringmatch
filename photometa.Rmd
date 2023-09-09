@@ -304,6 +304,7 @@ print(ecotaxa_table)
 # write.csv(df_merged, , row.names=FALSE)
 write.table(ecotaxa_table,"~/Desktop/ecotaxa_sfer-mbon.txt",sep="\t",row.names=FALSE)
 
+# DONE
 ```
 
 # Generate plots 
