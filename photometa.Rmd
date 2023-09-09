@@ -287,14 +287,19 @@ df_merged_sel <- df_merged[, c("img_file_name",
                                "filesize",
                                "density"
                                )]
-  
-# Print the resulting data frame
-print(df_merged_sel)
 
 # Export table
 # - add data format codes; [f] for floats, [t] for text
-format_codes <- c("t", "t", "t", "t", "t", "t", "t", "t", "f", "f", "f", "f", "t", "f", "f", "t", "t", "f", "f")
-ecotaxa_table <- rows_insert(df_merged_sel, format_codes)
+format_codes <- as.data.frame(matrix(c("t", "t", "t", "t", "t", "t", "t", "t", "f", "f", "f", "f", "t", "f", "f", "t", "t", "f", "f"), nrow = 1)) 
+colnames(format_codes) <- colnames(df_merged_sel)
+ecotaxa_table <- rbind(format_codes, df_merged_sel)
+
+# replace column names as needed
+colnames(ecotaxa_table)[which(names(ecotaxa_table) == "colorspace")] <- "color_space"
+colnames(ecotaxa_table)[which(names(ecotaxa_table) == "filesize")] <- "file_size"
+
+# Print the resulting data frame
+print(ecotaxa_table)
 
 # write.csv(df_merged, , row.names=FALSE)
 write.table(ecotaxa_table,"~/Desktop/ecotaxa_sfer-mbon.txt",sep="\t",row.names=FALSE)
