@@ -90,6 +90,12 @@ print(metadata_df)
 path_to_files <- "~/Desktop/cpics_img/"
 setwd(path_to_files)
 
+# Directory for selected images
+selected_dir <- file.path(path_to_files, "selected")
+if (!dir.exists(selected_dir)) {
+  dir.create(selected_dir)
+}
+
 # List of data frames
 data_frame_names <- ls(pattern = "^class\\.")  # Get all data frames starting with "class."
 
@@ -124,6 +130,9 @@ for (df_name in data_frame_names) {
       metadata_list[[length(metadata_list) + 1]] <- c(filename = filename, 
                                                      data_frame = df_name_without_prefix,
                                                      metadata)
+      # Copy the image to the 'selected' directory
+      selected_path <- file.path(selected_dir, basename(filename))
+      file.copy(full_path, selected_path)
     } else {
       cat("File not found:", full_path, "\n")
     }
