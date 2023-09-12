@@ -36,51 +36,51 @@ for (file in file_names) {
 
 ## Extract metada from images for individual taxa lists
 ```{r, echo=FALSE}
-# # PNG image
-# image_path <- "~/Desktop/20230305_050036.630.0.png"
+# # # PNG image
+# # image_path <- "~/Desktop/20230305_050036.630.0.png"
+# # 
+# # # Load the PNG image
+# # image <- image_read(image_path)
+# # 
+# # # Get metadata
+# # metadata1 <- image_info(image)
+# # print(metadata1)
 # 
-# # Load the PNG image
-# image <- image_read(image_path)
+# # Set path directory
+# path_to_files <- "~/Desktop/cpics_img/"
+# setwd(path_to_files)
 # 
-# # Get metadata
-# metadata1 <- image_info(image)
-# print(metadata1)
-
-# Set path directory
-path_to_files <- "~/Desktop/cpics_img/"
-setwd(path_to_files)
-
-# 'filename_list' is a data frame with a column named 'img_file_name'
-filename_list <- class.Decapods %>% rename(img_file_name = V1)
-
-# Initialize a list to store metadata
-metadata_list <- list()
-
-# Iterate through each row in 'filename_list'
-for (row in 1:nrow(filename_list)) {
-  filename <- filename_list[row, "img_file_name"]
-  
-  # Construct the full path to the image file in directory
-  full_path <- file.path(path_to_files, filename)
-  
-  # Check if the file exists
-  if (file.exists(full_path)) {
-    # Read metadata using image_read function from magick
-    img <- image_read(full_path)
-    metadata <- image_info(img)
-    
-    # Append metadata to the list
-    metadata_list[[row]] <- c(filename = filename, metadata)
-  } else {
-    cat("File not found:", full_path, "\n")
-  }
-}
-
-# Convert the list of metadata to a data frame
-metadata_df <- do.call(rbind, metadata_list)
-
-# Print the resulting metadata data frame
-print(metadata_df)
+# # 'filename_list' is a data frame with a column named 'img_file_name'
+# filename_list <- class.Decapods %>% rename(img_file_name = V1)
+# 
+# # Initialize a list to store metadata
+# metadata_list <- list()
+# 
+# # Iterate through each row in 'filename_list'
+# for (row in 1:nrow(filename_list)) {
+#   filename <- filename_list[row, "img_file_name"]
+#   
+#   # Construct the full path to the image file in directory
+#   full_path <- file.path(path_to_files, filename)
+#   
+#   # Check if the file exists
+#   if (file.exists(full_path)) {
+#     # Read metadata using image_read function from magick
+#     img <- image_read(full_path)
+#     metadata <- image_info(img)
+#     
+#     # Append metadata to the list
+#     metadata_list[[row]] <- c(filename = filename, metadata)
+#   } else {
+#     cat("File not found:", full_path, "\n")
+#   }
+# }
+# 
+# # Convert the list of metadata to a data frame
+# metadata_df <- do.call(rbind, metadata_list)
+# 
+# # Print the resulting metadata data frame
+# print(metadata_df)
 ```
 
 
@@ -146,59 +146,59 @@ metadata_df_all <- bind_rows(metadata_list)
 
 ## Match images to cruise data with a single taxon list
 ```{r}
-# Directory where the CTD metadata is located
-dir_path2 <- "~/enriquemontes01@gmail.com - Google Drive/My Drive/GDrive/OCED_AOML/WS_cruises/plankton_imaging/CPICS/ws_cruise_ctd/"
-file_name <- list.files(path = dir_path2, pattern = "ctd_meta_v2.csv", full.names = TRUE)
-ctd_meta <- read.csv(file_name, fill = TRUE) %>%
-  mutate(GMT.datetime = as.POSIXct(GMT.datetime, format="%Y%m%d_%H%M", tz="UTC"))
-
-# Convert data frames to data.tables
-class_dt <- as.data.table(class.Decapods) %>% rename(datetime = date)
-class_dt <- class_dt %>% rename(img_file_name = V1)
-
-# Initialize an empty list to store results
-result_list <- list()
-
-# Iterate over each row in class_dt
-for (i in seq_len(nrow(class_dt))) {
-  # Find the index of the closest datetime in ctd_meta
-  closest_index <- which.min(abs(ctd_meta$GMT.datetime - class_dt$datetime[i]))
-  
-  # Extract corresponding data from ctd_meta
-  result <- data.table(
-    img_file_name = class_dt$img_file_name[i],
-    object_id = substr(class_dt$img_file_name[i], start = 24, stop = 44),
-    object_speciesID = "decapoda",
-    object_date = gsub("-", "", as.Date(class_dt$datetime[i])),
-    object_time = format(class_dt$datetime[i], format = "%H%M%S"),
-    cruiseID = ctd_meta$cruiseID[closest_index],
-    ctd_date = gsub("-", "", as.Date(ctd_meta$GMT.datetime[closest_index])),
-    ctd_time = format(ctd_meta$GMT.datetime[closest_index], format = "%H%M%S"),
-    station = ctd_meta$Station[closest_index],
-    object_lat = ctd_meta$dec_lat[closest_index],
-    object_lon = ctd_meta$dec_lon[closest_index],
-    object_depth_min = 0,
-    object_depth_max = ctd_meta$depth_max[closest_index],
-    temp_degC = ctd_meta$temp..degC.[closest_index],
-    salinity = ctd_meta$salinity[closest_index],
-    chl_a = ctd_meta$Avg.chl.a..ug.L.[closest_index],
-    do = ctd_meta$DO..mg.L.[closest_index],
-    nitrate = ctd_meta$NO3....uM.[closest_index],
-    phosphate = ctd_meta$PO4...uM.[closest_index],
-    silicate = ctd_meta$Si.....uM.[closest_index],
-    seascape.8day = ctd_meta$X8.day.seascapes[closest_index],
-    seascape.monthly = ctd_meta$monthly.seascapes[closest_index]
-  )
-  
-  # Append the result to the result list
-  result_list[[i]] <- result
-}
-
-# Combine all results into a single data table
-final_table <- rbindlist(result_list)
-
-# Print the final table
-print(final_table)
+# # Directory where the CTD metadata is located
+# dir_path2 <- "~/enriquemontes01@gmail.com - Google Drive/My Drive/GDrive/OCED_AOML/WS_cruises/plankton_imaging/CPICS/ws_cruise_ctd/"
+# file_name <- list.files(path = dir_path2, pattern = "ctd_meta_v2.csv", full.names = TRUE)
+# ctd_meta <- read.csv(file_name, fill = TRUE) %>%
+#   mutate(GMT.datetime = as.POSIXct(GMT.datetime, format="%Y%m%d_%H%M", tz="UTC"))
+# 
+# # Convert data frames to data.tables
+# class_dt <- as.data.table(class.Decapods) %>% rename(datetime = date)
+# class_dt <- class_dt %>% rename(img_file_name = V1)
+# 
+# # Initialize an empty list to store results
+# result_list <- list()
+# 
+# # Iterate over each row in class_dt
+# for (i in seq_len(nrow(class_dt))) {
+#   # Find the index of the closest datetime in ctd_meta
+#   closest_index <- which.min(abs(ctd_meta$GMT.datetime - class_dt$datetime[i]))
+#   
+#   # Extract corresponding data from ctd_meta
+#   result <- data.table(
+#     img_file_name = class_dt$img_file_name[i],
+#     object_id = substr(class_dt$img_file_name[i], start = 24, stop = 44),
+#     object_speciesID = "decapoda",
+#     object_date = gsub("-", "", as.Date(class_dt$datetime[i])),
+#     object_time = format(class_dt$datetime[i], format = "%H%M%S"),
+#     cruiseID = ctd_meta$cruiseID[closest_index],
+#     ctd_date = gsub("-", "", as.Date(ctd_meta$GMT.datetime[closest_index])),
+#     ctd_time = format(ctd_meta$GMT.datetime[closest_index], format = "%H%M%S"),
+#     station = ctd_meta$Station[closest_index],
+#     object_lat = ctd_meta$dec_lat[closest_index],
+#     object_lon = ctd_meta$dec_lon[closest_index],
+#     object_depth_min = 0,
+#     object_depth_max = ctd_meta$depth_max[closest_index],
+#     temp_degC = ctd_meta$temp..degC.[closest_index],
+#     salinity = ctd_meta$salinity[closest_index],
+#     chl_a = ctd_meta$Avg.chl.a..ug.L.[closest_index],
+#     do = ctd_meta$DO..mg.L.[closest_index],
+#     nitrate = ctd_meta$NO3....uM.[closest_index],
+#     phosphate = ctd_meta$PO4...uM.[closest_index],
+#     silicate = ctd_meta$Si.....uM.[closest_index],
+#     seascape.8day = ctd_meta$X8.day.seascapes[closest_index],
+#     seascape.monthly = ctd_meta$monthly.seascapes[closest_index]
+#   )
+#   
+#   # Append the result to the result list
+#   result_list[[i]] <- result
+# }
+# 
+# # Combine all results into a single data table
+# final_table <- rbindlist(result_list)
+# 
+# # Print the final table
+# print(final_table)
 
 ```
 
@@ -235,7 +235,7 @@ for (df_name in data_frame_names) {
     
     # Extract corresponding data from ctd_meta
     result <- data.table(
-      img_file_name = current_df$img_file_name[i],
+      img_file_name = substr(current_df$img_file_name[i], start = 24, stop = 48),
       object_id = substr(current_df$img_file_name[i], start = 24, stop = 44),
       object_speciesID = object_speciesID,  # Use the extracted object_speciesID
       object_date = gsub("-", "", as.Date(current_df$datetime[i])),
@@ -267,6 +267,7 @@ for (df_name in data_frame_names) {
 # Combine all results into a single data table
 final_table_all <- rbindlist(result_list)
 
+# write.table(final_table_all,"~/Desktop/final_table_all.txt",sep="\t",row.names=FALSE)
 ```
 
 
@@ -280,26 +281,27 @@ df_merged_sel <- df_merged[, c("img_file_name",
                                "object_id", 
                                "object_date",
                                "object_time",
-                               "cruiseID",
-                               "ctd_date",
-                               "ctd_time",
-                               "station",
+                               # "cruiseID",
+                               # "ctd_date",
+                               # "ctd_time",
+                               # "station",
                                "object_lat",
                                "object_lon",
                                "object_depth_min",
-                               "object_depth_max",
-                               "format",
-                               "width",
-                               "height",
-                               "colorspace",
-                               "matte",
-                               "filesize",
-                               "density"
+                               "object_depth_max"
+                               # "format",
+                               # "width",
+                               # "height",
+                               # "colorspace",
+                               # "matte",
+                               # "filesize",
+                               # "density"
                                )]
 
 # Export table
 # - add data format codes; [f] for floats, [t] for text
-format_codes <- as.data.frame(matrix(c("t", "t", "t", "t", "t", "t", "t", "t", "f", "f", "f", "f", "t", "f", "f", "t", "t", "f", "f"), nrow = 1)) 
+# format_codes <- as.data.frame(matrix(c("t", "t", "t", "t", "t", "t", "t", "t", "f", "f", "f", "f", "t", "f", "f", "t", "t", "f", "f"), nrow = 1)) 
+format_codes <- as.data.frame(matrix(c("t", "t", "t", "t", "f", "f", "f", "f"), nrow = 1)) 
 colnames(format_codes) <- colnames(df_merged_sel)
 ecotaxa_table <- rbind(format_codes, df_merged_sel)
 
@@ -313,8 +315,41 @@ print(ecotaxa_table)
 # write.csv(df_merged, , row.names=FALSE)
 write.table(ecotaxa_table,"~/Desktop/ecotaxa_sfer-mbon.txt",sep="\t",row.names=FALSE)
 
-# DONE
 ```
+
+# Check if all files listed in 'ecotaxa_table' are present in the 'selected' directory
+```{r, echo=FALSE}
+# Directory path where files should be present
+selected_directory <- "~/Desktop/selected/"
+
+# Get a list of file names from the data frame
+file_names_in_df <- final_table_all$img_file_name
+
+# List all files in the 'selected' directory
+files_in_directory <- list.files(selected_directory)
+
+# Check for missing files
+missing_files <- setdiff(file_names_in_df, files_in_directory)
+
+if (length(missing_files) == 0) {
+  cat("All files listed in the data frame are present in the directory.\n")
+} else {
+  cat("Missing files:\n")
+  cat(paste(missing_files, collapse = "\n"), "\n")
+}
+
+# Check for duplicated file names in df$file_names
+duplicated_files <- ecotaxa_table[duplicated(ecotaxa_table$img_file_name), "img_file_name"]
+
+if (length(duplicated_files) == 0) {
+  cat("No duplicated file names found in the 'file_names' column.\n")
+} else {
+  cat("Duplicated file names:\n")
+  cat(paste(duplicated_files, collapse = "\n"), "\n")
+}
+
+```
+
 
 # Generate plots 
 ```{r}
