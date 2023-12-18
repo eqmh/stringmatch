@@ -21,7 +21,7 @@ library(data.table)
 ## Load taxa lists
 ```{r, echo=FALSE}
 # specify the directory where the files are located
-dir_path <- "~/enriquemontes01@gmail.com - Google Drive/My Drive/GDrive/OCED_AOML/WS_cruises/plankton_imaging/CPICS/TS.Master_selection/"
+dir_path <- "/Users/enrique.montes/Google Drive/My Drive/GDrive/OCED_AOML/WS_cruises/plankton_imaging/CPICS/TS.Master_selection"
 
 # obtain a list of file names in the directory
 file_names <- list.files(path = dir_path, pattern = ".txt", full.names = TRUE)
