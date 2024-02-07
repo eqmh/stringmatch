@@ -9,7 +9,7 @@ output: html_notebook
 library(dplyr)
 
 # specify the directory where the files are located
-dir_path <- "~/enriquemontes01@gmail.com - Google Drive/My Drive/GDrive/OCED_AOML/WS_cruises/plankton_imaging/CPICS/TS.Master_selection/"
+dir_path <- "/Users/enrique.montes/Google Drive/My Drive/GDrive/OCED_AOML/WS_cruises/plankton_imaging/CPICS/TS.Master_selection"
 
 # obtain a list of file names in the directory
 file_names <- list.files(path = dir_path, pattern = ".txt", full.names = TRUE)
@@ -37,7 +37,7 @@ library(lubridate)
 library(dplyr)
 
 # Directory where the CTD metadata is located
-dir_path2 <- "~/enriquemontes01@gmail.com - Google Drive/My Drive/GDrive/OCED_AOML/WS_cruises/plankton_imaging/CPICS/ws_cruise_ctd/"
+dir_path2 <- "/Users/enrique.montes/Library/CloudStorage/GoogleDrive-enriquemontes01@gmail.com/My Drive/GDrive/OCED_AOML/WS_cruises/plankton_imaging/CPICS/ws_cruise_ctd"
 file_name <- list.files(path = dir_path2, pattern = "ctd_meta_v2.csv", full.names = TRUE)
 ctd_meta <- read.csv(file_name, fill = TRUE)
 
@@ -64,8 +64,8 @@ for (i in 1:(length(dt_list))) {
     chain1_count <- nrow(chain1_subset)
   chain2_subset <- subset(class.Chain3, date >= dt_list[i] & date < dt_list[i+1])
     chain2_count <- nrow(chain2_subset) 
-  chain3_subset <- subset(class.Chain4, date >= dt_list[i] & date < dt_list[i+1])
-    chain3_count <- nrow(chain3_subset)
+  # chain3_subset <- subset(class.Chain4, date >= dt_list[i] & date < dt_list[i+1])
+  #   chain3_count <- nrow(chain3_subset)
   clado_subset <- subset(class.Cladocera, date >= dt_list[i] & date < dt_list[i+1])
     clado_count <- nrow(clado_subset) 
   copepod_subset <- subset(class.Copepods, date >= dt_list[i] & date < dt_list[i+1])
@@ -74,8 +74,8 @@ for (i in 1:(length(dt_list))) {
     deca_count <- nrow(deca_subset) 
   echino_subset <- subset(class.Echinoderms, date >= dt_list[i] & date < dt_list[i+1])
     echino_count <- nrow(echino_subset) 
-  euc_subset <- subset(class.Eucampia, date >= dt_list[i] & date < dt_list[i+1])
-    euc_count <- nrow(euc_subset)   
+  gui_subset <- subset(class.Guinardia, date >= dt_list[i] & date < dt_list[i+1])
+    gui_count <- nrow(gui_subset)   
   jel_subset <- subset(class.Jellies, date >= dt_list[i] & date < dt_list[i+1])
     jel_count <- nrow(jel_subset)   
   larv_subset <- subset(class.Larvaceans, date >= dt_list[i] & date < dt_list[i+1])
@@ -96,12 +96,12 @@ for (i in 1:(length(dt_list))) {
                        Chaetognaths = chaetog_count,
                        Diatom_chains_1 = chain1_count,
                        Diatom_chains_2 = chain2_count,
-                       Diatom_chains_3 = chain3_count,
+                       # Diatom_chains_3 = chain3_count,
                        Cladocera = clado_count,
                        Copepods = copepod_count,
                        Decapods = deca_count,
                        Echinoderms = echino_count,
-                       Eucampia_spp = euc_count,
+                       Guinardia_spp = gui_count,
                        Jellies = jel_count,
                        Larvaeceans = larv_count,
                        Noctiluca_sp = nocti_count,
@@ -120,10 +120,18 @@ library(tidyverse)
 library(hrbrthemes)
 library(viridis)
 
+# # Load seascape color palette used with Matlab and extract RGB values for observed unique seascapes
+palette_dir <- "/Users/enrique.montes/Library/CloudStorage/GoogleDrive-enriquemontes01@gmail.com/My Drive/GDrive/software/matlab/m_map/seascape_cm"
+palette_file <- list.files(path = palette_dir, pattern = "cmap1.csv", full.names = TRUE)
+palette_df <- read.csv(palette_file, header = FALSE)
+colnames(palette_df) <- c("r", "g", "b")
+unique_seascapes <- sort(unique(na.omit(ctd_meta$X8.day.seascapes)))
+subset_palette_df <- palette_df[unique_seascapes, ]
+
 # set RGB values for the plots
-r_vals <- round(c(0, 0, 0, 0.125, 0.375, 1, 1) * 255, 0)
-g_vals <- round(c(0, 0.375, 0.875, 1, 1, 0.875, 0.125) * 255, 0)
-b_vals <- round(c(0.875, 1, 1, 0.875, 0.625, 0, 0) * 255, 0)
+r_vals <- round(subset_palette_df$r * 255, 0)
+g_vals <- round(subset_palette_df$g * 255, 0)
+b_vals <- round(subset_palette_df$b * 255, 0)
 custom_pal <- cbind(r_vals, g_vals, b_vals)
 custom_pal_hex <- rgb(custom_pal[, 1], custom_pal[, 2], custom_pal[, 3], maxColorValue=255)
 # pal_final <- c(custom_pal_hex[3], custom_pal_hex[4], custom_pal_hex[5], )
@@ -145,7 +153,7 @@ df_filtered$X8.day.seascapes <- as.character(df_filtered$X8.day.seascapes)
 # Plot
 # See https://cran.r-project.org/web/packages/viridis/vignettes/intro-to-viridis.html for color palette options
 pp <- df_filtered %>%
-  ggplot( aes(x=X8.day.seascapes, y=NO3.NO2..uM., fill=X8.day.seascapes)) +
+  ggplot( aes(x=X8.day.seascapes, y=Avg.chl.a..ug.L., fill=X8.day.seascapes)) +
     geom_boxplot() +
     # scale_fill_viridis(option="H", discrete = TRUE, alpha=0.6) +
     scale_fill_manual(values = custom_pal_hex) +
@@ -169,7 +177,7 @@ pp <- df_filtered %>%
     ) +
     # ggtitle("A boxplot with jitter") +
     # theme(axis.text.x = element_text(angle = 45)) +
-  ylim(0, 1) +  
+  ylim(0, 10) +  
   theme(axis.text.x = element_text(size = 32),  # Set X-axis label font size
           axis.text.y = element_text(size = 32)) +
     theme(axis.title.x = element_text(size = 18),
@@ -183,7 +191,7 @@ pp
 # convert abundance columns to relative abundance
 
 # df_subset <- df_filtered[ , c(20, 24, 27, 29, 33, 36, 37, 38, 39, 40, 41)] # subsets taxa when using strings
-df_subset <- df_filtered[ , c(20, 23, 26, 28, 32, 35, 36, 37, 38, 39, 40)] # subsets taxa when using dates
+df_subset <- df_filtered[ , c(20, 23, 26, 28, 32, 35, 36, 37, 38, 39)] # subsets taxa when using dates
 
 # reshape the data to long format
 df_long <- tidyr::gather(df_subset, key = "Species", value = "Abundance", -X8.day.seascapes)
@@ -261,7 +269,7 @@ library(ggalt)
 # pca <- prcomp(df_subset[, 2:11], scale. = TRUE) # for taxonomic analysis 
 filt_df <- taxa_meta[1:82, ]
 # pca <- prcomp(filt_df[, c(8,9,11,13)], scale. = TRUE) # for hydrography 
-pca <- prcomp(filt_df[, c(20, 23, 26, 28, 32, 35, 36, 37, 38, 39, 40)], scale. = TRUE)
+pca <- prcomp(filt_df[, c(20, 23, 26, 28, 32, 35, 36, 37, 38, 39)], scale. = TRUE)
 
 # Extract PC1 and PC2 scores for each sampling event
 # pc_scores <- data.frame(seascape = df_subset$X8.day.seascapes, # for taxonomic analysis 
