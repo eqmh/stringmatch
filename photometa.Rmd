@@ -357,6 +357,15 @@ library(tidyverse)
 library(hrbrthemes)
 library(viridis)
 
+# # Load seascape color palette used with Matlab and extract RGB values for observed unique seascapes
+palette_dir <- "/Users/enrique.montes/Library/CloudStorage/GoogleDrive-enriquemontes01@gmail.com/My Drive/GDrive/software/matlab/m_map/seascape_cm"
+palette_file <- list.files(path = palette_dir, pattern = "cmap1.csv", full.names = TRUE)
+palette_df <- read.csv(palette_file, header = FALSE)
+colnames(palette_df) <- c("r", "g", "b")
+unique_seascapes <- sort(unique(na.omit(ctd_meta$X8.day.seascapes)))
+subset_palette_df <- palette_df[unique_seascapes, ]
+r_vals2 <- round(subset_palette_df$r * 255, 0)
+
 # set RGB values for the plots
 r_vals <- round(c(0, 0, 0, 0, 0.125, 0.375, 1, 1) * 255, 0)
 g_vals <- round(c(0, 0.125, 0.375, 0.875, 1, 1, 0.875, 0.125) * 255, 0)
@@ -382,14 +391,14 @@ df_filtered$X8.day.seascapes <- as.character(df_filtered$X8.day.seascapes)
 # Plot
 # See https://cran.r-project.org/web/packages/viridis/vignettes/intro-to-viridis.html for color palette options
 pp <- df_filtered %>%
-  ggplot( aes(x=X8.day.seascapes, y=salinity, fill=X8.day.seascapes)) +
+  ggplot( aes(x=X8.day.seascapes, y=Avg.chl.a..ug.L., fill=X8.day.seascapes)) +
     geom_boxplot() +
     # scale_fill_viridis(option="H", discrete = TRUE, alpha=0.6) +
     scale_fill_manual(values = custom_pal_hex) +
     geom_jitter(color="black", size=0.8, alpha=0.9) +
     labs(x = "Seascape class") +
-    # labs(y = expression("[Chl-a] (mg/L)")) +
-    labs(y = expression("Salinity")) +
+    labs(y = expression("[Chl-a] (mg/L)")) +
+    #labs(y = expression("Salinity")) +
     # labs(y = expression(paste("Temperature (", degree, "C) at 1 m depth"))) +
     # labs(y = expression("DO (mg/L)")) +
     # labs(y = expression("NO"["x"] ~ mu*"M")) +
@@ -406,7 +415,7 @@ pp <- df_filtered %>%
     ) +
     # ggtitle("A boxplot with jitter") +
     # theme(axis.text.x = element_text(angle = 45)) +
-  ylim(28, 37) +  
+  ylim(0, 20) +  
   theme(axis.text.x = element_text(size = 32),  # Set X-axis label font size
           axis.text.y = element_text(size = 32)) +
     theme(axis.title.x = element_text(size = 18),
