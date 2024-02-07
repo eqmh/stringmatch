@@ -91,10 +91,10 @@ path_to_files <- "~/Desktop/cpics_img/"
 setwd(path_to_files)
 
 # # Directory for selected images - USE TO SAVE IMAGES LISTED IN TAXA LISTS IN "SELECTED" FOLDER
-# selected_dir <- file.path(path_to_files, "selected")
+selected_dir <- file.path(path_to_files, "selected")
 # if (!dir.exists(selected_dir)) {
-#   dir.create(selected_dir)
-# }
+# dir.create(selected_dir)
+#}
 
 # List of data frames
 data_frame_names <- ls(pattern = "^class\\.")  # Get all data frames starting with "class."
@@ -131,8 +131,8 @@ for (df_name in data_frame_names) {
                                                      data_frame = df_name_without_prefix,
                                                      metadata)
       # # Copy the image to the 'selected' directory - USE TO SAVE IMAGES LISTED IN TAXA LISTS IN "SELECTED" FOLDER
-      # selected_path <- file.path(selected_dir, basename(filename))
-      # file.copy(full_path, selected_path)
+      selected_path <- file.path(selected_dir, basename(filename))
+      file.copy(full_path, selected_path)
     } else {
       cat("File not found:", full_path, "\n")
     }
@@ -206,7 +206,7 @@ metadata_df_all <- bind_rows(metadata_list)
 ## Match images to cruise data with all taxa lists
 ```{r, echo=FALSE}
 # Directory where the CTD metadata is located
-dir_path2 <- "~/enriquemontes01@gmail.com - Google Drive/My Drive/GDrive/OCED_AOML/WS_cruises/plankton_imaging/CPICS/ws_cruise_ctd/"
+dir_path2 <- "/Users/enrique.montes/Library/CloudStorage/GoogleDrive-enriquemontes01@gmail.com/My Drive/GDrive/OCED_AOML/WS_cruises/plankton_imaging/CPICS/ws_cruise_ctd"
 file_name <- list.files(path = dir_path2, pattern = "ctd_meta_v2.csv", full.names = TRUE)
 ctd_meta <- read.csv(file_name, fill = TRUE) %>%
   mutate(GMT.datetime = as.POSIXct(GMT.datetime, format="%Y%m%d_%H%M", tz="UTC"))
@@ -358,9 +358,9 @@ library(hrbrthemes)
 library(viridis)
 
 # set RGB values for the plots
-r_vals <- round(c(0, 0, 0, 0.125, 0.375, 1, 1) * 255, 0)
-g_vals <- round(c(0, 0.375, 0.875, 1, 1, 0.875, 0.125) * 255, 0)
-b_vals <- round(c(0.875, 1, 1, 0.875, 0.625, 0, 0) * 255, 0)
+r_vals <- round(c(0, 0, 0, 0, 0.125, 0.375, 1, 1) * 255, 0)
+g_vals <- round(c(0, 0.125, 0.375, 0.875, 1, 1, 0.875, 0.125) * 255, 0)
+b_vals <- round(c(0.875, 1, 1, 1, 0.875, 0.625, 0, 0) * 255, 0)
 custom_pal <- cbind(r_vals, g_vals, b_vals)
 custom_pal_hex <- rgb(custom_pal[, 1], custom_pal[, 2], custom_pal[, 3], maxColorValue=255)
 # pal_final <- c(custom_pal_hex[3], custom_pal_hex[4], custom_pal_hex[5], )
