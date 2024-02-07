@@ -90,11 +90,12 @@ for (file in file_names) {
 path_to_files <- "~/Desktop/cpics_img/"
 setwd(path_to_files)
 
-# # Directory for selected images - USE TO SAVE IMAGES LISTED IN TAXA LISTS IN "SELECTED" FOLDER
-selected_dir <- file.path(path_to_files, "selected")
+# # Creates a directory for selected images - USE TO SAVE IMAGES LISTED IN TAXA LISTS IN "SELECTED" FOLDER
+selected_dir <- file.path(path_to_files, "selected") # if already exist
+# # this will create a Selected directory if it does not exist
 # if (!dir.exists(selected_dir)) {
 # dir.create(selected_dir)
-#}
+# }
 
 # List of data frames
 data_frame_names <- ls(pattern = "^class\\.")  # Get all data frames starting with "class."
@@ -364,12 +365,11 @@ palette_df <- read.csv(palette_file, header = FALSE)
 colnames(palette_df) <- c("r", "g", "b")
 unique_seascapes <- sort(unique(na.omit(ctd_meta$X8.day.seascapes)))
 subset_palette_df <- palette_df[unique_seascapes, ]
-r_vals2 <- round(subset_palette_df$r * 255, 0)
 
 # set RGB values for the plots
-r_vals <- round(c(0, 0, 0, 0, 0.125, 0.375, 1, 1) * 255, 0)
-g_vals <- round(c(0, 0.125, 0.375, 0.875, 1, 1, 0.875, 0.125) * 255, 0)
-b_vals <- round(c(0.875, 1, 1, 1, 0.875, 0.625, 0, 0) * 255, 0)
+r_vals <- round(subset_palette_df$r * 255, 0)
+g_vals <- round(subset_palette_df$g * 255, 0)
+b_vals <- round(subset_palette_df$b * 255, 0)
 custom_pal <- cbind(r_vals, g_vals, b_vals)
 custom_pal_hex <- rgb(custom_pal[, 1], custom_pal[, 2], custom_pal[, 3], maxColorValue=255)
 # pal_final <- c(custom_pal_hex[3], custom_pal_hex[4], custom_pal_hex[5], )
@@ -415,7 +415,7 @@ pp <- df_filtered %>%
     ) +
     # ggtitle("A boxplot with jitter") +
     # theme(axis.text.x = element_text(angle = 45)) +
-  ylim(0, 20) +  
+  ylim(0, 10) +  
   theme(axis.text.x = element_text(size = 32),  # Set X-axis label font size
           axis.text.y = element_text(size = 32)) +
     theme(axis.title.x = element_text(size = 18),
