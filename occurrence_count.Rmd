@@ -312,10 +312,19 @@ ff
 library(ggalt)
 
 # Perform principal component analysis on the count data
-# pca <- prcomp(df_subset[, 2:11], scale. = TRUE) # for taxonomic analysis 
-filt_df <- taxa_meta[1:82, ]
-# pca <- prcomp(filt_df[, c(8,9,11,13)], scale. = TRUE) # for hydrography 
-pca <- prcomp(filt_df[, c(20, 23, 26, 28, 32, 35, 36, 37, 38, 39)], scale. = TRUE)
+
+# for hydrography
+# filt_df <- taxa_meta[1:160, c(
+#   "X8.day.seascapes",
+#   "temp..degC.",
+#   "salinity",
+#   "Avg.chl.a..ug.L.",
+#   "PO4...uM.",
+#   "NO3.NO2..uM."
+# )]
+
+pca <- prcomp(df_subset, scale. = TRUE) # for taxonomic analysis
+# pca <- prcomp(filt_df, scale. = TRUE) 
 
 # Extract PC1 and PC2 scores for each sampling event
 # pc_scores <- data.frame(seascape = df_subset$X8.day.seascapes, # for taxonomic analysis 
@@ -334,7 +343,7 @@ ggplot(pc_scores, aes(x = PC1, y = PC2, color = seascape)) +
   stat_ellipse(level = 0.95, geom = "polygon", alpha = 0.2) +
   scale_color_viridis(option = "plasma", discrete = TRUE, alpha = 0.6) +
   theme_classic() +
-  xlim(-2,2) +
+  # xlim(-2,2) +
   geom_point(size=3) +
   guides(colour = guide_legend(override.aes = list(size=10))) + 
   theme(axis.text.x = element_text(size = 32),  # Set X-axis label font size
@@ -345,7 +354,7 @@ ggplot(pc_scores, aes(x = PC1, y = PC2, color = seascape)) +
 ```
 
 
-# Match file name with string ID
+# Match file name with string ID - DO NOT USE
 ```{r}
 # library(tidyverse)
 # library(lubridate)
@@ -451,7 +460,7 @@ ggplot(pc_scores, aes(x = PC1, y = PC2, color = seascape)) +
 ```
 
 
-# Match image records with CTD metadata and seascapes (use with strings matching)
+# Match image records with CTD metadata and seascapes (use with strings matching) - DO NOT USE
 ```{r}
 # # Directory where the CTD metadata is located
 # dir_path2 <- "~/enriquemontes01@gmail.com - Google Drive/My Drive/GDrive/OCED_AOML/WS_cruises/plankton_imaging/CPICS/ws_cruise_ctd/"
