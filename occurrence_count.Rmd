@@ -172,7 +172,7 @@ custom_colors <- c("3" = custom_pal_hex[1], "5" = custom_pal_hex[2], "7" = custo
                    "21" = custom_pal_hex[7], "27" = custom_pal_hex[8])
 
 # Filter out seascape class as desired
-df_filtered <- df_filtered[df_filtered$X8.day.seascapes != "5", ]
+# df_filtered <- df_filtered[df_filtered$X8.day.seascapes != "5", ]
 
 # Plot
 # See https://cran.r-project.org/web/packages/viridis/vignettes/intro-to-viridis.html for color palette options
@@ -215,23 +215,23 @@ pp
 # convert abundance columns to relative abundance
 
 # subsets taxa for zooplankton
-df_subset <- df_filtered[ , c("X8.day.seascapes",
-                              "Acantharea",
-                              "Copepods",
-                              "Echinoderms",
-                              "Jellies",
-                              "Larvaeceans",
-                              "Polychaetes",
-                              "Chaetognaths")]
+# df_subset <- df_filtered[ , c("X8.day.seascapes",
+#                               "Acantharea",
+#                               "Copepods",
+#                               "Echinoderms",
+#                               "Jellies",
+#                               "Larvaeceans",
+#                               "Polychaetes",
+#                               "Chaetognaths")]
 
 # subsets taxa for phytoplankton
-# df_subset <- df_filtered[ , c("X8.day.seascapes",
-#                               "Ceratium_spp",
-#                               "Chaetoceros",
-#                               "Diatom_chains_1",
-#                               "Guinardia_spp",
-#                               "Noctiluca_sp",
-#                               "Trichodesmium_spp")]
+df_subset <- df_filtered[ , c("X8.day.seascapes",
+                            #"Ceratium_spp",
+                            "Chaetoceros",
+                            "Diatom_chains_1",
+                            "Diatom_chains_2",
+                            "Guinardia_spp",
+                            "Trichodesmium_spp")]
 
 # reshape the data to long format
 df_long <- tidyr::gather(df_subset, key = "Species", value = "Abundance", -X8.day.seascapes)
@@ -247,11 +247,12 @@ df_sum <- df_long %>%
 # "Class 3" - Tropical/Subtropical Transition
 # "Class 7" - Temperate Transition
 
-# # Reorder seascape categories in X axis
+# # Select desired seascapes and reorder categories in X axis
 df_sum$X8.day.seascapes <- factor(df_sum$X8.day.seascapes, levels = c("3", "5", "7", "11", "13", "15","21","27"))
 
 # Filter out seascape class as desired
-df_sum <- df_sum[df_sum$X8.day.seascapes != "5", ]
+exclude_classes <- c(5, 7, 11)
+df_sum <- df_sum[!df_sum$X8.day.seascapes %in% exclude_classes, ]
 
 # create the stackplot
 qq <- ggplot(df_sum, aes(x = X8.day.seascapes, y = freq, fill = Species)) +
@@ -280,13 +281,19 @@ qq
 library(dplyr)
 library(vegan)
 
+# Exclude seascapes
+exclude_seascapes <- c(5, 7, 11)
+
 # Compute Shannon diversity per seascape class
 shannon_df <- df_long %>% 
   group_by(X8.day.seascapes) %>% 
   summarise(shannon = diversity(Abundance, index = "shannon"))
 
+# Filter the data to exclude specified seascapes
+shannon_df_filtered <- shannon_df[!shannon_df$X8.day.seascapes %in% exclude_seascapes, ]
+
 # create the bar plot
-ff <- ggplot(shannon_df, aes(x = X8.day.seascapes, y = shannon, fill = X8.day.seascapes)) +
+ff <- ggplot(shannon_df_filtered, aes(x = X8.day.seascapes, y = shannon, fill = X8.day.seascapes)) +
   geom_bar(stat = "identity") +
   # scale_fill_viridis(option="plasma", discrete = TRUE, alpha=0.6) +
   scale_fill_manual(values = custom_colors) +
@@ -305,6 +312,17 @@ ff <- ggplot(shannon_df, aes(x = X8.day.seascapes, y = shannon, fill = X8.day.se
   theme(legend.text = element_text(size = 32)) +
   guides(fill = FALSE)
 ff
+
+# Subset the data to exclude specified seascapes
+filtered_taxa_meta <- taxa_meta[complete.cases(taxa_meta$X8.day.seascapes), ]
+filtered_taxa_meta <- filtered_taxa_meta[!filtered_taxa_meta$X8.day.seascapes %in% exclude_seascapes, ]
+
+tt <- ggplot(filtered_taxa_meta, aes(x = factor(X8.day.seascapes), fill = factor(X8.day.seascapes))) +
+  geom_bar(color = "black", alpha = 0.7) +
+  scale_fill_manual(values = custom_colors) +
+  labs(title = "Histogram of 8X.day.seascapes", x = "Seascape Class", y = "Frequency") +
+  theme_minimal()
+tt
 ```
 
 # PC plot
@@ -314,45 +332,133 @@ library(ggalt)
 # Perform principal component analysis on the count data
 
 # for hydrography
-# filt_df <- taxa_meta[1:160, c(
+# filter out rows with NA values in column seascapes
+
+# sel_vars <- c(
 #   "X8.day.seascapes",
-#   "temp..degC.",
-#   "salinity",
+#   # "temp..degC.",
+#   # "salinity",
 #   "Avg.chl.a..ug.L.",
 #   "PO4...uM.",
-#   "NO3.NO2..uM."
-# )]
+#   "NO3.NO2..uM.")
 
-pca <- prcomp(df_subset, scale. = TRUE) # for taxonomic analysis
-# pca <- prcomp(filt_df, scale. = TRUE) 
+# df_filtered_pca <- taxa_meta[complete.cases(taxa_meta[, sel_vars]), ]
+# 
+# exclude_seascapes <- c(5, 7, 11)
+# filt_df_pca <- df_filtered_pca[!df_filtered_pca$X8.day.seascapes %in%
+#                                  exclude_seascapes,
+#                                sel_vars]
+
+# for taxonomy
+# sel_vars <- c("X8.day.seascapes",
+#               "Acantharea",
+#               "Copepods",
+#               "Echinoderms",
+#               "Jellies",
+#               "Larvaeceans",
+#               "Polychaetes",
+#               "Chaetognaths")
+
+sel_vars <- c("X8.day.seascapes",
+              # "Ceratium_spp",
+              "Chaetoceros",
+              "Diatom_chains_1",
+              "Diatom_chains_2",
+              "Guinardia_spp",
+              "Trichodesmium_spp")
+
+# filter out rows with NA values in column seascapes
+# df_filtered_pca <- taxa_meta[complete.cases(taxa_meta$X8.day.seascapes), ]
+df_filtered_pca <- taxa_meta[complete.cases(taxa_meta[, sel_vars]), ]
+exclude_seascapes <- c(5, 7, 11)
+filt_df_pca <- df_filtered_pca[!df_filtered_pca$X8.day.seascapes %in%
+                                 exclude_seascapes, sel_vars]
+
+pca <- prcomp(filt_df_pca, scale. = TRUE)
 
 # Extract PC1 and PC2 scores for each sampling event
 # pc_scores <- data.frame(seascape = df_subset$X8.day.seascapes, # for taxonomic analysis 
-pc_scores <- data.frame(seascape = as.character(filt_df$X8.day.seascapes), # for hydrography
+pc_scores <- data.frame(seascape = as.character(filt_df_pca$X8.day.seascapes), # for hydrography
                         PC1 = pca$x[, 1], 
                         PC2 = pca$x[, 2])
 
 # Create the plot
+pc_scores$seascape <- factor(pc_scores$seascape, levels = c("3", "13", "15", "21", "27"))
 bb <- ggplot(pc_scores, aes(x = PC1, y = PC2, color = seascape)) + 
   geom_point() +
   labs(x = "PC1", y = "PC2", color = "Seascape") 
 
 # add circle around cluster of data points
+custom_colors_pca <- custom_pal_hex[c(1, 5, 6, 7, 8)]
+
 ggplot(pc_scores, aes(x = PC1, y = PC2, color = seascape)) + 
   geom_point() +
-  stat_ellipse(level = 0.95, geom = "polygon", alpha = 0.2) +
-  scale_color_viridis(option = "plasma", discrete = TRUE, alpha = 0.6) +
+  stat_ellipse(aes(fill = seascape), level = 0.90, geom = "polygon", alpha = 0.1, color = "black") +
+  scale_color_manual(values = custom_colors_pca) +
+  scale_fill_manual(values = custom_colors_pca) +
   theme_classic() +
-  # xlim(-2,2) +
-  geom_point(size=3) +
-  guides(colour = guide_legend(override.aes = list(size=10))) + 
+  # xlim(-2.5,3) +
+  # ylim(-2.5,2.5) +
+  xlim(-1,1) +
+  ylim(-1,1) +
+  geom_point(size=2) +
+  guides(colour = guide_legend(override.aes = list(size=5))) + 
   theme(axis.text.x = element_text(size = 32),  # Set X-axis label font size
         axis.text.y = element_text(size = 32)) +
   theme(axis.title.x = element_text(size = 32),
         axis.title.y = element_text(size = 32)) +
   theme(legend.text = element_text(size = 32))
 ```
+# Map mean values of selected taxa
+```{r}
+library(leaflet)
 
+# # Replace 2023 and 10 with your selected year and month
+# selected_year <- 2023
+# selected_month <- 1
+# 
+# # Filter rows
+# filtered_taxa_meta <- taxa_meta %>%
+#   filter(year == selected_year, month == selected_month)
+
+filtered_taxa_meta <- taxa_meta
+
+# Compute average of selected variable (e.g., Copepods)
+taxa_avg <- filtered_taxa_meta %>%
+  group_by(Station) %>%
+  summarise(longitude = first(dec_lon),
+            latitude = first(dec_lat),
+            sel_taxa_mean = mean(Echinoderms, na.rm = TRUE))
+
+# Filter out values less than 1
+# filtered_taxa_avg <- taxa_avg %>%
+#   filter(sel_taxa_mean >= 1)
+
+# Create a color palette for the symbols
+color_palette <- colorNumeric(palette = "Oranges", domain = taxa_avg$sel_taxa_mean)
+
+# Create the leaflet map
+map <- leaflet(filtered_taxa_avg) %>%
+  addProviderTiles("Esri.WorldImagery") %>%
+  addCircleMarkers(
+    lng = ~longitude,
+    lat = ~latitude,
+    radius = 10,
+    color = ~color_palette(sel_taxa_mean),
+    fillOpacity = 0.8,
+    popup = ~paste("Station ID: ", Station, "<br>Copepods: ", sel_taxa_mean)
+  ) %>%
+  addLegend(
+    position = "bottomright",
+    pal = color_palette,
+    values = ~sel_taxa_mean,
+    title = "Copepod occurrences",
+    opacity = 1
+  )
+
+# Display the map
+map
+```
 
 # Match file name with string ID - DO NOT USE
 ```{r}
