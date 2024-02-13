@@ -413,31 +413,50 @@ ggplot(pc_scores, aes(x = PC1, y = PC2, color = seascape)) +
 ```{r}
 library(leaflet)
 
-# # Replace 2023 and 10 with your selected year and month
-# selected_year <- 2023
-# selected_month <- 1
-# 
-# # Filter rows
-# filtered_taxa_meta <- taxa_meta %>%
-#   filter(year == selected_year, month == selected_month)
+path_sfer_list <- "/Users/enrique.montes/Library/CloudStorage/GoogleDrive-enriquemontes01@gmail.com/My Drive/GDrive/proposals/2022_02_MultiStressor_NOAA/module_1"
 
-filtered_taxa_meta <- taxa_meta
+sfer_curated <- list.files(path_sfer_list, pattern = "sfer_stations_curated.csv", full.names = TRUE)
+
+sfer_sta_list <- read.csv(sfer_curated, header = TRUE)
+
+merged_data <- taxa_meta %>%
+  left_join(sfer_sta_list %>% filter(station_class %in% "C"), by = c('Station' = 'station_id'))
+
+# Replace 2023 and 10 with your selected year and month
+selected_year <- 2023
+selected_month <- 11
+
+# Filter rows
+filtered_taxa_meta <- merged_data %>%
+  filter(year == selected_year, month == selected_month)
+
+# filtered_taxa_meta <- merged_data
 
 # Compute average of selected variable (e.g., Copepods)
 taxa_avg <- filtered_taxa_meta %>%
-  group_by(Station) %>%
-  summarise(longitude = first(dec_lon),
-            latitude = first(dec_lat),
-            sel_taxa_mean = mean(Echinoderms, na.rm = TRUE))
+  group_by(line_id) %>%
+  summarise(longitude = mean(dec_lon),
+            latitude = mean(dec_lat),
+            sel_taxa_mean = mean(Diatom_chains_1, na.rm = TRUE))
 
-# Filter out values less than 1
-# filtered_taxa_avg <- taxa_avg %>%
-#   filter(sel_taxa_mean >= 1)
+# # Filter out values less than 1
+filtered_taxa_avg <- taxa_avg %>%
+  filter(sel_taxa_mean >= 0.1)
 
-# Create a color palette for the symbols
-color_palette <- colorNumeric(palette = "Oranges", domain = taxa_avg$sel_taxa_mean)
+# Assuming 'filtered_taxa_avg' is your data frame
 
-# Create the leaflet map
+# Find the minimum and maximum values of sel_taxa_mean
+# min_value <- 0.1
+# max_value <- 12
+# # OR USE
+# Find the minimum and maximum values of sel_taxa_mean
+min_value <- min(filtered_taxa_avg$sel_taxa_mean, na.rm = TRUE)
+max_value <- max(filtered_taxa_avg$sel_taxa_mean, na.rm = TRUE)
+
+# Adjust the color palette with specified values
+color_palette <- colorNumeric(palette = "Oranges", domain = c(min_value, max_value))
+
+# Create the map
 map <- leaflet(filtered_taxa_avg) %>%
   addProviderTiles("Esri.WorldImagery") %>%
   addCircleMarkers(
@@ -446,19 +465,55 @@ map <- leaflet(filtered_taxa_avg) %>%
     radius = 10,
     color = ~color_palette(sel_taxa_mean),
     fillOpacity = 0.8,
-    popup = ~paste("Station ID: ", Station, "<br>Copepods: ", sel_taxa_mean)
+    popup = ~paste("Line ID: ", line_id, "<br>Copepods: ", sel_taxa_mean)
   ) %>%
   addLegend(
     position = "bottomright",
     pal = color_palette,
-    values = ~sel_taxa_mean,
+    values = c(min_value, max_value),  # Adjusted values here
     title = "Copepod occurrences",
     opacity = 1
   )
 
+
 # Display the map
 map
 ```
+
+# Create time-series plots of selected taxa at specific stations
+```{r}
+selected_variable <- 'Diatom_chains_1'
+# # Lower Keys
+# selected_line_id <- c('LK','WS','MO','KW')
+# # Middle Keys
+# selected_line_id <- c('CO', 'CR')
+# # Other regions
+selected_line_id <- c('TB')
+
+# Filter the data for the selected line_id
+filtered_merged_data <- merged_data[merged_data$line_id %in% selected_line_id, ]
+# Remove rows with NAs in relevant columns
+monthly_means <- na.omit(filtered_merged_data[, c("date", selected_variable, "line_id")]) %>%
+  group_by(year_month = format(date, "%Y-%m")) %>%
+  summarise(mean_value = mean(!!sym(selected_variable), na.rm = TRUE),
+             se_value = sd(!!sym(selected_variable), na.rm = TRUE) / sqrt(n()))
+
+# Create a time series plot
+ggplot(monthly_means, aes(x = year_month, y = mean_value)) +
+  geom_bar(stat = "identity", fill = "green") +
+  geom_errorbar(aes(ymin = mean_value - se_value, ymax = mean_value + se_value),
+                width = 0.2, # Adjust width as needed
+                position = position_dodge(width = 0.8)) + # Adjust width as needed
+  labs(x = "Year-Month", y = "Mean Value") +
+  ggtitle("Monthly Means of Selected Variable") +
+  theme_minimal()
+
+```
+
+
+
+
+
 
 # Match file name with string ID - DO NOT USE
 ```{r}
