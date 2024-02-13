@@ -172,7 +172,7 @@ custom_colors <- c("3" = custom_pal_hex[1], "5" = custom_pal_hex[2], "7" = custo
                    "21" = custom_pal_hex[7], "27" = custom_pal_hex[8])
 
 # Filter out seascape class as desired
-# df_filtered <- df_filtered[df_filtered$X8.day.seascapes != "5", ]
+df_filtered <- df_filtered[df_filtered$X8.day.seascapes != "5", ]
 
 # Plot
 # See https://cran.r-project.org/web/packages/viridis/vignettes/intro-to-viridis.html for color palette options
@@ -215,23 +215,23 @@ pp
 # convert abundance columns to relative abundance
 
 # subsets taxa for zooplankton
-# df_subset <- df_filtered[ , c("X8.day.seascapes",
-#                               "Acantharea",
-#                               "Copepods",
-#                               "Echinoderms",
-#                               "Jellies",
-#                               "Larvaeceans",
-#                               "Polychaetes",
-#                               "Chaetognaths")]
+df_subset <- df_filtered[ , c("X8.day.seascapes",
+                              "Acantharea",
+                              "Copepods",
+                              "Echinoderms",
+                              "Jellies",
+                              "Larvaeceans",
+                              "Polychaetes",
+                              "Chaetognaths")]
 
 # subsets taxa for phytoplankton
-df_subset <- df_filtered[ , c("X8.day.seascapes",
-                            #"Ceratium_spp",
-                            "Chaetoceros",
-                            "Diatom_chains_1",
-                            "Diatom_chains_2",
-                            "Guinardia_spp",
-                            "Trichodesmium_spp")]
+# df_subset <- df_filtered[ , c("X8.day.seascapes",
+#                             #"Ceratium_spp",
+#                             "Chaetoceros",
+#                             "Diatom_chains_1",
+#                             "Diatom_chains_2",
+#                             "Guinardia_spp",
+#                             "Trichodesmium_spp")]
 
 # reshape the data to long format
 df_long <- tidyr::gather(df_subset, key = "Species", value = "Abundance", -X8.day.seascapes)
@@ -393,7 +393,7 @@ custom_colors_pca <- custom_pal_hex[c(1, 5, 6, 7, 8)]
 
 ggplot(pc_scores, aes(x = PC1, y = PC2, color = seascape)) + 
   geom_point() +
-  stat_ellipse(aes(fill = seascape), level = 0.90, geom = "polygon", alpha = 0.1, color = "black") +
+  stat_ellipse(aes(fill = seascape), level = 0.90, geom = "polygon", alpha = 0.3, color = "black") +
   scale_color_manual(values = custom_colors_pca) +
   scale_fill_manual(values = custom_colors_pca) +
   theme_classic() +
@@ -402,7 +402,7 @@ ggplot(pc_scores, aes(x = PC1, y = PC2, color = seascape)) +
   xlim(-1,1) +
   ylim(-1,1) +
   geom_point(size=2) +
-  guides(colour = guide_legend(override.aes = list(size=5))) + 
+  guides(colour = guide_legend(override.aes = list(size=2))) + 
   theme(axis.text.x = element_text(size = 32),  # Set X-axis label font size
         axis.text.y = element_text(size = 32)) +
   theme(axis.title.x = element_text(size = 32),
