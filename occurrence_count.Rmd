@@ -92,6 +92,8 @@ for (i in 1:(length(dt_list))) {
     jel_count <- nrow(jel_subset)
   larv_subset <- subset(class.Larvaceans, date >= dt_list[i]-start & date < dt_list[i]+stop) 
     larv_count <- nrow(larv_subset)
+  neocal_subset <- subset(class.Neocalyptrella, date >= dt_list[i]-start & date < dt_list[i]+stop) 
+    neocal_count <- nrow(neocal_subset)
   nocti_subset <- subset(class.Noctiluca, date >= dt_list[i]-start & date < dt_list[i]+stop) 
     nocti_count <- nrow(nocti_subset)
   poly_subset <- subset(class.Polychaets, date >= dt_list[i]-start & date < dt_list[i]+stop) 
@@ -116,6 +118,7 @@ for (i in 1:(length(dt_list))) {
                        Guinardia_spp = gui_count,
                        Jellies = jel_count,
                        Larvaeceans = larv_count,
+                       Neocalyptrella_spp = neocal_count,
                        Noctiluca_sp = nocti_count,
                        Polychaetes = poly_count,
                        Trichodesmium_spp = tricho_count)
@@ -160,6 +163,7 @@ df_filtered$X8.day.seascapes <- as.character(df_filtered$X8.day.seascapes)
 # salinity
 # NH4...uM.
 # NO3.NO2..uM.
+# PO4...uM.
 # DO..mg.L.
 # temp..degC.
 
@@ -177,7 +181,7 @@ df_filtered <- df_filtered[df_filtered$X8.day.seascapes != "5", ]
 # Plot
 # See https://cran.r-project.org/web/packages/viridis/vignettes/intro-to-viridis.html for color palette options
 pp <- df_filtered %>%
-  ggplot( aes(x=X8.day.seascapes, y=Avg.chl.a..ug.L., fill=X8.day.seascapes)) +
+  ggplot( aes(x=X8.day.seascapes, y=PO4...uM., fill=X8.day.seascapes)) +
     geom_boxplot() +
     # scale_fill_viridis(option="H", discrete = TRUE, alpha=0.6) +
     scale_fill_manual(values = custom_colors) +
@@ -187,7 +191,8 @@ pp <- df_filtered %>%
     # labs(y = expression("Salinity")) +
     # labs(y = expression(paste("Temperature (", degree, "C) at 1 m depth"))) +
     # labs(y = expression("DO (mg/L)")) +
-    labs(y = expression("NO"["x"] ~ mu*"M")) +
+    # labs(y = expression("NO"["x"] ~ mu*"M")) +
+   labs(y = expression("PO"["4"]^"3-" ~ mu*"M")) +
     # theme(axis.title.y = element_text(hjust = 1))
     # scale_x_discrete(labels= c("Tropical/Subtropical Upwelling", 
     #                          "Tropical Seas", 
@@ -201,7 +206,7 @@ pp <- df_filtered %>%
     ) +
     # ggtitle("A boxplot with jitter") +
     # theme(axis.text.x = element_text(angle = 45)) +
-  ylim(0, 10) +  
+  # ylim(15, 28) +  
   theme(axis.text.x = element_text(size = 32),  # Set X-axis label font size
           axis.text.y = element_text(size = 32)) +
     theme(axis.title.x = element_text(size = 18),
@@ -215,30 +220,31 @@ pp
 # convert abundance columns to relative abundance
 
 # subsets taxa for zooplankton
-df_subset <- df_filtered[ , c("X8.day.seascapes",
-                              "Acantharea",
-                              "Copepods",
-                              "Echinoderms",
-                              "Jellies",
-                              "Larvaeceans",
-                              "Polychaetes",
-                              "Chaetognaths")]
+# df_subset <- df_filtered[ , c("X8.day.seascapes",
+#                               "Acantharea",
+#                               "Copepods",
+#                               "Echinoderms",
+#                               "Jellies",
+#                               "Larvaeceans",
+#                               "Polychaetes",
+#                               "Chaetognaths")]
 
 # subsets taxa for phytoplankton
-# df_subset <- df_filtered[ , c("X8.day.seascapes",
-#                             #"Ceratium_spp",
-#                             "Chaetoceros",
-#                             "Diatom_chains_1",
-#                             "Diatom_chains_2",
-#                             "Guinardia_spp",
-#                             "Trichodesmium_spp")]
+df_subset <- df_filtered[ , c("X8.day.seascapes",
+                            #"Ceratium_spp",
+                            "Chaetoceros",
+                            "Diatom_chains_1",
+                            "Diatom_chains_2",
+                            "Guinardia_spp",
+                            "Neocalyptrella_spp",
+                            "Trichodesmium_spp")]
 
 # reshape the data to long format
 df_long <- tidyr::gather(df_subset, key = "Species", value = "Abundance", -X8.day.seascapes)
 df_sum <- df_long %>%
-  group_by(X8.day.seascapes, Species) %>% 
-  summarise(n = sum(Abundance)) %>% 
-  mutate(freq = n / sum(n)) 
+  group_by(X8.day.seascapes, Species) %>%
+  summarise(n = sum(Abundance)) %>%
+  mutate(freq = n / sum(n))
 
 # Seascape class names:
 # "Class 11" - Tropical/Subtropical Upwelling
@@ -256,7 +262,8 @@ df_sum <- df_sum[!df_sum$X8.day.seascapes %in% exclude_classes, ]
 
 # create the stackplot
 qq <- ggplot(df_sum, aes(x = X8.day.seascapes, y = freq, fill = Species)) +
-  scale_fill_viridis(option="magma", discrete = TRUE, alpha=0.8) +
+  # scale_fill_viridis(option="magma", discrete = TRUE, alpha=0.8) +
+  scale_fill_viridis(discrete = TRUE, alpha=0.8) +
   geom_bar(stat = "identity") +
   labs(x = "Seascape class") +
   labs(y = "Relative abundance") +
@@ -266,6 +273,7 @@ qq <- ggplot(df_sum, aes(x = X8.day.seascapes, y = freq, fill = Species)) +
   #                            "Tropical/Subtropical Transition", 
   #                            "Temperate Transition")) +
   # theme(axis.text.x = element_text(angle = 45)) +
+  theme_minimal() +
   theme(axis.text.x = element_text(size = 32),  # Set X-axis label font size
         axis.text.y = element_text(size = 32)) +
   theme(axis.title.x = element_text(size = 32),
@@ -280,6 +288,25 @@ qq
 ```{r}
 library(dplyr)
 library(vegan)
+
+# Select species for Shannon calculation
+df_subset_shannon <- df_filtered[ , c("X8.day.seascapes",
+                              "Acantharea",
+                              "Copepods",
+                              "Echinoderms",
+                              "Jellies",
+                              "Larvaeceans",
+                              "Polychaetes",
+                              "Chaetognaths",
+                              "Chaetoceros",
+                              "Diatom_chains_1",
+                              "Diatom_chains_2",
+                              "Guinardia_spp",
+                              "Neocalyptrella_spp",
+                              "Trichodesmium_spp")]
+
+# reshape the data to long format
+df_long <- tidyr::gather(df_subset_shannon, key = "Species", value = "Abundance", -X8.day.seascapes)
 
 # Exclude seascapes
 exclude_seascapes <- c(5, 7, 11)
@@ -321,8 +348,30 @@ tt <- ggplot(filtered_taxa_meta, aes(x = factor(X8.day.seascapes), fill = factor
   geom_bar(color = "black", alpha = 0.7) +
   scale_fill_manual(values = custom_colors) +
   labs(title = "Histogram of 8X.day.seascapes", x = "Seascape Class", y = "Frequency") +
-  theme_minimal()
+  theme_minimal() +
+    theme(axis.text.x = element_text(size = 32),  # Set X-axis label font size
+        axis.text.y = element_text(size = 32)) +
+  theme(axis.title.x = element_text(size = 32),
+        axis.title.y = element_text(size = 32)) +
+  theme(legend.text = element_text(size = 32)) +
+  guides(fill = FALSE)
 tt
+
+# # Counts of species per seascape
+df_sum_abund <- df_long %>%
+  group_by(X8.day.seascapes, Species) %>%
+  summarise(n = sum(Abundance)) 
+
+df_sum_abund_filt <- df_sum_abund[df_sum_abund$Species == "Copepods",]
+# Filter the data to exclude specified seascapes
+df_sum_abund_filt2 <- df_sum_abund_filt[!df_sum_abund_filt$X8.day.seascapes %in% exclude_seascapes, ]
+
+dd <- ggplot(df_sum_abund_filt2, aes(x = factor(X8.day.seascapes), y = n, fill = factor(X8.day.seascapes))) +
+  geom_bar(color = "black", alpha = 0.7, stat = "identity") +
+  # scale_fill_viridis(option = "magma", discrete = TRUE, alpha = 0.8)
+  scale_fill_manual(values = custom_colors) +
+  theme_minimal() 
+dd
 ```
 
 # PC plot
@@ -342,13 +391,6 @@ library(ggalt)
 #   "PO4...uM.",
 #   "NO3.NO2..uM.")
 
-# df_filtered_pca <- taxa_meta[complete.cases(taxa_meta[, sel_vars]), ]
-# 
-# exclude_seascapes <- c(5, 7, 11)
-# filt_df_pca <- df_filtered_pca[!df_filtered_pca$X8.day.seascapes %in%
-#                                  exclude_seascapes,
-#                                sel_vars]
-
 # for taxonomy
 # sel_vars <- c("X8.day.seascapes",
 #               "Acantharea",
@@ -359,12 +401,28 @@ library(ggalt)
 #               "Polychaetes",
 #               "Chaetognaths")
 
+# sel_vars <- c("X8.day.seascapes",
+#               # "Ceratium_spp",
+#               "Chaetoceros",
+#               "Diatom_chains_1",
+#               "Diatom_chains_2",
+#               "Guinardia_spp",
+#               "Neocalyptrella_spp",
+#               "Trichodesmium_spp")
+
 sel_vars <- c("X8.day.seascapes",
-              # "Ceratium_spp",
+              "Acantharea",
+              "Copepods",
+              "Echinoderms",
+              "Jellies",
+              "Larvaeceans",
+              "Polychaetes",
+              "Chaetognaths",
               "Chaetoceros",
               "Diatom_chains_1",
               "Diatom_chains_2",
               "Guinardia_spp",
+              "Neocalyptrella_sp",
               "Trichodesmium_spp")
 
 # filter out rows with NA values in column seascapes
@@ -391,7 +449,7 @@ bb <- ggplot(pc_scores, aes(x = PC1, y = PC2, color = seascape)) +
 # add circle around cluster of data points
 custom_colors_pca <- custom_pal_hex[c(1, 5, 6, 7, 8)]
 
-ggplot(pc_scores, aes(x = PC1, y = PC2, color = seascape)) + 
+yy <- ggplot(pc_scores, aes(x = PC1, y = PC2, color = seascape)) + 
   geom_point() +
   stat_ellipse(aes(fill = seascape), level = 0.90, geom = "polygon", alpha = 0.3, color = "black") +
   scale_color_manual(values = custom_colors_pca) +
@@ -399,8 +457,8 @@ ggplot(pc_scores, aes(x = PC1, y = PC2, color = seascape)) +
   theme_classic() +
   # xlim(-2.5,3) +
   # ylim(-2.5,2.5) +
-  xlim(-1,1) +
-  ylim(-1,1) +
+  xlim(-2,2) +
+  ylim(-2,2) +
   geom_point(size=2) +
   guides(colour = guide_legend(override.aes = list(size=2))) + 
   theme(axis.text.x = element_text(size = 32),  # Set X-axis label font size
@@ -408,9 +466,16 @@ ggplot(pc_scores, aes(x = PC1, y = PC2, color = seascape)) +
   theme(axis.title.x = element_text(size = 32),
         axis.title.y = element_text(size = 32)) +
   theme(legend.text = element_text(size = 32))
+
+yy
 ```
 # Map mean values of selected taxa
 ```{r}
+# # ggOceanMaps:
+# https://biostats-r.github.io/biostats/workingInR/140_maps.html
+# https://github.com/MikkoVihtakari/ggOceanMaps
+# install.packages("ggOceanMaps")
+library(ggOceanMaps)
 library(leaflet)
 
 path_sfer_list <- "/Users/enrique.montes/Library/CloudStorage/GoogleDrive-enriquemontes01@gmail.com/My Drive/GDrive/proposals/2022_02_MultiStressor_NOAA/module_1"
@@ -424,7 +489,7 @@ merged_data <- taxa_meta %>%
 
 # Replace 2023 and 10 with your selected year and month
 selected_year <- 2023
-selected_month <- 11
+selected_month <- 7
 
 # Filter rows
 filtered_taxa_meta <- merged_data %>%
@@ -437,7 +502,7 @@ taxa_avg <- filtered_taxa_meta %>%
   group_by(line_id) %>%
   summarise(longitude = mean(dec_lon),
             latitude = mean(dec_lat),
-            sel_taxa_mean = mean(Diatom_chains_1, na.rm = TRUE))
+            sel_taxa_mean = mean(Echinoderms, na.rm = TRUE))
 
 # # Filter out values less than 1
 filtered_taxa_avg <- taxa_avg %>%
@@ -453,42 +518,54 @@ filtered_taxa_avg <- taxa_avg %>%
 min_value <- min(filtered_taxa_avg$sel_taxa_mean, na.rm = TRUE)
 max_value <- max(filtered_taxa_avg$sel_taxa_mean, na.rm = TRUE)
 
-# Adjust the color palette with specified values
-color_palette <- colorNumeric(palette = "Oranges", domain = c(min_value, max_value))
+# # Adjust the color palette with specified values
+# color_palette <- colorNumeric(palette = "Oranges", domain = c(min_value, max_value))
+# 
+# # Create the map
+# map <- leaflet(filtered_taxa_avg) %>%
+#   addProviderTiles("Esri.WorldImagery") %>%
+#   addCircleMarkers(
+#     lng = ~longitude,
+#     lat = ~latitude,
+#     radius = 10,
+#     color = ~color_palette(sel_taxa_mean),
+#     fillOpacity = 0.8,
+#     popup = ~paste("Line ID: ", line_id, "<br>Copepods: ", sel_taxa_mean)
+#   ) %>%
+#   addLegend(
+#     position = "bottomright",
+#     pal = color_palette,
+#     values = c(min_value, max_value),  # Adjusted values here
+#     title = "Copepod occurrences",
+#     opacity = 1
+#   )
+# map
 
-# Create the map
-map <- leaflet(filtered_taxa_avg) %>%
-  addProviderTiles("Esri.WorldImagery") %>%
-  addCircleMarkers(
-    lng = ~longitude,
-    lat = ~latitude,
-    radius = 10,
-    color = ~color_palette(sel_taxa_mean),
-    fillOpacity = 0.8,
-    popup = ~paste("Line ID: ", line_id, "<br>Copepods: ", sel_taxa_mean)
-  ) %>%
-  addLegend(
-    position = "bottomright",
-    pal = color_palette,
-    values = c(min_value, max_value),  # Adjusted values here
-    title = "Copepod occurrences",
-    opacity = 1
-  )
+# # Map with bathymetry
+  # Overlay color-scaled dots
+dt <- data.frame(lon = filtered_taxa_avg$longitude, lat = filtered_taxa_avg$latitude, sel_param = filtered_taxa_avg$sel_taxa_mean)
+    
+occ_map <- basemap(limits = c(-84, -79.5, 24, 28.5), bathymetry = TRUE) +
+  geom_point(data = dt, aes(x = lon, y = lat, size = sel_param), fill = "gold1", color = "gold1") +
+  scale_size_continuous(name = "Symbol Size", range = c(1, 10)) +
+  theme_minimal() 
+occ_map
 
-
-# Display the map
-map
+# occ_map_leg <- ggplot(dt, aes(lon, lat)) +
+#   geom_point(aes(size = sel_param), fill = "green", color ="green") +
+#   theme_minimal()
+# occ_map_leg
 ```
 
 # Create time-series plots of selected taxa at specific stations
 ```{r}
-selected_variable <- 'Diatom_chains_1'
+selected_variable <- 'Chaetoceros'
 # # Lower Keys
 # selected_line_id <- c('LK','WS','MO','KW')
 # # Middle Keys
 # selected_line_id <- c('CO', 'CR')
 # # Other regions
-selected_line_id <- c('TB')
+selected_line_id <- c('CAL')
 
 # Filter the data for the selected line_id
 filtered_merged_data <- merged_data[merged_data$line_id %in% selected_line_id, ]
@@ -500,7 +577,7 @@ monthly_means <- na.omit(filtered_merged_data[, c("date", selected_variable, "li
 
 # Create a time series plot
 ggplot(monthly_means, aes(x = year_month, y = mean_value)) +
-  geom_bar(stat = "identity", fill = "green") +
+  geom_bar(stat = "identity", fill = "orange") +
   geom_errorbar(aes(ymin = mean_value - se_value, ymax = mean_value + se_value),
                 width = 0.2, # Adjust width as needed
                 position = position_dodge(width = 0.8)) + # Adjust width as needed
