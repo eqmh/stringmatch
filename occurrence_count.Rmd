@@ -489,7 +489,7 @@ merged_data <- taxa_meta %>%
 
 # Replace 2023 and 10 with your selected year and month
 selected_year <- 2023
-selected_month <- 7
+selected_month <- 1
 
 # Filter rows
 filtered_taxa_meta <- merged_data %>%
@@ -543,11 +543,14 @@ max_value <- max(filtered_taxa_avg$sel_taxa_mean, na.rm = TRUE)
 
 # # Map with bathymetry
   # Overlay color-scaled dots
-dt <- data.frame(lon = filtered_taxa_avg$longitude, lat = filtered_taxa_avg$latitude, sel_param = filtered_taxa_avg$sel_taxa_mean)
+dt <- data.frame(
+  lon = filtered_taxa_avg$longitude, 
+  lat = filtered_taxa_avg$latitude, 
+  sel_param = log(filtered_taxa_avg$sel_taxa_mean))
     
 occ_map <- basemap(limits = c(-84, -79.5, 24, 28.5), bathymetry = TRUE) +
-  geom_point(data = dt, aes(x = lon, y = lat, size = sel_param), fill = "gold1", color = "gold1") +
-  scale_size_continuous(name = "Symbol Size", range = c(1, 10)) +
+  geom_point(data = dt, aes(x = lon, y = lat, size = sel_param), fill = "hotpink", color = "hotpink") +
+  scale_size_continuous(name = "log(counts)", limits = log(c(0.1, 20)), range = c(0.1, 10)) +
   theme_minimal() 
 occ_map
 
