@@ -9,7 +9,10 @@ output: html_notebook
 library(dplyr)
 
 # specify the directory where the files are located
-dir_path <- "/Users/enrique.montes/Google Drive/My Drive/GDrive/OCED_AOML/WS_cruises/plankton_imaging/CPICS/TS.Master_selection"
+# For NOAA machines
+# dir_path <- "/Users/enrique.montes/Google Drive/My Drive/GDrive/OCED_AOML/WS_cruises/plankton_imaging/CPICS/TS.Master_selection"
+# For personal machine
+dir_path <- "~/Library/CloudStorage/GoogleDrive-enriquemontes01@gmail.com/My Drive/GDrive/OCED_AOML/WS_cruises/plankton_imaging/CPICS/TS.Master_selection"
 
 # obtain a list of file names in the directory
 file_names <- list.files(path = dir_path, pattern = ".txt", full.names = TRUE)
@@ -36,7 +39,11 @@ library(tidyverse)
 library(lubridate)
 
 # Directory where the CTD metadata is located
-dir_path2 <- "/Users/enrique.montes/Library/CloudStorage/GoogleDrive-enriquemontes01@gmail.com/My Drive/GDrive/OCED_AOML/WS_cruises/plankton_imaging/CPICS/ws_cruise_ctd"
+# For NOAA machines
+# dir_path2 <- "/Users/enrique.montes/Library/CloudStorage/GoogleDrive-enriquemontes01@gmail.com/My Drive/GDrive/OCED_AOML/WS_cruises/plankton_imaging/CPICS/ws_cruise_ctd"
+# For personal machine
+dir_path2 <- "~/Library/CloudStorage/GoogleDrive-enriquemontes01@gmail.com/My Drive/GDrive/OCED_AOML/WS_cruises/plankton_imaging/CPICS/ws_cruise_ctd"
+
 file_name <- list.files(path = dir_path2, pattern = "ctd_meta_v3.csv", full.names = TRUE)
 ctd_meta <- read.csv(file_name, fill = TRUE)
 
@@ -108,20 +115,20 @@ for (i in 1:(length(dt_list))) {
                        Ceratium_spp = ceratium_count,
                        Chaetoceros = chaetoceros_count,
                        Chaetognaths = chaetog_count,
-                       Diatom_chains_1 = chain1_count,
-                       Diatom_chains_2 = chain2_count,
+                       Diatoms = chain1_count,
+                       Diatoms2 = chain2_count,
                        # Diatom_chains_3 = chain3_count,
                        Cladocera = clado_count,
                        Copepods = copepod_count,
                        Decapods = deca_count,
                        Echinoderms = echino_count,
-                       Guinardia_spp = gui_count,
+                       Guinardia = gui_count,
                        Jellies = jel_count,
                        Larvaeceans = larv_count,
-                       Neocalyptrella_spp = neocal_count,
+                       Neocalyptrella = neocal_count,
                        Noctiluca_sp = nocti_count,
                        Polychaetes = poly_count,
-                       Trichodesmium_spp = tricho_count)
+                       Trichodesmium = tricho_count)
                        
   conc_occ_final <- do.call(rbind, list(conc_occ_final, result))
 } 
@@ -137,7 +144,10 @@ library(hrbrthemes)
 library(viridis)
 
 # # Load seascape color palette used with Matlab and extract RGB values for observed unique seascapes
-palette_dir <- "/Users/enrique.montes/Library/CloudStorage/GoogleDrive-enriquemontes01@gmail.com/My Drive/GDrive/software/matlab/m_map/seascape_cm"
+# For NOAA machines
+# palette_dir <- "/Users/enrique.montes/Library/CloudStorage/GoogleDrive-enriquemontes01@gmail.com/My Drive/GDrive/software/matlab/m_map/seascape_cm"
+# For personal machine
+palette_dir <- "~/Library/CloudStorage/GoogleDrive-enriquemontes01@gmail.com/My Drive/GDrive/software/matlab/m_map/seascape_cm"
 palette_file <- list.files(path = palette_dir, pattern = "cmap1.csv", full.names = TRUE)
 palette_df <- read.csv(palette_file, header = FALSE)
 colnames(palette_df) <- c("r", "g", "b")
@@ -192,7 +202,7 @@ pp <- df_filtered %>%
     # labs(y = expression(paste("Temperature (", degree, "C) at 1 m depth"))) +
     # labs(y = expression("DO (mg/L)")) +
     # labs(y = expression("NO"["x"] ~ mu*"M")) +
-   labs(y = expression("PO"["4"]^"3-" ~ mu*"M")) +
+    labs(y = expression("PO"["4"]^"3-" ~ mu*"M")) +
     # theme(axis.title.y = element_text(hjust = 1))
     # scale_x_discrete(labels= c("Tropical/Subtropical Upwelling", 
     #                          "Tropical Seas", 
@@ -220,24 +230,24 @@ pp
 # convert abundance columns to relative abundance
 
 # subsets taxa for zooplankton
-# df_subset <- df_filtered[ , c("X8.day.seascapes",
-#                               "Acantharea",
-#                               "Copepods",
-#                               "Echinoderms",
-#                               "Jellies",
-#                               "Larvaeceans",
-#                               "Polychaetes",
-#                               "Chaetognaths")]
+df_subset <- df_filtered[ , c("X8.day.seascapes",
+                              "Acantharea",
+                              "Copepods",
+                              "Echinoderms",
+                              "Jellies",
+                              "Larvaeceans",
+                              "Polychaetes",
+                              "Chaetognaths")]
 
 # subsets taxa for phytoplankton
-df_subset <- df_filtered[ , c("X8.day.seascapes",
-                            #"Ceratium_spp",
-                            "Chaetoceros",
-                            "Diatom_chains_1",
-                            "Diatom_chains_2",
-                            "Guinardia_spp",
-                            "Neocalyptrella_spp",
-                            "Trichodesmium_spp")]
+# df_subset <- df_filtered[ , c("X8.day.seascapes",
+#                             #"Ceratium_spp",
+#                             "Chaetoceros",
+#                             "Diatoms",
+#                             "Diatoms2",
+#                             "Guinardia",
+#                             "Neocalyptrella",
+#                             "Trichodesmium")]
 
 # reshape the data to long format
 df_long <- tidyr::gather(df_subset, key = "Species", value = "Abundance", -X8.day.seascapes)
@@ -262,8 +272,8 @@ df_sum <- df_sum[!df_sum$X8.day.seascapes %in% exclude_classes, ]
 
 # create the stackplot
 qq <- ggplot(df_sum, aes(x = X8.day.seascapes, y = freq, fill = Species)) +
-  # scale_fill_viridis(option="magma", discrete = TRUE, alpha=0.8) +
-  scale_fill_viridis(discrete = TRUE, alpha=0.8) +
+  scale_fill_viridis(option="magma", discrete = TRUE, alpha=0.8) +
+  # scale_fill_viridis(discrete = TRUE, alpha=0.8) +
   geom_bar(stat = "identity") +
   labs(x = "Seascape class") +
   labs(y = "Relative abundance") +
@@ -422,7 +432,7 @@ sel_vars <- c("X8.day.seascapes",
               "Diatom_chains_1",
               "Diatom_chains_2",
               "Guinardia_spp",
-              "Neocalyptrella_sp",
+              "Neocalyptrella_spp",
               "Trichodesmium_spp")
 
 # filter out rows with NA values in column seascapes
@@ -478,7 +488,10 @@ yy
 library(ggOceanMaps)
 library(leaflet)
 
-path_sfer_list <- "/Users/enrique.montes/Library/CloudStorage/GoogleDrive-enriquemontes01@gmail.com/My Drive/GDrive/proposals/2022_02_MultiStressor_NOAA/module_1"
+# For NOAA machines
+# path_sfer_list <- "/Users/enrique.montes/Library/CloudStorage/GoogleDrive-enriquemontes01@gmail.com/My Drive/GDrive/proposals/2022_02_MultiStressor_NOAA/module_1"
+# For personal machine
+path_sfer_list <- "~/Library/CloudStorage/GoogleDrive-enriquemontes01@gmail.com/My Drive/GDrive/proposals/2022_02_MultiStressor_NOAA/module_1"
 
 sfer_curated <- list.files(path_sfer_list, pattern = "sfer_stations_curated.csv", full.names = TRUE)
 
@@ -489,7 +502,7 @@ merged_data <- taxa_meta %>%
 
 # Replace 2023 and 10 with your selected year and month
 selected_year <- 2023
-selected_month <- 1
+selected_month <- 11
 
 # Filter rows
 filtered_taxa_meta <- merged_data %>%
@@ -502,25 +515,20 @@ taxa_avg <- filtered_taxa_meta %>%
   group_by(line_id) %>%
   summarise(longitude = mean(dec_lon),
             latitude = mean(dec_lat),
-            sel_taxa_mean = mean(Echinoderms, na.rm = TRUE))
+            sel_taxa_mean = mean(Copepods, na.rm = TRUE))
 
 # # Filter out values less than 1
 filtered_taxa_avg <- taxa_avg %>%
   filter(sel_taxa_mean >= 0.1)
 
-# Assuming 'filtered_taxa_avg' is your data frame
 
-# Find the minimum and maximum values of sel_taxa_mean
-# min_value <- 0.1
-# max_value <- 12
-# # OR USE
 # Find the minimum and maximum values of sel_taxa_mean
 min_value <- min(filtered_taxa_avg$sel_taxa_mean, na.rm = TRUE)
 max_value <- max(filtered_taxa_avg$sel_taxa_mean, na.rm = TRUE)
 
 # # Adjust the color palette with specified values
-# color_palette <- colorNumeric(palette = "Oranges", domain = c(min_value, max_value))
-# 
+color_palette <- colorNumeric(palette = "Oranges", domain = c(min_value, max_value))
+
 # # Create the map
 # map <- leaflet(filtered_taxa_avg) %>%
 #   addProviderTiles("Esri.WorldImagery") %>%
@@ -549,8 +557,8 @@ dt <- data.frame(
   sel_param = log(filtered_taxa_avg$sel_taxa_mean))
     
 occ_map <- basemap(limits = c(-84, -79.5, 24, 28.5), bathymetry = TRUE) +
-  geom_point(data = dt, aes(x = lon, y = lat, size = sel_param), fill = "hotpink", color = "hotpink") +
-  scale_size_continuous(name = "log(counts)", limits = log(c(0.1, 20)), range = c(0.1, 10)) +
+  geom_point(data = dt, aes(x = lon, y = lat, size = sel_param), fill = "red", color = "red") +
+  scale_size_continuous(name = "log(counts)", limits = log(c(0.1, 30)), range = c(2, 10)) +
   theme_minimal() 
 occ_map
 
