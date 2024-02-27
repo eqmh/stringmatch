@@ -309,11 +309,11 @@ df_subset_shannon <- df_filtered[ , c("X8.day.seascapes",
                               "Polychaetes",
                               "Chaetognaths",
                               "Chaetoceros",
-                              "Diatom_chains_1",
-                              "Diatom_chains_2",
-                              "Guinardia_spp",
-                              "Neocalyptrella_spp",
-                              "Trichodesmium_spp")]
+                              "Diatoms",
+                              "Diatoms2",
+                              "Guinardia",
+                              "Neocalyptrella",
+                              "Trichodesmium")]
 
 # reshape the data to long format
 df_long <- tidyr::gather(df_subset_shannon, key = "Species", value = "Abundance", -X8.day.seascapes)
@@ -372,7 +372,7 @@ df_sum_abund <- df_long %>%
   group_by(X8.day.seascapes, Species) %>%
   summarise(n = sum(Abundance)) 
 
-df_sum_abund_filt <- df_sum_abund[df_sum_abund$Species == "Copepods",]
+df_sum_abund_filt <- df_sum_abund[df_sum_abund$Species == "Acantharea",]
 # Filter the data to exclude specified seascapes
 df_sum_abund_filt2 <- df_sum_abund_filt[!df_sum_abund_filt$X8.day.seascapes %in% exclude_seascapes, ]
 
@@ -411,29 +411,29 @@ library(ggalt)
 #               "Polychaetes",
 #               "Chaetognaths")
 
+sel_vars <- c("X8.day.seascapes",
+              # "Ceratium_spp",
+              "Chaetoceros",
+              "Diatoms",
+              "Diatoms2",
+              "Guinardia",
+              "Neocalyptrella",
+              "Trichodesmium")
+
 # sel_vars <- c("X8.day.seascapes",
-#               # "Ceratium_spp",
+#               "Acantharea",
+#               "Copepods",
+#               "Echinoderms",
+#               "Jellies",
+#               "Larvaeceans",
+#               "Polychaetes",
+#               "Chaetognaths",
 #               "Chaetoceros",
 #               "Diatom_chains_1",
 #               "Diatom_chains_2",
 #               "Guinardia_spp",
 #               "Neocalyptrella_spp",
 #               "Trichodesmium_spp")
-
-sel_vars <- c("X8.day.seascapes",
-              "Acantharea",
-              "Copepods",
-              "Echinoderms",
-              "Jellies",
-              "Larvaeceans",
-              "Polychaetes",
-              "Chaetognaths",
-              "Chaetoceros",
-              "Diatom_chains_1",
-              "Diatom_chains_2",
-              "Guinardia_spp",
-              "Neocalyptrella_spp",
-              "Trichodesmium_spp")
 
 # filter out rows with NA values in column seascapes
 # df_filtered_pca <- taxa_meta[complete.cases(taxa_meta$X8.day.seascapes), ]
