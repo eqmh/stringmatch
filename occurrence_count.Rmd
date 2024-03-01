@@ -510,12 +510,13 @@ filtered_taxa_meta <- merged_data %>%
 
 # filtered_taxa_meta <- merged_data
 
-# Compute average of selected variable (e.g., Copepods)
+# Compute weighted average lat lons based on selected variable, and mean variable values (e.g., Copepods)
 taxa_avg <- filtered_taxa_meta %>%
   group_by(line_id) %>%
-  summarise(longitude = mean(dec_lon),
-            latitude = mean(dec_lat),
-            sel_taxa_mean = mean(Copepods, na.rm = TRUE))
+  mutate(weight = Diatoms / sum(Diatoms, na.rm = TRUE)) %>%
+  summarise(longitude = weighted.mean(dec_lon, w = weight, na.rm = TRUE),
+            latitude = weighted.mean(dec_lat, w = weight, na.rm = TRUE),
+            sel_taxa_mean = mean(Diatoms, na.rm = TRUE))
 
 # # Filter out values less than 1
 filtered_taxa_avg <- taxa_avg %>%
@@ -555,10 +556,16 @@ dt <- data.frame(
   lon = filtered_taxa_avg$longitude, 
   lat = filtered_taxa_avg$latitude, 
   sel_param = log(filtered_taxa_avg$sel_taxa_mean))
+
+# # Colors:
+# Acantharea = darkturquoise
+# Copepods = red
+# Chain diatoms =
     
 occ_map <- basemap(limits = c(-84, -79.5, 24, 28.5), bathymetry = TRUE) +
-  geom_point(data = dt, aes(x = lon, y = lat, size = sel_param), fill = "red", color = "red") +
-  scale_size_continuous(name = "log(counts)", limits = log(c(0.1, 30)), range = c(2, 10)) +
+  geom_point(data = dt, aes(x = lon, y = lat, size = sel_param), fill = "orange", color = "orange") +
+  geom_point(data = filtered_taxa_meta, aes(x = dec_lon, y = dec_lat), color = "black", shape = 3, size = 1.5) +
+  scale_size_continuous(name = "log(counts)", limits = log(c(0.01, 100)), range = c(2, 10)) +
   theme_minimal() 
 occ_map
 
