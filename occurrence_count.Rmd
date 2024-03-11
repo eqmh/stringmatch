@@ -402,23 +402,23 @@ library(ggalt)
 #   "NO3.NO2..uM.")
 
 # for taxonomy
-# sel_vars <- c("X8.day.seascapes",
-#               "Acantharea",
-#               "Copepods",
-#               "Echinoderms",
-#               "Jellies",
-#               "Larvaeceans",
-#               "Polychaetes",
-#               "Chaetognaths")
-
 sel_vars <- c("X8.day.seascapes",
-              # "Ceratium_spp",
-              "Chaetoceros",
-              "Diatoms",
-              "Diatoms2",
-              "Guinardia",
-              "Neocalyptrella",
-              "Trichodesmium")
+              "Acantharea",
+              "Copepods",
+              "Echinoderms",
+              "Jellies",
+              "Larvaeceans",
+              "Polychaetes",
+              "Chaetognaths")
+
+# sel_vars <- c("X8.day.seascapes",
+#               # "Ceratium_spp",
+#               "Chaetoceros",
+#               "Diatoms",
+#               "Diatoms2",
+#               "Guinardia",
+#               "Neocalyptrella",
+#               "Trichodesmium")
 
 # sel_vars <- c("X8.day.seascapes",
 #               "Acantharea",
@@ -513,14 +513,14 @@ filtered_taxa_meta <- merged_data %>%
 # Compute weighted average lat lons based on selected variable, and mean variable values (e.g., Copepods)
 taxa_avg <- filtered_taxa_meta %>%
   group_by(line_id) %>%
-  mutate(weight = Diatoms / sum(Diatoms, na.rm = TRUE)) %>%
+  mutate(weight = Guinardia / sum(Guinardia, na.rm = TRUE)) %>%
   summarise(longitude = weighted.mean(dec_lon, w = weight, na.rm = TRUE),
             latitude = weighted.mean(dec_lat, w = weight, na.rm = TRUE),
-            sel_taxa_mean = mean(Diatoms, na.rm = TRUE))
+            sel_taxa_mean = mean(Guinardia, na.rm = TRUE))
 
 # # Filter out values less than 1
 filtered_taxa_avg <- taxa_avg %>%
-  filter(sel_taxa_mean >= 0.1)
+  filter(sel_taxa_mean > 0)
 
 
 # Find the minimum and maximum values of sel_taxa_mean
@@ -528,7 +528,7 @@ min_value <- min(filtered_taxa_avg$sel_taxa_mean, na.rm = TRUE)
 max_value <- max(filtered_taxa_avg$sel_taxa_mean, na.rm = TRUE)
 
 # # Adjust the color palette with specified values
-color_palette <- colorNumeric(palette = "Oranges", domain = c(min_value, max_value))
+# color_palette <- colorNumeric(palette = "Oranges", domain = c(min_value, max_value))
 
 # # Create the map
 # map <- leaflet(filtered_taxa_avg) %>%
@@ -555,17 +555,25 @@ color_palette <- colorNumeric(palette = "Oranges", domain = c(min_value, max_val
 dt <- data.frame(
   lon = filtered_taxa_avg$longitude, 
   lat = filtered_taxa_avg$latitude, 
-  sel_param = log(filtered_taxa_avg$sel_taxa_mean))
+  sel_param = filtered_taxa_avg$sel_taxa_mean)
 
 # # Colors:
-# Acantharea = darkturquoise
-# Copepods = red
-# Chain diatoms =
+# Acantharea = darkturquoise; breaks = c(0.25, 1, 2.5, 5); limits = c(0.1, 10)
+# Copepods = red; breaks = c(0.25, 1, 2.5, 5, 10); limits = c(0.1, 15)
+# Chain diatoms = orange; breaks = c(0.5, 1, 10, 30, 60); c(0.1, 70)
+# Chaetoceros = purple; breaks = c(0.25, 1, 2.5, 5, 10); limits = c(0.1, 15)
+# Echinoderms = magenta; breaks = c(0.5, 1, 3, 5); limits = c(0.1, 5)
+# Larvaceans = plum; breaks = c(0.5, 1, 3, 5); limits = c(0.1, 5)
+# Polychaetes = dodgerblue; breaks = c(0.25, 0.5, 1, 3); limits = c(0.1, 3)
+# Jellies = slategray4; breaks = c(0.25, 0.5, 1, 2); limits = c(0.1, 3)
     
 occ_map <- basemap(limits = c(-84, -79.5, 24, 28.5), bathymetry = TRUE) +
-  geom_point(data = dt, aes(x = lon, y = lat, size = sel_param), fill = "orange", color = "orange") +
+  geom_point(data = dt, aes(x = lon, y = lat, size = sel_param), fill = "olivedrab2", color = "olivedrab2") +
   geom_point(data = filtered_taxa_meta, aes(x = dec_lon, y = dec_lat), color = "black", shape = 3, size = 1.5) +
-  scale_size_continuous(name = "log(counts)", limits = log(c(0.01, 100)), range = c(2, 10)) +
+  scale_size_continuous(name = "Average counts", 
+                        breaks = c(0.5, 1, 3, 5, 10),
+                        limits = c(0.1, 40),
+                        range = c(1, 15)) +
   theme_minimal() 
 occ_map
 
