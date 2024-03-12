@@ -105,6 +105,8 @@ for (i in 1:(length(dt_list))) {
     nocti_count <- nrow(nocti_subset)
   poly_subset <- subset(class.Polychaets, date >= dt_list[i]-start & date < dt_list[i]+stop) 
     poly_count <- nrow(poly_subset)
+  ptero_subset <- subset(class.Pteropods, date >= dt_list[i]-start & date < dt_list[i]+stop) 
+    ptero_count <- nrow(ptero_subset)  
   tricho_subset <- subset(class.Tricho, date >= dt_list[i]-start & date < dt_list[i]+stop) 
     tricho_count <- nrow(tricho_subset)
     
@@ -128,6 +130,7 @@ for (i in 1:(length(dt_list))) {
                        Neocalyptrella = neocal_count,
                        Noctiluca_sp = nocti_count,
                        Polychaetes = poly_count,
+                       Pteropods = ptero_count,
                        Trichodesmium = tricho_count)
                        
   conc_occ_final <- do.call(rbind, list(conc_occ_final, result))
@@ -483,8 +486,8 @@ yy
 ```{r}
 # # ggOceanMaps:
 # https://biostats-r.github.io/biostats/workingInR/140_maps.html
-# https://github.com/MikkoVihtakari/ggOceanMaps
-# install.packages("ggOceanMaps")
+# https://github.com/MikkoVihtakari/ggOceanMaps: Use this one: remotes::install_github("MikkoVihtakari/ggOceanMaps")
+# install.packages("ggOceanMaps") # # This is outdated, don't use!!!
 library(ggOceanMaps)
 library(leaflet)
 

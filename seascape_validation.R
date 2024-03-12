@@ -115,12 +115,18 @@ bb <- ggplot(pc_scores, aes(x = PC1, y = PC2, color = seascape)) +
   geom_point() +
   labs(x = "PC1", y = "PC2", color = "Seascape") 
 
+custom_colors_pca <- c("3" = custom_pal_hex[1], 
+                       "13" = custom_pal_hex[5], 
+                       "15" = custom_pal_hex[6], 
+                       "21" = custom_pal_hex[9], 
+                       "27" = custom_pal_hex[10])
+
 # add circle around cluster of data points
 yy <- ggplot(pc_scores, aes(x = PC1, y = PC2, color = seascape)) + 
   geom_point() +
   stat_ellipse(aes(fill = seascape), level = 0.90, geom = "polygon", alpha = 0.3, color = "black") +
-  scale_color_manual(values = custom_colors) +
-  scale_fill_manual(values = custom_colors) +
+  scale_color_manual(values = custom_colors_pca) +
+  scale_fill_manual(values = custom_colors_pca) +
   theme_classic() +
   xlim(-2.5,3) +
   ylim(-2.5,2.5) +
