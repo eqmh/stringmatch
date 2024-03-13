@@ -114,7 +114,7 @@ for (i in 1:(length(dt_list))) {
   result <- data.frame(date = dt_list[i], 
                        Acantharea = acantha_count,
                        Centric_diatoms = centric_count,
-                       Ceratium_spp = ceratium_count,
+                       Ceratium = ceratium_count,
                        Chaetoceros = chaetoceros_count,
                        Chaetognaths = chaetog_count,
                        Diatoms = chain1_count,
@@ -240,17 +240,36 @@ df_subset <- df_filtered[ , c("X8.day.seascapes",
                               "Jellies",
                               "Larvaeceans",
                               "Polychaetes",
-                              "Chaetognaths")]
+                              "Chaetognaths",
+                              "Pteropods")]
 
 # subsets taxa for phytoplankton
 # df_subset <- df_filtered[ , c("X8.day.seascapes",
-#                             #"Ceratium_spp",
+#                             "Ceratium",
 #                             "Chaetoceros",
 #                             "Diatoms",
 #                             "Diatoms2",
 #                             "Guinardia",
 #                             "Neocalyptrella",
 #                             "Trichodesmium")]
+
+# subsets taxa for all species
+# df_subset <- df_filtered[ , c("X8.day.seascapes",
+#                             "Ceratium",
+#                             "Chaetoceros",
+#                             "Diatoms",
+#                             "Diatoms2",
+#                             "Guinardia",
+#                             "Neocalyptrella",
+#                             "Trichodesmium",
+#                             "Acantharea",
+#                             "Copepods",
+#                             "Echinoderms",
+#                             "Jellies",
+#                             "Larvaeceans",
+#                             "Polychaetes",
+#                             "Chaetognaths",
+#                             "Pteropods")]
 
 # reshape the data to long format
 df_long <- tidyr::gather(df_subset, key = "Species", value = "Abundance", -X8.day.seascapes)
@@ -273,10 +292,15 @@ df_sum$X8.day.seascapes <- factor(df_sum$X8.day.seascapes, levels = c("3", "5", 
 exclude_classes <- c(5, 7, 11)
 df_sum <- df_sum[!df_sum$X8.day.seascapes %in% exclude_classes, ]
 
+# Use qualitative palettes: https://colorbrewer2.org/#type=qualitative&scheme=Accent&n=7
+custom_pal_hex2 <- c('#e41a1c','#377eb8','#4daf4a','#984ea3','#ff7f00','#ffff33','#a65628','#f781bf')
+# custom_pal_hex2 <- c('#1b9e77','#d95f02','#7570b3','#e7298a','#66a61e','#e6ab02','#a6761d')
+
 # create the stackplot
 qq <- ggplot(df_sum, aes(x = X8.day.seascapes, y = freq, fill = Species)) +
-  scale_fill_viridis(option="magma", discrete = TRUE, alpha=0.8) +
+  # scale_fill_viridis(option="Set3", discrete = TRUE, alpha=0.8) +
   # scale_fill_viridis(discrete = TRUE, alpha=0.8) +
+  scale_fill_manual(values = custom_pal_hex2) +
   geom_bar(stat = "identity") +
   labs(x = "Seascape class") +
   labs(y = "Relative abundance") +
@@ -311,6 +335,8 @@ df_subset_shannon <- df_filtered[ , c("X8.day.seascapes",
                               "Larvaeceans",
                               "Polychaetes",
                               "Chaetognaths",
+                              "Pteropods",
+                              "Ceratium",
                               "Chaetoceros",
                               "Diatoms",
                               "Diatoms2",
@@ -375,7 +401,7 @@ df_sum_abund <- df_long %>%
   group_by(X8.day.seascapes, Species) %>%
   summarise(n = sum(Abundance)) 
 
-df_sum_abund_filt <- df_sum_abund[df_sum_abund$Species == "Acantharea",]
+df_sum_abund_filt <- df_sum_abund[df_sum_abund$Species == "Guinardia",]
 # Filter the data to exclude specified seascapes
 df_sum_abund_filt2 <- df_sum_abund_filt[!df_sum_abund_filt$X8.day.seascapes %in% exclude_seascapes, ]
 
@@ -385,6 +411,41 @@ dd <- ggplot(df_sum_abund_filt2, aes(x = factor(X8.day.seascapes), y = n, fill =
   scale_fill_manual(values = custom_colors) +
   theme_minimal() 
 dd
+
+# Compute counts of selected species per seascape class normalized by frequency of seascapes
+# reshape the data to long format
+df_long2 <- tidyr::gather(df_subset_shannon, key = "Species", value = "Abundance", -X8.day.seascapes)
+
+spp_seascape_normalized <- df_long2 %>%
+  filter(Species == "Guinardia") %>%
+  group_by(X8.day.seascapes) %>%
+  summarise(spp_count = sum(Abundance))
+
+# Compute frequencies of each seascape class
+seascape_frequencies <- df_long2 %>%
+  count(X8.day.seascapes) %>%
+  rename(freq = n)
+
+# Merge counts with frequencies
+spp_seascape_normalized <- merge(spp_seascape_normalized, seascape_frequencies, by = "X8.day.seascapes")
+
+# Normalize counts by frequency
+spp_seascape_normalized$spp_normalized <- (spp_seascape_normalized$spp_count / spp_seascape_normalized$freq) * 1000
+spp_seascape_normalized_filt <- spp_seascape_normalized[!spp_seascape_normalized$X8.day.seascapes %in% exclude_seascapes, ]
+
+bb <- ggplot(spp_seascape_normalized_filt, aes(x = factor(X8.day.seascapes), y = spp_normalized, fill = factor(X8.day.seascapes))) +
+  geom_bar(color = "black", alpha = 0.7, stat = "identity") +
+  scale_fill_manual(values = custom_colors) +
+  labs(x = "Seascape Class", y = "Counts / Seascape freq * 1000") +
+  theme_minimal() +
+    theme(axis.text.x = element_text(size = 32),  # Set X-axis label font size
+        axis.text.y = element_text(size = 32)) +
+  theme(axis.title.x = element_text(size = 32),
+        axis.title.y = element_text(size = 32)) +
+  theme(legend.text = element_text(size = 32)) +
+  guides(fill = FALSE)
+bb
+
 ```
 
 # PC plot
