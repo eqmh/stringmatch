@@ -102,7 +102,7 @@ exclude_seascapes <- c(5, 7, 11, 17, 18)
 filt_df_pca <- df_filtered_pca[!df_filtered_pca$seascape_week %in%
                                  exclude_seascapes, sel_vars]
 
-pca <- prcomp(filt_df_pca, scale. = TRUE)
+pca <- prcomp(filt_df_pca[, c("chla", "po4", "no3_no2")], scale. = TRUE)
 
 # Extract PC1 and PC2 scores for each sampling event
 pc_scores <- data.frame(seascape = as.character(filt_df_pca$seascape_week), # for hydrography
@@ -124,15 +124,15 @@ custom_colors_pca <- c("3" = custom_pal_hex[1],
 # add circle around cluster of data points
 yy <- ggplot(pc_scores, aes(x = PC1, y = PC2, color = seascape)) + 
   geom_point() +
-  stat_ellipse(aes(fill = seascape), level = 0.90, geom = "polygon", alpha = 0.3, color = "black") +
+  # stat_ellipse(aes(fill = seascape), level = 0.90, geom = "polygon", alpha = 0.3, color = "black") +
   scale_color_manual(values = custom_colors_pca) +
   scale_fill_manual(values = custom_colors_pca) +
   theme_classic() +
-  xlim(-2.5,3) +
-  ylim(-2.5,2.5) +
-  # xlim(-2,2) +
-  # ylim(-2,2) +
-  geom_point(size=2) +
+  # xlim(-2.5,3) +
+  # ylim(-2.5,2.5) +
+  xlim(-1,1.5) +
+  ylim(-2,2) +
+  geom_point(size=1) +
   guides(colour = guide_legend(override.aes = list(size=2))) + 
   theme(axis.text.x = element_text(size = 32),  # Set X-axis label font size
         axis.text.y = element_text(size = 32)) +
@@ -141,3 +141,48 @@ yy <- ggplot(pc_scores, aes(x = PC1, y = PC2, color = seascape)) +
   theme(legend.text = element_text(size = 32))
 
 yy
+
+################################################################################
+# Perform Correspondence Analysis (CA) on the count data
+# install.packages("ca")
+library(CCA)
+
+# Define selected variables for CA
+sel_vars <- c(
+  "seascape_week",
+  # "temp",
+  # "salinity",
+  "chla",
+  "po4",
+  "no3_no2"
+)
+
+# Filter out rows with NA values in column seascape_week
+df_filtered_ca <- sfp_df[complete.cases(sfp_df[, sel_vars]), ]
+exclude_seascapes <- c(5, 7, 11, 17, 18)
+filt_df_ca <- df_filtered_ca[!df_filtered_pca$seascape_week %in% exclude_seascapes, sel_vars]
+
+# Perform correspondence analysis
+ca_result <- ca(filt_df_ca[, -1])  # Exclude the first column (seascape_week)
+
+# Extract Eigenvalues and Eigenvectors
+eigenvalues <- ca_result$sv^2
+
+# Extract column principal coordinates (column eigenvectors) for 
+# information about the relationships between the variables
+row_eigenvectors <- ca_result$rowcoord
+row_eigenvectors_df <- as.data.frame(row_eigenvectors)
+
+# Assuming seascape_week is present in the original data frame used for correspondence analysis
+# Merge the seascape_week variable with column_eigenvectors_df
+row_eigenvectors_df <- merge(column_eigenvectors_df, filt_df_ca[, c("seascape_week")], by = "row.names")
+
+# Plot the first two column eigenvectors with color-coded observations
+ggplot(row_eigenvectors_df, aes(x = Dim1, y = Dim2, color = as.factor(filt_df_ca$seascape_week))) +
+  geom_point() +
+  labs(x = "Column Eigenvector 1",
+       y = "Column Eigenvector 2",
+       color = "Seascape Week",
+       title = "Correspondence Analysis: Column Eigenvectors with Observations") +
+  scale_color_discrete(name = "Seascape Week")
+
