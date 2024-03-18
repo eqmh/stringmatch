@@ -455,8 +455,6 @@ library(ggalt)
 # Perform principal component analysis on the count data
 
 # for hydrography
-# filter out rows with NA values in column seascapes
-
 # sel_vars <- c(
 #   "X8.day.seascapes",
 #   # "temp..degC.",
@@ -466,24 +464,24 @@ library(ggalt)
 #   "NO3.NO2..uM.")
 
 # for taxonomy
-sel_vars <- c("X8.day.seascapes",
-              "Acantharea",
-              "Copepods",
-              "Echinoderms",
-              "Jellies",
-              "Larvaeceans",
-              "Polychaetes",
-              "Chaetognaths",
-              "Pteropods")
-
 # sel_vars <- c("X8.day.seascapes",
-#               "Ceratium",
-#               "Chaetoceros",
-#               "Diatoms",
-#               "Diatoms2",
-#               "Guinardia",
-#               "Neocalyptrella",
-#               "Trichodesmium")
+#               "Acantharea",
+#               "Copepods",
+#               "Echinoderms",
+#               "Jellies",
+#               "Larvaeceans",
+#               "Polychaetes",
+#               "Chaetognaths",
+#               "Pteropods")
+
+sel_vars <- c("X8.day.seascapes",
+              "Ceratium",
+              "Chaetoceros",
+              "Diatoms",
+              "Diatoms2",
+              "Guinardia",
+              "Neocalyptrella",
+              "Trichodesmium")
 
 # sel_vars <- c("X8.day.seascapes",
 #               "Acantharea",
@@ -509,6 +507,15 @@ exclude_seascapes <- c(5, 7, 11)
 filt_df_pca <- df_filtered_pca[!df_filtered_pca$X8.day.seascapes %in%
                                  exclude_seascapes, sel_vars]
 
+# Select numeric columns in filt_df_pca
+numeric_cols <- sapply(filt_df_pca, is.numeric)
+# Identify numeric columns except the first one
+numeric_cols <- 2:ncol(filt_df_pca)
+
+# Transform numeric columns to log scale
+filt_df_pca[numeric_cols] <- lapply(filt_df_pca[numeric_cols], function(x) log(x + 1))
+
+
 # pca <- prcomp(filt_df_pca[, c("salinity", "Avg.chl.a..ug.L.", "PO4...uM.", "NO3.NO2..uM.")], scale. = TRUE)
 pca <- prcomp(filt_df_pca[, -1], scale. = TRUE)
 
@@ -533,10 +540,10 @@ yy <- ggplot(pc_scores, aes(x = PC1, y = PC2, color = seascape)) +
   scale_color_manual(values = custom_colors_pca) +
   scale_fill_manual(values = custom_colors_pca) +
   theme_classic() +
-  # xlim(-2,2) +
-  # ylim(-2,2) +
-  xlim(-1,1) +
-  ylim(-1,1) +
+  xlim(-2,2) +
+  ylim(-2,2) +
+  # xlim(-1,1) +
+  # ylim(-1,1) +
   geom_point(size=2) +
   guides(colour = guide_legend(override.aes = list(size=2))) + 
   theme(axis.text.x = element_text(size = 32),  # Set X-axis label font size

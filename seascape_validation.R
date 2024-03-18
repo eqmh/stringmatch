@@ -85,13 +85,15 @@ pp
 
 
 ################################################################################
-# Perform principal component analysis on the count data
+# Perform principal component analysis 
 library(ggalt)
 
 sel_vars <- c(
   "seascape_week",
   # "temp",
-  # "salinity",
+  "year",
+  "month",
+  "salinity",
   "chla",
   "po4",
   "no3_no2")
@@ -102,10 +104,26 @@ exclude_seascapes <- c(5, 7, 11, 17, 18)
 filt_df_pca <- df_filtered_pca[!df_filtered_pca$seascape_week %in%
                                  exclude_seascapes, sel_vars]
 
-pca <- prcomp(filt_df_pca[, c("chla", "po4", "no3_no2")], scale. = TRUE)
+# Select numeric columns in filt_df_pca
+numeric_cols <- sapply(filt_df_pca, is.numeric)
+# Identify numeric columns except the first one
+numeric_cols <- 3:ncol(filt_df_pca)
+
+# Transform numeric columns to log scale
+filt_df_pca[numeric_cols] <- lapply(filt_df_pca[numeric_cols], function(x) log(x + 1))
+
+# Group by seascape_week and year, then compute the averages for salinity, chla, po4, and no3_no2
+filt_df_pca_per_yr <- filt_df_pca %>%
+  group_by(seascape_week, year, month) %>%
+  summarize(avg_salinity = mean(salinity, na.rm = TRUE),
+            avg_chla = mean(chla, na.rm = TRUE),
+            avg_po4 = mean(po4, na.rm = TRUE),
+            avg_no3_no2 = mean(no3_no2, na.rm = TRUE))
+
+pca <- prcomp(filt_df_pca_per_yr[, c("avg_salinity", "avg_chla", "avg_po4", "avg_no3_no2")], scale. = TRUE)
 
 # Extract PC1 and PC2 scores for each sampling event
-pc_scores <- data.frame(seascape = as.character(filt_df_pca$seascape_week), # for hydrography
+pc_scores <- data.frame(seascape = as.character(filt_df_pca_per_yr$seascape_week), # for hydrography
                         PC1 = pca$x[, 1], 
                         PC2 = pca$x[, 2])
 
@@ -141,6 +159,56 @@ yy <- ggplot(pc_scores, aes(x = PC1, y = PC2, color = seascape)) +
   theme(legend.text = element_text(size = 32))
 
 yy
+
+################################################################################################
+# # Create PCA with eigenvectors
+# Extract principal component scores
+pc_scores2 <- pca$x
+# Extract eigenvectors
+eigenvectors <- pca$rotation
+# Calculate the percentage variance explained by each principal component
+total_variance <- sum(pca$sdev^2)
+pc_var_percent <- round(100 * (pca$sdev^2) / total_variance, 1)
+
+# Convert seascape_week  to a factor
+filt_df_pca_per_yr$seascape_week <- as.factor(filt_df_pca_per_yr$seascape_week)
+
+# # For hydrography
+qq <- ggplot(filt_df_pca_per_yr, aes(x = pc_scores2[,1], y = pc_scores2[,2], color = seascape_week)) +
+  geom_point(size = 4) +
+  scale_color_manual(values = custom_colors_pca) +
+  geom_segment(aes(x = 0, y = 0, xend = eigenvectors[1, 1], yend = eigenvectors[2, 1]),
+               arrow = arrow(length = unit(0.2, "inches")), color = "black") +  # Add vector for PC1
+  geom_segment(aes(x = 0, y = 0, xend = eigenvectors[1, 2], yend = eigenvectors[2, 2]),
+               arrow = arrow(length = unit(0.2, "inches")), color = "black") + # Add vector for PC2
+  geom_segment(aes(x = 0, y = 0, xend = eigenvectors[1, 3], yend = eigenvectors[2, 3]),
+               arrow = arrow(length = unit(0.2, "inches")), color = "black") + # Add vector for PC3
+  geom_segment(aes(x = 0, y = 0, xend = eigenvectors[1, 4], yend = eigenvectors[2, 4]),
+               arrow = arrow(length = unit(0.2, "inches")), color = "black") + # Add vector for PC4
+  geom_text(aes(x = eigenvectors[1, 1], y = eigenvectors[2, 1], 
+                label = paste("PC1 (", pc_var_percent[1], "%: Salinity)", sep = "")),
+            vjust = -0.5, hjust = 0.5, color = "black") +  # Add label for PC1
+  geom_text(aes(x = eigenvectors[1, 2], y = eigenvectors[2, 2], 
+                label = paste("PC2 (", pc_var_percent[2], "%: Chla)", sep = "")),
+            vjust = -0.5, hjust = 0.5, color = "black") +  # Add label for PC2
+  geom_text(aes(x = eigenvectors[1, 3], y = eigenvectors[2, 3], 
+                label = paste("PC3 (", pc_var_percent[3], "%: PO4)", sep = "")),
+            vjust = -0.5, hjust = 0.5, color = "black") +  # Add label for PC3
+  geom_text(aes(x = eigenvectors[1, 4], y = eigenvectors[2, 4], 
+                label = paste("PC4 (", pc_var_percent[4], "%: NOx)", sep = "")),
+            vjust = -0.5, hjust = 0.5, color = "black") +  # Add label for PC4
+  labs(x = "PC1", y = "PC2", color = "X8.day.seascapes") +
+  xlim(-1.5, 1.5) +
+  ylim(-1.5, 1.5) +
+  guides(colour = guide_legend(override.aes = list(size=2))) + 
+  theme_classic() +
+  theme(axis.text.x = element_text(size = 32),  # Set X-axis label font size
+        axis.text.y = element_text(size = 32)) +
+  theme(axis.title.x = element_text(size = 32),
+        axis.title.y = element_text(size = 32)) +
+  theme(legend.text = element_text(size = 32)) 
+qq
+
 
 ################################################################################
 # Perform Correspondence Analysis (CA) on the count data
