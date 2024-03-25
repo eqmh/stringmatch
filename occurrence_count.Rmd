@@ -126,7 +126,7 @@ for (i in 1:(length(dt_list))) {
                        Echinoderms = echino_count,
                        Guinardia = gui_count,
                        Jellies = jel_count,
-                       Larvaeceans = larv_count,
+                       Larvaceans = larv_count,
                        Neocalyptrella = neocal_count,
                        Noctiluca_sp = nocti_count,
                        Polychaetes = poly_count,
@@ -238,7 +238,7 @@ df_subset <- df_filtered[ , c("X8.day.seascapes",
                               "Copepods",
                               "Echinoderms",
                               "Jellies",
-                              "Larvaeceans",
+                              "Larvaceans",
                               "Polychaetes",
                               "Chaetognaths",
                               "Pteropods")]
@@ -266,7 +266,7 @@ df_subset <- df_filtered[ , c("X8.day.seascapes",
 #                             "Copepods",
 #                             "Echinoderms",
 #                             "Jellies",
-#                             "Larvaeceans",
+#                             "Larvaceans",
 #                             "Polychaetes",
 #                             "Chaetognaths",
 #                             "Pteropods")]
@@ -332,7 +332,7 @@ df_subset_shannon <- df_filtered[ , c("X8.day.seascapes",
                               "Copepods",
                               "Echinoderms",
                               "Jellies",
-                              "Larvaeceans",
+                              "Larvaceans",
                               "Polychaetes",
                               "Chaetognaths",
                               "Pteropods",
@@ -469,7 +469,7 @@ library(ggalt)
 #               "Copepods",
 #               "Echinoderms",
 #               "Jellies",
-#               "Larvaeceans",
+#               "Larvaceans",
 #               "Polychaetes",
 #               "Chaetognaths",
 #               "Pteropods")
@@ -488,7 +488,7 @@ sel_vars <- c("X8.day.seascapes",
 #               "Copepods",
 #               "Echinoderms",
 #               "Jellies",
-#               "Larvaeceans",
+#               "Larvaceans",
 #               "Polychaetes",
 #               "Chaetognaths",
 #               "Pteropods",
@@ -689,7 +689,7 @@ qq3 <- ggplot(filt_df_pca, aes(x = pc_scores2[,1], y = pc_scores2[,2], color = X
                 label = paste("PC4 (", pc_var_percent[4], "%: Jellies)", sep = "")),
             vjust = -0.5, hjust = 0.5, color = "black") +  # Add label for PC4
   geom_text(aes(x = eigenvectors[1, 5], y = eigenvectors[2, 5], 
-                label = paste("PC5 (", pc_var_percent[5], "%: Larvaeceans)", sep = "")),
+                label = paste("PC5 (", pc_var_percent[5], "%: Larvaceans)", sep = "")),
             vjust = -0.5, hjust = 0.5, color = "black") +  # Add label for PC5
   geom_text(aes(x = eigenvectors[1, 6], y = eigenvectors[2, 6], 
                 label = paste("PC6 (", pc_var_percent[6], "%: Polychaetes)", sep = "")),
@@ -919,7 +919,7 @@ ggplot(monthly_means, aes(x = year_month, y = mean_value)) +
 #   Echinoderms <- colSums(echino != 0)
 #   Eucampia_spp <- colSums(eucampia != 0)
 #   Jellies<- colSums(jellies != 0)
-#   Larvaeceans <- colSums(larvae != 0)
+#   Larvaceans <- colSums(larvae != 0)
 #   Noctiluca_sp <- colSums(nocti != 0)
 #   Polychaetes <- colSums(polychaetes != 0)
 #   Trichodesmium_spp <- colSums(tricho != 0)
@@ -943,7 +943,7 @@ ggplot(monthly_means, aes(x = year_month, y = mean_value)) +
 #                        Echinoderms,
 #                        Eucampia_spp,
 #                        Jellies,
-#                        Larvaeceans,
+#                        Larvaceans,
 #                        Noctiluca_sp,
 #                        Polychaetes,
 #                        Trichodesmium_spp
