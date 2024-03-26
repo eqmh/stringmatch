@@ -455,13 +455,13 @@ library(ggalt)
 # Perform principal component analysis on the count data
 
 # for hydrography
-# sel_vars <- c(
-#   "X8.day.seascapes",
-#   # "temp..degC.",
-#   "salinity",
-#   "Avg.chl.a..ug.L.",
-#   "PO4...uM.",
-#   "NO3.NO2..uM.")
+sel_vars <- c(
+  "X8.day.seascapes",
+  # "temp..degC.",
+  "salinity",
+  "Avg.chl.a..ug.L.",
+  "PO4...uM.",
+  "NO3.NO2..uM.")
 
 # for taxonomy
 # sel_vars <- c("X8.day.seascapes",
@@ -474,14 +474,14 @@ library(ggalt)
 #               "Chaetognaths",
 #               "Pteropods")
 
-sel_vars <- c("X8.day.seascapes",
-              "Ceratium",
-              "Chaetoceros",
-              "Diatoms",
-              "Diatoms2",
-              "Guinardia",
-              "Neocalyptrella",
-              "Trichodesmium")
+# sel_vars <- c("X8.day.seascapes",
+#               "Ceratium",
+#               "Chaetoceros",
+#               "Diatoms",
+#               "Diatoms2",
+#               "Guinardia",
+#               "Neocalyptrella",
+#               "Trichodesmium")
 
 # sel_vars <- c("X8.day.seascapes",
 #               "Acantharea",
