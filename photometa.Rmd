@@ -18,10 +18,10 @@ library(magrittr)
 library(data.table)
 ```
 
-## Load taxa lists
+## Load taxa lists and metadata table
 ```{r, echo=FALSE}
 # specify the directory where the files are located
-dir_path <- "/Users/enrique.montes/Google Drive/My Drive/GDrive/OCED_AOML/WS_cruises/plankton_imaging/CPICS/TS.Master_selection"
+dir_path <- "~/Library/CloudStorage/GoogleDrive-enriquemontes01@gmail.com/My Drive/GDrive/OCED_AOML/WS_cruises/plankton_imaging/CPICS/TS.Master_selection"
 
 # obtain a list of file names in the directory
 file_names <- list.files(path = dir_path, pattern = ".txt", full.names = TRUE)
@@ -32,9 +32,11 @@ for (file in file_names) {
   assign(table_name, read.table(file = file, header = FALSE, sep = "\t") %>%
            mutate(date = as.POSIXct(substr(V1, start = 24, stop = 38), format="%Y%m%d_%H%M%S", tz="UTC")))
 }
+
+metadata_df_all <- read.csv(paste0(dir_path, "/deep_features_compiled.csv"), header = TRUE, fill = FALSE)
 ```
 
-## Extract metada from images for individual taxa lists
+## Extract metada from images for individual taxa lists - DO NOT USE
 ```{r, echo=FALSE}
 # # # PNG image
 # # image_path <- "~/Desktop/20230305_050036.630.0.png"
@@ -84,7 +86,7 @@ for (file in file_names) {
 ```
 
 
-## Extract metada from images looping through all taxa lists
+## Extract metada from images looping through all taxa lists - DO NOT USE
 ```{r, echo=FALSE}
 # Set path directory
 path_to_files <- "~/Desktop/cpics_img/"
@@ -145,7 +147,7 @@ metadata_df_all <- bind_rows(metadata_list)
 
 ```
 
-## Match images to cruise data with a single taxon list
+## Match images to cruise data with a single taxon list - DO NOT USE
 ```{r}
 # # Directory where the CTD metadata is located
 # dir_path2 <- "~/enriquemontes01@gmail.com - Google Drive/My Drive/GDrive/OCED_AOML/WS_cruises/plankton_imaging/CPICS/ws_cruise_ctd/"
@@ -208,7 +210,7 @@ metadata_df_all <- bind_rows(metadata_list)
 ```{r, echo=FALSE}
 # Directory where the CTD metadata is located
 dir_path2 <- "/Users/enrique.montes/Library/CloudStorage/GoogleDrive-enriquemontes01@gmail.com/My Drive/GDrive/OCED_AOML/WS_cruises/plankton_imaging/CPICS/ws_cruise_ctd"
-file_name <- list.files(path = dir_path2, pattern = "ctd_meta_v2.csv", full.names = TRUE)
+file_name <- list.files(path = dir_path2, pattern = "ctd_meta_v3.csv", full.names = TRUE)
 ctd_meta <- read.csv(file_name, fill = TRUE) %>%
   mutate(GMT.datetime = as.POSIXct(GMT.datetime, format="%Y%m%d_%H%M", tz="UTC"))
 
@@ -352,74 +354,3 @@ if (length(duplicated_files) == 0) {
 ```
 
 
-# Generate plots 
-```{r}
-library(tidyverse)
-library(hrbrthemes)
-library(viridis)
-
-# # Load seascape color palette used with Matlab and extract RGB values for observed unique seascapes
-palette_dir <- "/Users/enrique.montes/Library/CloudStorage/GoogleDrive-enriquemontes01@gmail.com/My Drive/GDrive/software/matlab/m_map/seascape_cm"
-palette_file <- list.files(path = palette_dir, pattern = "cmap1.csv", full.names = TRUE)
-palette_df <- read.csv(palette_file, header = FALSE)
-colnames(palette_df) <- c("r", "g", "b")
-unique_seascapes <- sort(unique(na.omit(ctd_meta$X8.day.seascapes)))
-subset_palette_df <- palette_df[unique_seascapes, ]
-
-# set RGB values for the plots
-r_vals <- round(subset_palette_df$r * 255, 0)
-g_vals <- round(subset_palette_df$g * 255, 0)
-b_vals <- round(subset_palette_df$b * 255, 0)
-custom_pal <- cbind(r_vals, g_vals, b_vals)
-custom_pal_hex <- rgb(custom_pal[, 1], custom_pal[, 2], custom_pal[, 3], maxColorValue=255)
-# pal_final <- c(custom_pal_hex[3], custom_pal_hex[4], custom_pal_hex[5], )
-
-# filter out rows with NA values in column seascapes
-df_filtered <- ctd_meta[complete.cases(ctd_meta$X8.day.seascapes),]
-
-# Convert the 'x' column to character
-df_filtered$X8.day.seascapes <- as.character(df_filtered$X8.day.seascapes)
-
-# Variables
-# Avg.chl.a..ug.L.
-# salinity
-# NH4...uM.
-# NO3.NO2..uM.
-# DO..mg.L.
-# temp..degC.
-
-# Plot
-# See https://cran.r-project.org/web/packages/viridis/vignettes/intro-to-viridis.html for color palette options
-pp <- df_filtered %>%
-  ggplot( aes(x=X8.day.seascapes, y=Avg.chl.a..ug.L., fill=X8.day.seascapes)) +
-    geom_boxplot() +
-    # scale_fill_viridis(option="H", discrete = TRUE, alpha=0.6) +
-    scale_fill_manual(values = custom_pal_hex) +
-    geom_jitter(color="black", size=0.8, alpha=0.9) +
-    labs(x = "Seascape class") +
-    labs(y = expression("[Chl-a] (mg/L)")) +
-    #labs(y = expression("Salinity")) +
-    # labs(y = expression(paste("Temperature (", degree, "C) at 1 m depth"))) +
-    # labs(y = expression("DO (mg/L)")) +
-    # labs(y = expression("NO"["x"] ~ mu*"M")) +
-    # theme(axis.title.y = element_text(hjust = 1))
-    # scale_x_discrete(labels= c("Tropical/Subtropical Upwelling", 
-    #                          "Tropical Seas", 
-    #                          "Warm, Blooms, High Nuts", 
-    #                          "Tropical/Subtropical Transition", 
-    #                          "Temperate Transition")) +
-    theme_ipsum() +
-    theme(
-      legend.position="none",
-      plot.title = element_text(size=11)
-    ) +
-    # ggtitle("A boxplot with jitter") +
-    # theme(axis.text.x = element_text(angle = 45)) +
-  ylim(0, 10) +  
-  theme(axis.text.x = element_text(size = 32),  # Set X-axis label font size
-          axis.text.y = element_text(size = 32)) +
-    theme(axis.title.x = element_text(size = 18),
-          axis.title.y = element_text(size = 18)) +
-    theme(legend.text = element_text(size = 32)) 
-pp
-```
