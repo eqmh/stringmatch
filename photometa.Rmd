@@ -36,6 +36,163 @@ for (file in file_names) {
 metadata_df_all <- read.csv(paste0(dir_path, "/deep_features_compiled.csv"), header = TRUE, fill = FALSE)
 ```
 
+
+## Match images to cruise data with all taxa lists
+```{r, echo=FALSE}
+# Directory where the CTD metadata is located
+dir_path2 <- "/Users/enrique.montes/Library/CloudStorage/GoogleDrive-enriquemontes01@gmail.com/My Drive/GDrive/OCED_AOML/WS_cruises/plankton_imaging/CPICS/ws_cruise_ctd"
+
+# or use this path
+# dir_path2 <- dir_path <- "~/Library/CloudStorage/GoogleDrive-enriquemontes01@gmail.com/My Drive/GDrive/OCED_AOML/WS_cruises/plankton_imaging/CPICS/ws_cruise_ctd"
+
+file_name <- list.files(path = dir_path2, pattern = "ctd_meta_v3.csv", full.names = TRUE)
+# # Use with ctd_meta_v2.csv:
+# ctd_meta <- read.csv(file_name, fill = TRUE) %>%
+#   mutate(GMT.datetime = as.POSIXct(GMT.datetime, format="%Y%m%d_%H%M", tz="UTC"))
+# # Use with ctd_meta_v3.csv:
+ctd_meta <- read.csv(file_name, fill = TRUE) %>%
+  mutate(GMT.datetime = as.POSIXct(paste(year, month, day, time_gmt), 
+                                   format="%Y %m %d %I:%M:%S %p", tz="UTC"))
+
+
+# List of data frame names
+data_frame_names <- ls(pattern = "^class\\.")
+
+# Initialize an empty list to store results
+result_list <- list()
+
+# Iterate over each data frame
+for (df_name in data_frame_names) {
+  # Get the data frame using the name
+  current_df <- get(df_name)
+  
+  # Rename columns if needed
+  current_df <- current_df %>% rename(datetime = date, img_file_name = V1)
+  
+  # Extract the species ID from data_frame_name
+  object_speciesID <- sub("^class\\.", "", df_name)
+  
+  # Iterate over each row in the data frame
+  for (i in seq_len(nrow(current_df))) {
+    
+    # Check if datetime is within range
+    if (current_df$datetime[i] <= as.POSIXct("2024-01-31 23:59:59", tz = "UTC")) {
+      
+    # Find the index of the closest datetime in ctd_meta
+    closest_index <- which.min(abs(ctd_meta$GMT.datetime - current_df$datetime[i]))
+    
+    # Extract corresponding data from ctd_meta
+    result <- data.table(
+      img_file_name = substr(current_df$img_file_name[i], start = 24, stop = 48),
+      object_id = substr(current_df$img_file_name[i], start = 24, stop = 44),
+      object_speciesID = object_speciesID,  # Use the extracted object_speciesID
+      object_date = gsub("-", "", as.Date(current_df$datetime[i])),
+      object_time = format(current_df$datetime[i], format = "%H%M%S"),
+      cruiseID = ctd_meta$cruiseID[closest_index],
+      ctd_date = gsub("-", "", as.Date(ctd_meta$GMT.datetime[closest_index])),
+      ctd_time = format(ctd_meta$GMT.datetime[closest_index], format = "%H%M%S"),
+      station = ctd_meta$Station[closest_index],
+      object_lat = ctd_meta$dec_lat[closest_index],
+      object_lon = ctd_meta$dec_lon[closest_index],
+      object_depth_min = 0,
+      object_depth_max = ctd_meta$depth_max[closest_index],
+      temp_degC = ctd_meta$temp..degC.[closest_index],
+      salinity = ctd_meta$salinity[closest_index],
+      chl_a = ctd_meta$Avg.chl.a..ug.L.[closest_index],
+      do = ctd_meta$DO..mg.L.[closest_index],
+      nitrate = ctd_meta$NO3....uM.[closest_index],
+      phosphate = ctd_meta$PO4...uM.[closest_index],
+      silicate = ctd_meta$Si.....uM.[closest_index],
+      seascape.8day = ctd_meta$X8.day.seascapes[closest_index],
+      seascape.monthly = ctd_meta$monthly.seascapes[closest_index]
+    )
+    
+    # Append the result to the result list
+    result_list[[length(result_list) + 1]] <- result
+    }
+  }
+}
+
+# Combine all results into a single data table
+final_table_all <- rbindlist(result_list)
+
+# write.table(final_table_all,"~/Desktop/final_table_all.txt",sep="\t",row.names=FALSE)
+```
+
+## Merge roi IDs, cruise data, and roi metadata 
+```{r, echo=FALSE}
+# Extract object IDs from final_table_all
+object_ids <- final_table_all$img_file_name
+
+# Extract corresponding imageFile IDs from metadata_df_all
+imageFile_ids <- basename(metadata_df_all$imageFile)
+
+# Find matching indices
+matching_indices <- match(object_ids, imageFile_ids)
+
+# Create a new data frame by combining metadata values with final_table_all
+combined_table <- cbind(final_table_all, metadata_df_all[matching_indices, ])
+
+# Remove duplicate columns (if any)
+combined_table <- combined_table[, !duplicated(colnames(combined_table))]
+
+# Count the number of rows in final_table_all that don't match imageFile_ids objects
+num_non_matching <- sum(is.na(matching_indices))
+print(num_non_matching)
+
+# Export table
+# - add data format codes; [f] for floats, [t] for text
+format_codes <- as.data.frame(matrix(c("t", "t", "t", "t", "t", "t", "t", "t", "t", "f", "f", "f", "f", "f", "f", "f", "f", "f", "f", "f", "f", "f", "t", "f", "f", "f", "f", "f", "f", "f", "f", "f", "f", "f", "f", "f", "f", "f", "f", "f", "f", "f", "f", "f", "f", "f"), nrow = 1))
+# format_codes <- as.data.frame(matrix(c("t", "t", "t", "t", "f", "f", "f", "f"), nrow = 1)) 
+colnames(format_codes) <- colnames(combined_table)
+ecotaxa_table <- rbind(format_codes, combined_table)
+
+# replace column names as needed
+colnames(ecotaxa_table)[which(names(ecotaxa_table) == "colorspace")] <- "color_space"
+colnames(ecotaxa_table)[which(names(ecotaxa_table) == "filesize")] <- "file_size"
+
+# Print the resulting data frame
+print(ecotaxa_table)
+
+# write.csv(df_merged, , row.names=FALSE)
+write.table(ecotaxa_table,"~/Desktop/ecotaxa_sfer-mbon.txt",sep="\t",row.names=FALSE)
+
+```
+
+# Check if all files listed in 'ecotaxa_table' are present in the 'selected' directory
+```{r, echo=FALSE}
+# Directory path where files should be present
+selected_directory <- "~/Desktop/selected/"
+
+# Get a list of file names from the data frame
+file_names_in_df <- final_table_all$img_file_name
+
+# List all files in the 'selected' directory
+files_in_directory <- list.files(selected_directory)
+
+# Check for missing files
+missing_files <- setdiff(file_names_in_df, files_in_directory)
+
+if (length(missing_files) == 0) {
+  cat("All files listed in the data frame are present in the directory.\n")
+} else {
+  cat("Missing files:\n")
+  cat(paste(missing_files, collapse = "\n"), "\n")
+}
+
+# Check for duplicated file names in df$file_names
+duplicated_files <- ecotaxa_table[duplicated(ecotaxa_table$img_file_name), "img_file_name"]
+
+if (length(duplicated_files) == 0) {
+  cat("No duplicated file names found in the 'file_names' column.\n")
+} else {
+  cat("Duplicated file names:\n")
+  cat(paste(duplicated_files, collapse = "\n"), "\n")
+}
+
+```
+
+
 ## Extract metada from images for individual taxa lists - DO NOT USE
 ```{r, echo=FALSE}
 # # # PNG image
@@ -147,6 +304,7 @@ metadata_df_all <- bind_rows(metadata_list)
 
 ```
 
+
 ## Match images to cruise data with a single taxon list - DO NOT USE
 ```{r}
 # # Directory where the CTD metadata is located
@@ -205,76 +363,7 @@ metadata_df_all <- bind_rows(metadata_list)
 
 ```
 
-
-## Match images to cruise data with all taxa lists
-```{r, echo=FALSE}
-# Directory where the CTD metadata is located
-dir_path2 <- "/Users/enrique.montes/Library/CloudStorage/GoogleDrive-enriquemontes01@gmail.com/My Drive/GDrive/OCED_AOML/WS_cruises/plankton_imaging/CPICS/ws_cruise_ctd"
-file_name <- list.files(path = dir_path2, pattern = "ctd_meta_v3.csv", full.names = TRUE)
-ctd_meta <- read.csv(file_name, fill = TRUE) %>%
-  mutate(GMT.datetime = as.POSIXct(GMT.datetime, format="%Y%m%d_%H%M", tz="UTC"))
-
-# List of data frame names
-data_frame_names <- ls(pattern = "^class\\.")
-
-# Initialize an empty list to store results
-result_list <- list()
-
-# Iterate over each data frame
-for (df_name in data_frame_names) {
-  # Get the data frame using the name
-  current_df <- get(df_name)
-  
-  # Rename columns if needed
-  current_df <- current_df %>% rename(datetime = date, img_file_name = V1)
-  
-  # Extract the species ID from data_frame_name
-  object_speciesID <- sub("^class\\.", "", df_name)
-  
-  # Iterate over each row in the data frame
-  for (i in seq_len(nrow(current_df))) {
-    # Find the index of the closest datetime in ctd_meta
-    closest_index <- which.min(abs(ctd_meta$GMT.datetime - current_df$datetime[i]))
-    
-    # Extract corresponding data from ctd_meta
-    result <- data.table(
-      img_file_name = substr(current_df$img_file_name[i], start = 24, stop = 48),
-      object_id = substr(current_df$img_file_name[i], start = 24, stop = 44),
-      object_speciesID = object_speciesID,  # Use the extracted object_speciesID
-      object_date = gsub("-", "", as.Date(current_df$datetime[i])),
-      object_time = format(current_df$datetime[i], format = "%H%M%S"),
-      cruiseID = ctd_meta$cruiseID[closest_index],
-      ctd_date = gsub("-", "", as.Date(ctd_meta$GMT.datetime[closest_index])),
-      ctd_time = format(ctd_meta$GMT.datetime[closest_index], format = "%H%M%S"),
-      station = ctd_meta$Station[closest_index],
-      object_lat = ctd_meta$dec_lat[closest_index],
-      object_lon = ctd_meta$dec_lon[closest_index],
-      object_depth_min = 0,
-      object_depth_max = ctd_meta$depth_max[closest_index],
-      temp_degC = ctd_meta$temp..degC.[closest_index],
-      salinity = ctd_meta$salinity[closest_index],
-      chl_a = ctd_meta$Avg.chl.a..ug.L.[closest_index],
-      do = ctd_meta$DO..mg.L.[closest_index],
-      nitrate = ctd_meta$NO3....uM.[closest_index],
-      phosphate = ctd_meta$PO4...uM.[closest_index],
-      silicate = ctd_meta$Si.....uM.[closest_index],
-      seascape.8day = ctd_meta$X8.day.seascapes[closest_index],
-      seascape.monthly = ctd_meta$monthly.seascapes[closest_index]
-    )
-    
-    # Append the result to the result list
-    result_list[[length(result_list) + 1]] <- result
-  }
-}
-
-# Combine all results into a single data table
-final_table_all <- rbindlist(result_list)
-
-# write.table(final_table_all,"~/Desktop/final_table_all.txt",sep="\t",row.names=FALSE)
-```
-
-
-## Merge cruise data and image metadata
+## Merge cruise data and image metadata - DO NOT USE (OLD VERSION)
 ```{r, echo=FALSE}
 # Append selected columns to dfB
 df_merged <- cbind(final_table_all, metadata_df_all) %>%
@@ -319,38 +408,3 @@ print(ecotaxa_table)
 write.table(ecotaxa_table,"~/Desktop/ecotaxa_sfer-mbon.txt",sep="\t",row.names=FALSE)
 
 ```
-
-# Check if all files listed in 'ecotaxa_table' are present in the 'selected' directory
-```{r, echo=FALSE}
-# Directory path where files should be present
-selected_directory <- "~/Desktop/selected/"
-
-# Get a list of file names from the data frame
-file_names_in_df <- final_table_all$img_file_name
-
-# List all files in the 'selected' directory
-files_in_directory <- list.files(selected_directory)
-
-# Check for missing files
-missing_files <- setdiff(file_names_in_df, files_in_directory)
-
-if (length(missing_files) == 0) {
-  cat("All files listed in the data frame are present in the directory.\n")
-} else {
-  cat("Missing files:\n")
-  cat(paste(missing_files, collapse = "\n"), "\n")
-}
-
-# Check for duplicated file names in df$file_names
-duplicated_files <- ecotaxa_table[duplicated(ecotaxa_table$img_file_name), "img_file_name"]
-
-if (length(duplicated_files) == 0) {
-  cat("No duplicated file names found in the 'file_names' column.\n")
-} else {
-  cat("Duplicated file names:\n")
-  cat(paste(duplicated_files, collapse = "\n"), "\n")
-}
-
-```
-
-
