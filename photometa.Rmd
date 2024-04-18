@@ -133,8 +133,8 @@ matching_indices <- match(object_ids, imageFile_ids)
 # Create a new data frame by combining metadata values with final_table_all
 combined_table <- cbind(final_table_all, metadata_df_all[matching_indices, ])
 
-# Remove duplicate columns (if any)
-combined_table <- combined_table[, !duplicated(colnames(combined_table))]
+# correct values in ecotaxa_table (eg min depth)
+combined_table$object_depth_min = 1
 
 # Count the number of rows in final_table_all that don't match imageFile_ids objects
 num_non_matching <- sum(is.na(matching_indices))
@@ -145,14 +145,16 @@ print(num_non_matching)
 format_codes <- as.data.frame(matrix(c("t", "t", "t", "t", "t", "t", "t", "t", "t", "f", "f", "f", "f", "f", "f", "f", "f", "f", "f", "f", "f", "f", "t", "f", "f", "f", "f", "f", "f", "f", "f", "f", "f", "f", "f", "f", "f", "f", "f", "f", "f", "f", "f", "f", "f", "f"), nrow = 1))
 # format_codes <- as.data.frame(matrix(c("t", "t", "t", "t", "f", "f", "f", "f"), nrow = 1)) 
 colnames(format_codes) <- colnames(combined_table)
-ecotaxa_table <- rbind(format_codes, combined_table)
-
-# replace column names as needed
-colnames(ecotaxa_table)[which(names(ecotaxa_table) == "colorspace")] <- "color_space"
-colnames(ecotaxa_table)[which(names(ecotaxa_table) == "filesize")] <- "file_size"
-
-# Print the resulting data frame
-print(ecotaxa_table)
+selected_columns <- c(1,2,4,5,10,11,12,13)
+ecotaxa_table <- rbind(format_codes[, selected_columns], select(combined_table, 
+                                                                img_file_name, 
+                                                                object_id, 
+                                                                object_date,
+                                                                object_time,
+                                                                object_lat,
+                                                                object_lon,
+                                                                object_depth_min,
+                                                                object_depth_max))
 
 # write.csv(df_merged, , row.names=FALSE)
 write.table(ecotaxa_table,"~/Desktop/ecotaxa_sfer-mbon.txt",sep="\t",row.names=FALSE)
