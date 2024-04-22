@@ -33,7 +33,7 @@ for (file in file_names) {
 ```
 
 
-# Match file name using DATE values (not string matching) - Overestimates counts because occasionally lumps count values within time intervals that don't match
+# Match file name using DATE values (not string matching) 
 ```{r}
 library(tidyverse)
 library(lubridate)
