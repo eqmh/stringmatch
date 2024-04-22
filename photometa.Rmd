@@ -13,9 +13,7 @@ library(lubridate)
 library(dplyr)
 library(data.table)
 library(hrbrthemes)
-library(viridis)
 library(magrittr)
-library(data.table)
 ```
 
 ## Load taxa lists and metadata table

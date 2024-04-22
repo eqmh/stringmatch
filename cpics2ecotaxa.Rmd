@@ -1,0 +1,220 @@
+---
+title: "cpics2ecotaxa"
+output: html_document
+date: "2024-04-22"
+---
+
+```{r setup, include=FALSE}
+library(tidyverse)
+library(tidyr)
+library(magick)
+library(lubridate)
+library(dplyr)
+library(data.table)
+library(hrbrthemes)
+library(magrittr)
+```
+
+## Load taxa lists and metadata table
+```{r, echo=FALSE}
+# specify the directory where the files are located
+dir_path <- "~/Library/CloudStorage/GoogleDrive-enriquemontes01@gmail.com/My Drive/GDrive/OCED_AOML/WS_cruises/plankton_imaging/CPICS/TS.Master_selection"
+
+# obtain a list of file names in the directory
+file_names <- list.files(path = dir_path, pattern = ".txt", full.names = TRUE)
+
+# loop over each file and import the tables (use this for DATES)
+for (file in file_names) {
+  table_name <- gsub(".txt", "", basename(file)) # get the name of the table from the file name
+  assign(table_name, read.table(file = file, header = FALSE, sep = "\t") %>%
+           mutate(date = as.POSIXct(substr(V1, start = 24, stop = 38), format="%Y%m%d_%H%M%S", tz="UTC")))
+}
+
+metadata_df_all <- read.csv(paste0(dir_path, "/deep_features_compiled.csv"), header = TRUE, fill = FALSE)
+```
+
+
+## Match images to cruise data with all taxa lists
+```{r, echo=FALSE}
+# Directory where the CTD metadata is located
+dir_path2 <- "/Users/enrique.montes/Library/CloudStorage/GoogleDrive-enriquemontes01@gmail.com/My Drive/GDrive/OCED_AOML/WS_cruises/plankton_imaging/CPICS/ws_cruise_ctd"
+
+# or use this path
+# dir_path2 <- dir_path <- "~/Library/CloudStorage/GoogleDrive-enriquemontes01@gmail.com/My Drive/GDrive/OCED_AOML/WS_cruises/plankton_imaging/CPICS/ws_cruise_ctd"
+
+file_name <- list.files(path = dir_path2, pattern = "ctd_meta_v3.csv", full.names = TRUE)
+# # Use with ctd_meta_v2.csv:
+# ctd_meta <- read.csv(file_name, fill = TRUE) %>%
+#   mutate(GMT.datetime = as.POSIXct(GMT.datetime, format="%Y%m%d_%H%M", tz="UTC"))
+# # Use with ctd_meta_v3.csv:
+ctd_meta <- read.csv(file_name, fill = TRUE) %>%
+  mutate(GMT.datetime = as.POSIXct(paste(year, month, day, time_gmt), 
+                                   format="%Y %m %d %I:%M:%S %p", tz="UTC"))
+
+
+# List of data frame names
+data_frame_names <- ls(pattern = "^class\\.")
+
+# Initialize an empty list to store results
+result_list <- list()
+
+# Iterate over each data frame
+for (df_name in data_frame_names) {
+  # Get the data frame using the name
+  current_df <- get(df_name)
+  
+  # Rename columns if needed
+  current_df <- current_df %>% rename(datetime = date, img_file_name = V1)
+  
+  # Extract the species ID from data_frame_name
+  object_speciesID <- sub("^class\\.", "", df_name)
+  
+  # Iterate over each row in the data frame
+  for (i in seq_len(nrow(current_df))) {
+    
+    # Check if datetime is within range
+    if (current_df$datetime[i] <= as.POSIXct("2024-01-31 23:59:59", tz = "UTC")) {
+      
+    # Find the index of the closest datetime in ctd_meta
+    closest_index <- which.min(abs(ctd_meta$GMT.datetime - current_df$datetime[i]))
+    
+    # Extract corresponding data from ctd_meta
+    result <- data.table(
+      img_file_name = substr(current_df$img_file_name[i], start = 24, stop = 48),
+      object_id = substr(current_df$img_file_name[i], start = 24, stop = 44),
+      object_speciesID = object_speciesID,  # Use the extracted object_speciesID
+      object_date = gsub("-", "", as.Date(current_df$datetime[i])),
+      object_time = format(current_df$datetime[i], format = "%H%M%S"),
+      cruiseID = ctd_meta$cruiseID[closest_index],
+      ctd_date = gsub("-", "", as.Date(ctd_meta$GMT.datetime[closest_index])),
+      ctd_time = format(ctd_meta$GMT.datetime[closest_index], format = "%H%M%S"),
+      station = ctd_meta$Station[closest_index],
+      object_lat = ctd_meta$dec_lat[closest_index],
+      object_lon = ctd_meta$dec_lon[closest_index],
+      object_depth_min = 1,
+      object_depth_max = ctd_meta$depth_max[closest_index]
+    )
+    
+    # Append the result to the result list
+    result_list[[length(result_list) + 1]] <- result
+    }
+  }
+}
+
+# Combine all results into a single data table
+final_table_all <- rbindlist(result_list)
+
+# write.table(final_table_all,"~/Desktop/final_table_all.txt",sep="\t",row.names=FALSE)
+```
+
+
+# Check if all files listed in 'final_table_all' are present in the 'selected' directory
+```{r, echo=FALSE}
+# Directory path where files should be present
+selected_directory <- "~/Desktop/selected/"
+
+# Get a list of file names from the data frame
+file_names_in_df <- final_table_all$img_file_name
+
+# List all files in the 'selected' directory
+files_in_directory <- list.files(selected_directory)
+
+# Check for missing files
+missing_files <- setdiff(file_names_in_df, files_in_directory)
+
+if (length(missing_files) == 0) {
+  cat("All files listed in the data frame are present in the directory.\n")
+} else {
+  cat("Missing files:\n")
+  cat(paste(missing_files, collapse = "\n"), "\n")
+}
+
+# Check for duplicated file names in df$file_names
+duplicated_files <- ecotaxa_table[duplicated(ecotaxa_table$img_file_name), "img_file_name"]
+
+if (length(duplicated_files) == 0) {
+  cat("No duplicated file names found in the 'file_names' column.\n")
+} else {
+  cat("Duplicated file names:\n")
+  cat(paste(duplicated_files, collapse = "\n"), "\n")
+}
+
+```
+
+
+
+# # Modified from Jan Heuschele's Quarto script: This script imports the data generated by "getmajorandminoraxis2024_4.py" and appends metadata to it, which then can be uploaded to ecotaxa together with the extracted ROIs. "getmajorandminoraxis2024_4.py" opens each ROI and measures the area of the object, fits an ellipses and writes the data to a csv file ("ellipse_data.csv")
+
+# # In addition, it combines it with the data from a second script which performs an unsupervised clustering algorithm "imageclust_4_20240325.py", and adds predicted clusters to it, which can be used to sort the data in ecotaxa.
+```{r cars}
+ellipse_tbl  = "ellipse_datahighlights"
+whichfile = "export_00001_20240422_1200"
+df = read_csv(paste(ellipse_tbl, ".csv", sep = ""))
+object_latitude = "59.663219"
+object_longitude = "10.624765"
+object_depth_minimum = "1"
+object_depth_maximum = "1"
+object_lat_end_me = "59.663219"
+object_lon_end_me = "10.624765"
+acquisition_instrument = "CPICS"
+process_pixel = "4.54"
+acquisition_author = "Enrique Montes (U. Miami CIMAS/ NOAA AOML)"
+acquisition_id = paste(whichfile, "SFER_SEMBON_CPICS", sep = "_")
+
+df %>% 
+  rename(img_file_name = filename) %>% 
+  mutate(object_id = img_file_name) %>% 
+  mutate(object_id = str_replace_all(object_id, ".png", "")) %>% 
+   separate_wider_delim(
+    cols = object_id,
+    names = c("object_date", "object_time"),
+    delim = "_",
+    too_many = "drop",
+    cols_remove = FALSE
+  ) %>% 
+  separate_wider_delim(
+    cols = object_time,
+    names = c("object_time", "out"),
+    delim = ".",
+    too_many = "drop"
+  ) %>% 
+  select(-out) %>% 
+  mutate(object_lat = object_latitude, 
+         object_lon = object_longitude) %>% 
+  mutate(object_depth_min = object_depth_minimum,
+         object_depth_max = object_depth_maximum, 
+         object_lat_end = object_lat_end_me,
+         object_lon_end = object_lon_end_me,
+         acq_instrument = acquisition_instrument, 
+         acq_author = acquisition_author, 
+         acq_id = acquisition_id) -> df.anno
+
+#glimpse(df.anno)
+names(df.anno)
+
+#correct wrong times ie times with 60seconds
+df.anno %>% 
+  mutate(object_time = if_else(str_sub(object_time, start = 5, end = 6) == "60", 
+         paste0(str_sub(object_time, end = -3),"59"), 
+         object_time)) -> df.anno
+
+#Correction for pixel size 
+df.anno %>%
+  mutate(
+    object_major = object_major  *  as.numeric(process_pixel),
+    object_minor = object_minor *  as.numeric(process_pixel),
+    object_area = object_area   *   (as.numeric(process_pixel)^2),
+    object_width = object_width  *  as.numeric(process_pixel),
+    object_height = object_height  *  as.numeric(process_pixel)
+  ) -> df.anno
+
+column_types = sapply(df.anno, typeof)
+
+column_types2 <- ifelse(column_types == "character" , "[t]", "[f]")
+ 
+df.anno = rbind(df.anno[0, ], 
+                column_types2, 
+                df.anno)
+
+write.table(df.anno, file=paste("ecotaxa_", whichfile, ".tsv", sep = ""), quote=FALSE, sep='\t', row.names = FALSE)
+```
