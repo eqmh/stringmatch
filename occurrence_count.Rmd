@@ -152,14 +152,73 @@ spp_df <- taxa_meta[ , c("X8.day.seascapes", "total_vol_sampled", "date",
                               "Polychaetes",
                               "Chaetognaths",
                               "Pteropods")]
- 
-spp_df_long <- gather(spp_df, key = "Species", value = "Frequency", -total_vol_sampled) # , -X8.day.seascapes
 
-# calculate relative frequencies
-concentration_df <- spp_df_long %>%
-  group_by(X8.day.seascapes, Species) %>%
-  summarise(n = sum(Frequency)) %>%
-  mutate(freq = n / sum(n))
+# Remove rows with NaN values in X8.day.seascapes and total_vol_sampled
+spp_df <- subset(spp_df, !is.na(X8.day.seascapes) & !is.na(total_vol_sampled))
+ 
+# Gather columns containing species counts into key-value pairs and calculate concentrations
+spp_concentration_long <- spp_df %>%
+  gather(key = "species", value = "count", -(X8.day.seascapes:date)) %>%
+  mutate(concentration = (count / total_vol_sampled) * 1e6)
+
+# Calculate total counts per species within each X8.day.seascapes category
+spp_count_per_seascape <- spp_df %>%
+  gather(key = "species", value = "count", -(X8.day.seascapes:date)) %>%
+  group_by(X8.day.seascapes, species) %>%
+  summarise(total_count = sum(count)) %>%
+  ungroup()
+
+# Calculate total volume sampled per X8.day.seascapes category
+total_vol_per_seascape <- spp_df %>%
+  group_by(X8.day.seascapes) %>%
+  summarise(total_vol_sampled = sum(total_vol_sampled))
+
+# Merge total counts and total volume data frames
+spp_concentration <- merge(spp_count_per_seascape, total_vol_per_seascape, by = "X8.day.seascapes")
+
+# Calculate speciess per cubic meter
+spp_concentration$species_per_cubic_meter <- spp_concentration$total_count / spp_concentration$total_vol_sampled * 1e6
+
+# # Select desired seascapes and reorder categories in X axis
+spp_concentration$X8.day.seascapes <- factor(spp_concentration$X8.day.seascapes, levels = c("3", "5", "7", "11", "13", "15","21","27"))
+
+# Filter out seascape class as desired
+exclude_classes <- c(5, 7, 11)
+spp_concentration <- spp_concentration[!spp_concentration$X8.day.seascapes %in% exclude_classes, ]
+
+custom_pal_hex2 <- c('#e41a1c','#377eb8','#4daf4a','#984ea3','#ff7f00','#ffff33','#a65628','#f781bf')
+
+# Create the stack plot
+concentration_stackplot <- ggplot(spp_concentration, aes(x = X8.day.seascapes, y = species_per_cubic_meter, fill = species)) +
+  geom_bar(stat = "identity") +
+  scale_fill_manual(values = custom_pal_hex2) +
+  labs(x = "Seascape class", y = "Species concentration (org.m-3)") +
+theme_minimal() +
+  theme(axis.text.x = element_text(size = 32),  # Set X-axis label font size
+        axis.text.y = element_text(size = 32)) +
+  theme(axis.title.x = element_text(size = 32),
+        axis.title.y = element_text(size = 32)) +
+  theme(legend.text = element_text(size = 20))
+concentration_stackplot
+
+# Calculate percentages
+spp_concentration_percent <- spp_concentration %>%
+  group_by(X8.day.seascapes) %>%
+  mutate(total_concentration = sum(species_per_cubic_meter),
+         species_percentage = (species_per_cubic_meter / total_concentration) * 100)
+
+# Create the stacked plot
+concentration_percent_stackplot <- ggplot(spp_concentration_percent, aes(x = X8.day.seascapes, y = species_percentage, fill = species)) +
+  geom_bar(stat = "identity") +
+  scale_fill_manual(values = custom_pal_hex2) +
+  labs(x = "Seascape class", y = "Species concentration (%)") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(size = 12, angle = 90, hjust = 1)) +
+  theme(axis.text.y = element_text(size = 12)) +
+  theme(axis.title.x = element_text(size = 14)) +
+  theme(axis.title.y = element_text(size = 14)) +
+  theme(legend.text = element_text(size = 12))
+concentration_percent_stackplot
 
 ```
 
