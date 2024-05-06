@@ -140,6 +140,30 @@ taxa_meta <- cbind(ctd_meta, conc_occ_final)
 
 ```
 
+
+# # Calculate plankton concentrations
+```{r}
+spp_df <- taxa_meta[ , c("X8.day.seascapes", "total_vol_sampled", "date",
+                              "Acantharea",
+                              "Copepods",
+                              "Echinoderms",
+                              "Jellies",
+                              "Larvaceans",
+                              "Polychaetes",
+                              "Chaetognaths",
+                              "Pteropods")]
+ 
+spp_df_long <- gather(spp_df, key = "Species", value = "Frequency", -total_vol_sampled) # , -X8.day.seascapes
+
+# calculate relative frequencies
+concentration_df <- spp_df_long %>%
+  group_by(X8.day.seascapes, Species) %>%
+  summarise(n = sum(Frequency)) %>%
+  mutate(freq = n / sum(n))
+
+```
+
+
 # Generate plots 
 ```{r}
 library(tidyverse)
@@ -228,9 +252,9 @@ pp <- df_filtered %>%
 pp
 ```
 
-# Create stackplots showing relative abundance of plankton taxa per seascape category
+# Create stackplots showing relative frequency of plankton taxa per seascape category
 ```{r}
-# convert abundance columns to relative abundance
+# convert abundance columns to relative frequency
 
 # subsets taxa for zooplankton
 df_subset <- df_filtered[ , c("X8.day.seascapes",
@@ -271,11 +295,13 @@ df_subset <- df_filtered[ , c("X8.day.seascapes",
 #                             "Chaetognaths",
 #                             "Pteropods")]
 
-# reshape the data to long format
-df_long <- tidyr::gather(df_subset, key = "Species", value = "Abundance", -X8.day.seascapes)
+# reshape the data to long format 
+df_long <- tidyr::gather(df_subset, key = "Species", value = "Frequency", -X8.day.seascapes)
+
+# calculate relative frequencies
 df_sum <- df_long %>%
   group_by(X8.day.seascapes, Species) %>%
-  summarise(n = sum(Abundance)) %>%
+  summarise(n = sum(Frequency)) %>%
   mutate(freq = n / sum(n))
 
 # Seascape class names:
@@ -303,7 +329,7 @@ qq <- ggplot(df_sum, aes(x = X8.day.seascapes, y = freq, fill = Species)) +
   scale_fill_manual(values = custom_pal_hex2) +
   geom_bar(stat = "identity") +
   labs(x = "Seascape class") +
-  labs(y = "Relative abundance") +
+  labs(y = "Relative frequency") +
   # scale_x_discrete(labels= c("Tropical/Subtropical Upwelling", 
   #                            "Tropical Seas", 
   #                            "Warm, Blooms, High Nuts", 
