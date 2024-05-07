@@ -187,6 +187,10 @@ summary_data <- filtered_taxa_meta_long %>%
   summarise(mean_concentration = mean(species_concentration),
             sd_concentration = sd(species_concentration))
 
+# Filter summary_data for copepods only
+summary_data <- summary_data %>%
+  filter(species == "Copepods")
+
 # Plot time series with mean and standard deviation
 ggplot(summary_data, aes(x = date, y = mean_concentration, color = species)) +
   geom_line() +
