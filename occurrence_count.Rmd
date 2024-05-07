@@ -141,6 +141,62 @@ taxa_meta <- cbind(ctd_meta, conc_occ_final)
 ```
 
 
+# # Calculate plankton time series per station
+```{r}
+# Calculate species concentration (counts/ml) for each species
+taxa_meta_concentration <- taxa_meta %>%
+  mutate(across(c(Acantharea, 
+                  Copepods, 
+                  Echinoderms, 
+                  Jellies, 
+                  Larvaceans, 
+                  Polychaetes, 
+                  Pteropods), ~ ./total_vol_sampled * 1e6)) %>%
+  select(Station, dec_lat, dec_lon, date, Avg.chl.a..ug.L., temp..degC., salinity,
+         Acantharea, 
+         Copepods, 
+         Echinoderms, 
+         Jellies, 
+         Larvaceans, 
+         Polychaetes, 
+         Pteropods)
+
+# Remove rows with NA values under specified columns
+taxa_meta_concentration <- taxa_meta_concentration %>%
+  na.omit(select(taxa_meta_concentration, 
+                 Acantharea, 
+                 Copepods, 
+                 Echinoderms, 
+                 Jellies, 
+                 Larvaceans, 
+                 Polychaetes, 
+                 Pteropods))
+
+# Transform taxa_meta_concentration to long format
+taxa_meta_long <- taxa_meta_concentration %>%
+  pivot_longer(cols = c(Acantharea, Copepods, Echinoderms, Jellies, Larvaceans, Polychaetes, Pteropods),
+               names_to = "species", values_to = "species_concentration")
+
+# Filter the data for Stations 68, 65, and 65
+filtered_taxa_meta_long <- taxa_meta_long %>%
+  filter(Station %in% c("68", "65", "64"))
+
+# Calculate mean and standard deviation of species concentration for each date
+summary_data <- filtered_taxa_meta_long %>%
+  group_by(date, species) %>%
+  summarise(mean_concentration = mean(species_concentration),
+            sd_concentration = sd(species_concentration))
+
+# Plot time series with mean and standard deviation
+ggplot(summary_data, aes(x = date, y = mean_concentration, color = species)) +
+  geom_line() +
+  geom_errorbar(aes(ymin = mean_concentration - sd_concentration, ymax = mean_concentration + sd_concentration), width = 0.2) +
+  labs(x = "Date", y = "Mean Species Concentration", color = "Species") +
+  theme_minimal()
+
+```
+
+
 # # Calculate plankton concentrations
 ```{r}
 spp_df <- taxa_meta[ , c("X8.day.seascapes", "total_vol_sampled", "date",
