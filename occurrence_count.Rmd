@@ -152,12 +152,13 @@ taxa_meta_concentration <- taxa_meta %>%
                   Larvaceans, 
                   Polychaetes, 
                   Pteropods), ~ ./total_vol_sampled * 1e6)) %>%
-  select(Station, dec_lat, dec_lon, date, Avg.chl.a..ug.L., temp..degC., salinity,
+  select(Station, dec_lat, dec_lon, year, month, date, Avg.chl.a..ug.L., temp..degC., salinity,
          Acantharea, 
          Copepods, 
          Echinoderms, 
          Jellies, 
          Larvaceans, 
+         Chaetognaths,
          Polychaetes, 
          Pteropods)
 
@@ -168,36 +169,61 @@ taxa_meta_concentration <- taxa_meta_concentration %>%
                  Copepods, 
                  Echinoderms, 
                  Jellies, 
-                 Larvaceans, 
+                 Larvaceans,
+                 Chaetognaths,
                  Polychaetes, 
                  Pteropods))
 
 # Transform taxa_meta_concentration to long format
 taxa_meta_long <- taxa_meta_concentration %>%
-  pivot_longer(cols = c(Acantharea, Copepods, Echinoderms, Jellies, Larvaceans, Polychaetes, Pteropods),
-               names_to = "species", values_to = "species_concentration")
+  pivot_longer(cols = c(Acantharea, Copepods, Echinoderms, Jellies, Larvaceans, Chaetognaths, Polychaetes, Pteropods), names_to = "species", values_to = "species_concentration")
 
-# Filter the data for Stations 68, 65, and 65
+# Filter the data for Stations 
 filtered_taxa_meta_long <- taxa_meta_long %>%
-  filter(Station %in% c("TB1", "TB2", "TB3", "TB4", "TB5", "TB10"))
+  filter(Station %in% c("WS", "21/LK", "MR", "16", "18", "10", "12", "9.5", "9", "7"))
 
 # Calculate mean and standard deviation of species concentration for each date
 summary_data <- filtered_taxa_meta_long %>%
-  group_by(date, species) %>%
+  group_by(year, month, species) %>%
   summarise(mean_concentration = mean(species_concentration),
             sd_concentration = sd(species_concentration))
 
-# Filter summary_data for copepods only
-# summary_data <- summary_data %>%
-#   filter(species == "Copepods")
+# Combine year and month columns into a single date column
+summary_data$date <- as.Date(paste(summary_data$year, summary_data$month, "15", sep = "-"))
+
+# custom_pal_hex2 <- c('#e41a1c','#377eb8','#4daf4a','#984ea3','#ff7f00','#ffff33','#a65628','#f781bf')
+custom_pal_hex2 <- c('darkturquoise','red','#4daf4a','slategray4','orange','dodgerblue','purple', "yellow")
+
+# Acantharea = darkturquoise
+# Copepods = red
+# echinos = #4daf4a
+# Jellies = slategray4
+# Larvaceans = orange
+# Polychaetes = dodgerblue
+# Pteropods = purple
 
 # Plot time series with mean and standard deviation
-ggplot(summary_data, aes(x = date, y = mean_concentration, color = species)) +
-  geom_bar(stat = "identity", alpha=0.7) +
-  geom_col(width = 2, position = position_dodge(0.7)) +
-  geom_errorbar(aes(ymin = mean_concentration - sd_concentration, ymax = mean_concentration + sd_concentration), width = 0.2) +
-  labs(x = "Date", y = "Mean Species Concentration", color = "Species") +
+zz <- ggplot(summary_data, aes(x = date, y = mean_concentration, fill = species)) +
+  geom_bar(stat = "identity", alpha = 0.6) +
+  scale_fill_manual(values = custom_pal_hex2) +
+  # geom_errorbar(aes(ymin = 0, ymax = mean_concentration + sd_concentration), 
+  #               position = position_dodge(width = 0.9), width = 0.2) +
+  labs(x = "Date", y = "Mean Species Concentration", fill = "Species") +
   theme_minimal()
+zz
+
+# Filter summary_data for selected only
+summary_selected <- filtered_taxa_meta_long %>%
+  filter(species == "Copepods") %>%
+  mutate(date = as.Date(paste(year, month, "15", sep = "-")))
+
+# Create the time series boxplot
+sel_box <-  ggplot(summary_selected, aes(x = as.factor(date), y = species_concentration)) +
+  geom_boxplot() +
+  labs(x = "Date", y = "Concentration") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+sel_box
 
 ```
 
@@ -859,6 +885,8 @@ qq3 <- ggplot(filt_df_pca, aes(x = pc_scores2[,1], y = pc_scores2[,2], color = X
 qq3
 
 ```
+
+
 # Map mean values of selected taxa
 ```{r}
 # # ggOceanMaps:
@@ -962,6 +990,7 @@ occ_map
 #   theme_minimal()
 # occ_map_leg
 ```
+
 
 # Create time-series plots of selected taxa at specific stations
 ```{r}
