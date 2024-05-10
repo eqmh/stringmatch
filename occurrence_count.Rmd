@@ -141,7 +141,7 @@ taxa_meta <- cbind(ctd_meta, conc_occ_final)
 ```
 
 
-# # Calculate plankton time series per station
+# # Calculate plankton concentration time series per station
 ```{r}
 # Calculate species concentration (counts/ml) for each species
 taxa_meta_concentration <- taxa_meta %>%
@@ -180,7 +180,8 @@ taxa_meta_long <- taxa_meta_concentration %>%
 
 # Filter the data for Stations 
 filtered_taxa_meta_long <- taxa_meta_long %>%
-  filter(Station %in% c("WS", "21/LK", "MR", "16", "18", "10", "12", "9.5", "9", "7"))
+  # filter(Station %in% c("WS", "21/LK", "MR", "16", "18", "10", "12", "9.5", "9", "7"))
+  filter(Station %in% c("WS", "21/LK", "MR", "18", "12", "9.5"))
 
 # Calculate mean and standard deviation of species concentration for each date
 summary_data <- filtered_taxa_meta_long %>%
@@ -202,7 +203,7 @@ custom_pal_hex2 <- c('darkturquoise','red','#4daf4a','slategray4','orange','dodg
 # Polychaetes = dodgerblue
 # Pteropods = purple
 
-# Plot time series with mean and standard deviation
+# Plot time series of mean+sd planton concentration per group of sites
 zz <- ggplot(summary_data, aes(x = date, y = mean_concentration, fill = species)) +
   geom_bar(stat = "identity", alpha = 0.6) +
   scale_fill_manual(values = custom_pal_hex2) +
@@ -225,10 +226,23 @@ sel_box <-  ggplot(summary_selected, aes(x = as.factor(date), y = species_concen
   theme(axis.text.x = element_text(angle = 45, hjust = 1))
 sel_box
 
+# Plot concentration time series for all selected sites
+# kk <- ggplot(summary_selected, aes(x = date, y = species_concentration, shape = factor(Station))) +
+#   labs(x = "Date", y = "Species concentration (org.m-3)") +
+#   geom_point(aes(size = temp..degC.), fill = "darkgrey") + # or colour = factor(Station)
+#   scale_shape_manual(values = c(0, 1, 2, 3, 4, 5, 6))
+# kk
+
+kk <- ggplot(summary_selected, aes(x = date, y = species_concentration, colour = factor(Station))) +
+  labs(x = "Date", y = "Species concentration (org.m-3)") +
+  geom_point(aes(size = temp..degC.), alpha = 0.7) + # or colour = factor(Station) +
+  geom_smooth(method = "lm", formula = y ~ poly(x, 4), se = FALSE) + # Add polynomial fit line
+  scale_colour_brewer(palette = "Set1")
+kk
 ```
 
 
-# # Calculate plankton concentrations
+# # Calculate plankton concentrations per seascape class
 ```{r}
 spp_df <- taxa_meta[ , c("X8.day.seascapes", "total_vol_sampled", "date",
                               "Acantharea",
