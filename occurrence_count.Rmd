@@ -149,39 +149,37 @@ taxa_meta_concentration <- taxa_meta %>%
                   Copepods, 
                   Echinoderms, 
                   Jellies, 
-                  Larvaceans, 
+                  Larvaceans,
+                  Chaetognaths,
                   Polychaetes, 
                   Pteropods), ~ ./total_vol_sampled * 1e6)) %>%
   select(Station, dec_lat, dec_lon, year, month, date, Avg.chl.a..ug.L., temp..degC., salinity,
+         total_vol_sampled,
          Acantharea, 
          Copepods, 
          Echinoderms, 
          Jellies, 
-         Larvaceans, 
+         Larvaceans,
          Chaetognaths,
          Polychaetes, 
-         Pteropods)
-
-# Remove rows with NA values under specified columns
-taxa_meta_concentration <- taxa_meta_concentration %>%
-  na.omit(select(taxa_meta_concentration, 
-                 Acantharea, 
-                 Copepods, 
-                 Echinoderms, 
-                 Jellies, 
-                 Larvaceans,
-                 Chaetognaths,
-                 Polychaetes, 
-                 Pteropods))
+         Pteropods) %>% 
+  filter(!is.na(total_vol_sampled))
 
 # Transform taxa_meta_concentration to long format
 taxa_meta_long <- taxa_meta_concentration %>%
   pivot_longer(cols = c(Acantharea, Copepods, Echinoderms, Jellies, Larvaceans, Chaetognaths, Polychaetes, Pteropods), names_to = "species", values_to = "species_concentration")
 
-# Filter the data for Stations 
+# Filter the data for Stations
+# station_list <- c("WS","21/LK","MR","16","18","10","12","9.5","9","7","2",KW1","KW2","KW4")
+# station_list <- c("68","65","64","60","58","57.3","57.2","57.1","57","56","55","54","53","51",
+#                   "49","47","45","41","30","31","33")
+# station_list <- c("CAL5","CAL4","CAL3","CAL2","CAL1","RP1","RP2","RP3","RP4","GP5","BG4","BG3",
+#                   "BG2","BG1","BG6", "BG7")
+# station_list <- c("V1","V2","V3","V4","V5","V6","V7","V8","V9","L1","L3","L5","L7","L9") 
+station_list <- c("AMI9","AMI8","AMI7","AMI6","AMI5","AMI4","AMI3","AMI2","AMI1","TB1","TB2","TB3",
+                  "TB4","TB5","TB10","CW4","CW3","CW2","CW1")
 filtered_taxa_meta_long <- taxa_meta_long %>%
-  # filter(Station %in% c("WS", "21/LK", "MR", "16", "18", "10", "12", "9.5", "9", "7"))
-  filter(Station %in% c("WS", "21/LK", "MR", "18", "12", "9.5"))
+  filter(Station %in% station_list)
 
 # Calculate mean and standard deviation of species concentration for each date
 summary_data <- filtered_taxa_meta_long %>%
@@ -203,9 +201,13 @@ custom_pal_hex2 <- c('darkturquoise','red','#4daf4a','slategray4','orange','dodg
 # Polychaetes = dodgerblue
 # Pteropods = purple
 
+# # Check dominance of groups by calculating the overall mean 
+# test <- summary_data %>% filter(species == "Polychaetes") %>% summarize(avg = mean(mean_concentration))
+# mean(test$avg)
+
 # Plot time series of mean+sd planton concentration per group of sites
 zz <- ggplot(summary_data, aes(x = date, y = mean_concentration, fill = species)) +
-  geom_bar(stat = "identity", alpha = 0.6) +
+  geom_bar(stat = "identity", alpha = 0.7) +
   scale_fill_manual(values = custom_pal_hex2) +
   # geom_errorbar(aes(ymin = 0, ymax = mean_concentration + sd_concentration), 
   #               position = position_dodge(width = 0.9), width = 0.2) +
@@ -215,16 +217,37 @@ zz
 
 # Filter summary_data for selected only
 summary_selected <- filtered_taxa_meta_long %>%
-  filter(species == "Copepods") %>%
+  filter(species == "Larvaceans") %>%
   mutate(date = as.Date(paste(year, month, "15", sep = "-")))
 
+# # Find the index of the last row with date == '2023-01-15' and add a dummy row for missing dates
+# new_row <- tibble(Station = NA, dec_lat = NA, dec_lon = NA, year = NA,
+#                   month = NA, date = as.Date('2023-03-15'), Avg.chl.a..ug.L. = NA,
+#                   temp..degC. = NA, salinity = NA, species = NA, species_concentration = NA)
+# last_index <- max(which(summary_selected$date == as.Date('2023-01-15')))
+# summary_selected <- bind_rows(
+#     summary_selected[1:last_index, ],
+#     new_row,
+#     summary_selected[(last_index + 1):nrow(summary_selected), ]
+#   )
+
 # Create the time series boxplot
-sel_box <-  ggplot(summary_selected, aes(x = as.factor(date), y = species_concentration)) +
-  geom_boxplot() +
-  labs(x = "Date", y = "Concentration") +
-  theme_minimal() +
-  theme(axis.text.x = element_text(angle = 45, hjust = 1))
-sel_box
+  sel_box <-  ggplot(summary_selected, aes(x = as.factor(date), y = species_concentration)) +
+    geom_boxplot(fill = "white", notch = FALSE) +
+    geom_violin(fill = "lightgrey", color = "NA", alpha = 0.7) +
+    # geom_jitter(aes(color = factor(Station), size = temp..degC.), alpha = 0.9) +
+    geom_jitter(width = 0.25, aes(color = salinity, size = temp..degC.), alpha = 0.6) +
+    labs(x = "Date", y = expression("Density (org. m"^"-3"~")")) +
+    scale_color_viridis_c(name = "Salinity", option = "mako") +
+    scale_size_continuous(name = "Temperature (°C)", 
+                          limits = c(15, 35), 
+                          breaks = c(15, 20, 25, 30, 35), 
+                          range = c(2, 6)) +
+    ylim(-1, 30000) +
+    theme_minimal() +
+    # theme_ipsum() +
+    theme(axis.text.x = element_text(angle = 45, hjust = 1))
+  sel_box
 
 # Plot concentration time series for all selected sites
 # kk <- ggplot(summary_selected, aes(x = date, y = species_concentration, shape = factor(Station))) +
@@ -233,12 +256,12 @@ sel_box
 #   scale_shape_manual(values = c(0, 1, 2, 3, 4, 5, 6))
 # kk
 
-kk <- ggplot(summary_selected, aes(x = date, y = species_concentration, colour = factor(Station))) +
-  labs(x = "Date", y = "Species concentration (org.m-3)") +
-  geom_point(aes(size = temp..degC.), alpha = 0.7) + # or colour = factor(Station) +
-  geom_smooth(method = "lm", formula = y ~ poly(x, 4), se = FALSE) + # Add polynomial fit line
-  scale_colour_brewer(palette = "Set1")
-kk
+# kk <- ggplot(summary_selected, aes(x = date, y = species_concentration, colour = factor(Station))) +
+#   labs(x = "Date", y = "Species concentration (org.m-3)") +
+#   geom_point(aes(size = temp..degC.), alpha = 0.7) + # or colour = factor(Station) +
+#   # geom_smooth(method = "lm", formula = y ~ poly(x, 4), se = FALSE) + # Add polynomial fit line
+#   scale_colour_brewer(palette = "Set1")
+# kk
 ```
 
 
