@@ -497,7 +497,7 @@ pp <- df_filtered %>%
 pp
 ```
 
-# Create stackplots showing relative frequency of plankton taxa per seascape category
+# Create stackplots showing relative frequency using counts only of plankton taxa per seascape category
 ```{r}
 # convert abundance columns to relative frequency
 
@@ -987,7 +987,50 @@ qq
 ```
 
 
-# Map mean values of selected taxa
+# Map overall mean concentration values of selected taxa 
+```{r}
+library(ggOceanMaps)
+library(leaflet)
+
+path_sfer_list <- "~/Library/CloudStorage/GoogleDrive-enriquemontes01@gmail.com/My Drive/GDrive/proposals/2022_02_MultiStressor_NOAA/module_1"
+
+sfer_curated <- list.files(path_sfer_list, pattern = "sfer_stations_curated.csv", full.names = TRUE)
+sfer_sta_list <- read.csv(sfer_curated, header = TRUE)
+
+# merges curated station list with the concentration df
+concentration_df <- taxa_meta_concentration %>%
+  left_join(sfer_sta_list %>% filter(station_class %in% "C"), by = c('Station' = 'station_id'))
+
+# Compute weighted average lat lons based on selected variable, and mean variable values (e.g., Copepods)
+taxa_concentration_avg <- concentration_df %>%
+  group_by(line_id) %>%
+  mutate(weight = Copepods / sum(Copepods, na.rm = TRUE)) %>%
+  summarise(longitude = weighted.mean(dec_lon, w = weight, na.rm = TRUE),
+            latitude = weighted.mean(dec_lat, w = weight, na.rm = TRUE),
+            sel_taxa_mean = mean(Copepods, na.rm = TRUE),
+            sel_taxa_sd = sd(Copepods, na.rm = TRUE))
+
+# # Map with bathymetry
+  # Overlay color-scaled dots
+dt <- data.frame(
+  lon = taxa_concentration_avg$longitude, 
+  lat = taxa_concentration_avg$latitude, 
+  mean_param = taxa_concentration_avg$sel_taxa_mean,
+  sd_param = taxa_concentration_avg$sel_taxa_sd)
+
+concentration_map <- basemap(limits = c(-84, -79.5, 24, 28.5), bathymetry = TRUE) +
+  geom_point(data = dt, aes(x = lon, y = lat, size = mean_param, color = sd_param)) +
+  scale_color_gradient(low = "yellow", high = "red", na.value = NA, name = "Standard Deviation") +
+  geom_point(data = taxa_meta_concentration, aes(x = dec_lon, y = dec_lat), color = "black", shape = 3, size = 1.5) +
+  scale_size_continuous(name = "Average concentration", 
+                        range = c(1, 10),
+                        guide = guide_legend(override.aes = list(color = "black", fill = "white"))) +
+  theme_minimal() 
+concentration_map
+
+```
+
+# Map mean count values of selected taxa and specified dates
 ```{r}
 # # ggOceanMaps:
 # https://biostats-r.github.io/biostats/workingInR/140_maps.html
