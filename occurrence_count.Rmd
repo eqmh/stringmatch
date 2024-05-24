@@ -146,33 +146,33 @@ taxa_meta <- cbind(ctd_meta, conc_occ_final)
 # Calculate species concentration (counts/ml) for each species
 
 # For zooplankton
-# taxa_meta_concentration <- taxa_meta %>%
-#   mutate(across(c(Acantharea,Copepods,Echinoderms,Jellies,Larvaceans,Chaetognaths,
-#                   Polychaetes,Pteropods), ~ ./total_vol_sampled * 1e6)) %>%
-#   select(Station, dec_lat, dec_lon, year, month, date, Avg.chl.a..ug.L.,
-#          temp..degC., salinity, total_vol_sampled,
-#          Acantharea,Copepods, Echinoderms,Jellies,Larvaceans,Chaetognaths,Polychaetes,Pteropods) %>%
-#   filter(!is.na(total_vol_sampled))
-# 
-# # # Transform taxa_meta_concentration to long format
-# taxa_meta_long <- taxa_meta_concentration %>%
-#   pivot_longer(cols = c(Acantharea, Copepods, Echinoderms, Jellies, Larvaceans,
-#                         Chaetognaths, Polychaetes, Pteropods),
-#                names_to = "species", values_to = "species_concentration")
-
-# For phytoplankton
 taxa_meta_concentration <- taxa_meta %>%
-  mutate(across(c(Ceratium,Chaetoceros,Diatoms,Diatoms2,Guinardia,Neocalyptrella,Trichodesmium), ~ ./total_vol_sampled * 1e6)) %>%
+  mutate(across(c(Acantharea,Copepods,Echinoderms,Jellies,Larvaceans,Chaetognaths,
+                  Polychaetes,Pteropods), ~ ./total_vol_sampled * 1e6)) %>%
   select(Station, dec_lat, dec_lon, year, month, date, Avg.chl.a..ug.L.,
-         temp..degC., salinity,total_vol_sampled,
-         Ceratium,Chaetoceros,Diatoms,Diatoms2,Guinardia,Neocalyptrella,Trichodesmium) %>%
+         temp..degC., salinity, total_vol_sampled,
+         Acantharea,Copepods, Echinoderms,Jellies,Larvaceans,Chaetognaths,Polychaetes,Pteropods) %>%
   filter(!is.na(total_vol_sampled))
 
-# Transform taxa_meta_concentration to long format
+# # Transform taxa_meta_concentration to long format
 taxa_meta_long <- taxa_meta_concentration %>%
-  pivot_longer(cols = c(Ceratium,Chaetoceros,Diatoms,Diatoms2,Guinardia,
-                        Neocalyptrella,Trichodesmium),
+  pivot_longer(cols = c(Acantharea, Copepods, Echinoderms, Jellies, Larvaceans,
+                        Chaetognaths, Polychaetes, Pteropods),
                names_to = "species", values_to = "species_concentration")
+
+# For phytoplankton
+# taxa_meta_concentration <- taxa_meta %>%
+#   mutate(across(c(Ceratium,Chaetoceros,Diatoms,Diatoms2,Guinardia,Neocalyptrella,Trichodesmium), ~ ./total_vol_sampled * 1e6)) %>%
+#   select(Station, dec_lat, dec_lon, year, month, date, Avg.chl.a..ug.L.,
+#          temp..degC., salinity,total_vol_sampled,
+#          Ceratium,Chaetoceros,Diatoms,Diatoms2,Guinardia,Neocalyptrella,Trichodesmium) %>%
+#   filter(!is.na(total_vol_sampled))
+# 
+# # Transform taxa_meta_concentration to long format
+# taxa_meta_long <- taxa_meta_concentration %>%
+#   pivot_longer(cols = c(Ceratium,Chaetoceros,Diatoms,Diatoms2,Guinardia,
+#                         Neocalyptrella,Trichodesmium),
+#                names_to = "species", values_to = "species_concentration")
 
 # Filter the data for Stations
 # station_list_fk <- c("WS","21/LK","MR","16","18","10","12","9.5","9","7","2","KW1","KW2","KW4")
@@ -227,7 +227,7 @@ zz
 # Acantharea, Copepods, Echinoderms, Jellies, Larvaceans, Chaetognaths, Polychaetes, Pteropods
 # Ceratium,Chaetoceros,Diatoms,Diatoms2,Guinardia,Neocalyptrella,Trichodesmium
 summary_selected <- filtered_taxa_meta_long %>%
-  filter(species == "Trichodesmium") %>%
+  filter(species == "Pteropods") %>%
   mutate(date = as.Date(paste(year, month, "15", sep = "-")))
 
 # Create the time series boxplot
@@ -280,22 +280,26 @@ summary_selected <- filtered_taxa_meta_long %>%
 # # Calculate plankton concentrations per seascape class
 ```{r}
 spp_df <- taxa_meta[ , c("X8.day.seascapes", "total_vol_sampled", "date",
-                              "Acantharea",
-                              "Copepods",
-                              "Echinoderms",
-                              "Jellies",
-                              "Larvaceans",
-                              "Polychaetes",
-                              "Chaetognaths",
-                              "Pteropods")]
+                         "Acantharea",
+                         "Copepods",
+                         "Echinoderms",
+                         "Jellies",
+                         "Larvaceans",
+                         "Polychaetes",
+                         "Chaetognaths",
+                         "Pteropods")]
+
+# spp_df <- taxa_meta[ , c("X8.day.seascapes", "total_vol_sampled", "date",
+#                          "Ceratium",
+#                          "Chaetoceros",
+#                          "Diatoms",
+#                          "Diatoms2",
+#                          "Guinardia",
+#                          "Neocalyptrella",
+#                          "Trichodesmium")]
 
 # Remove rows with NaN values in X8.day.seascapes and total_vol_sampled
 spp_df <- subset(spp_df, !is.na(X8.day.seascapes) & !is.na(total_vol_sampled))
- 
-# Gather columns containing species counts into key-value pairs and calculate concentrations
-spp_concentration_long <- spp_df %>%
-  gather(key = "species", value = "count", -(X8.day.seascapes:date)) %>%
-  mutate(concentration = (count / total_vol_sampled) * 1e6)
 
 # Calculate total counts per species within each X8.day.seascapes category
 spp_count_per_seascape <- spp_df %>%
@@ -312,15 +316,15 @@ total_vol_per_seascape <- spp_df %>%
 # Merge total counts and total volume data frames
 spp_concentration <- merge(spp_count_per_seascape, total_vol_per_seascape, by = "X8.day.seascapes")
 
-# Calculate speciess per cubic meter
+# Calculate species per cubic meter: might be misleading since it integrates all counts and sampled volumes across cruises to calculate concentrations. It is likely better to use average concentrations as below.
 spp_concentration$species_per_cubic_meter <- spp_concentration$total_count / spp_concentration$total_vol_sampled * 1e6
 
 # # Select desired seascapes and reorder categories in X axis
 spp_concentration$X8.day.seascapes <- factor(spp_concentration$X8.day.seascapes, levels = c("3", "5", "7", "11", "13", "15","21","27"))
 
 # Filter out seascape class as desired
-exclude_classes <- c(5, 7, 11)
-spp_concentration <- spp_concentration[!spp_concentration$X8.day.seascapes %in% exclude_classes, ]
+# exclude_classes <- c(5, 7, 11)
+# spp_concentration <- spp_concentration[!spp_concentration$X8.day.seascapes %in% exclude_classes, ]
 
 custom_pal_hex2 <- c('#e41a1c','#377eb8','#4daf4a','#984ea3','#ff7f00','#ffff33','#a65628','#f781bf')
 
@@ -328,13 +332,13 @@ custom_pal_hex2 <- c('#e41a1c','#377eb8','#4daf4a','#984ea3','#ff7f00','#ffff33'
 concentration_stackplot <- ggplot(spp_concentration, aes(x = X8.day.seascapes, y = species_per_cubic_meter, fill = species)) +
   geom_bar(stat = "identity") +
   scale_fill_manual(values = custom_pal_hex2) +
-  labs(x = "Seascape class", y = "Species concentration (org.m-3)") +
+  labs(x = "Seascape class", y = "Species concentration (org. m"^"-3"~")") +
 theme_minimal() +
-  theme(axis.text.x = element_text(size = 32),  # Set X-axis label font size
-        axis.text.y = element_text(size = 32)) +
-  theme(axis.title.x = element_text(size = 32),
-        axis.title.y = element_text(size = 32)) +
-  theme(legend.text = element_text(size = 20))
+  theme(axis.text.x = element_text(size = 18),  # Set X-axis label font size
+        axis.text.y = element_text(size = 18)) +
+  theme(axis.title.x = element_text(size = 18),
+        axis.title.y = element_text(size = 18)) +
+  theme(legend.text = element_text(size = 16))
 concentration_stackplot
 
 # Calculate percentages
@@ -347,14 +351,60 @@ spp_concentration_percent <- spp_concentration %>%
 concentration_percent_stackplot <- ggplot(spp_concentration_percent, aes(x = X8.day.seascapes, y = species_percentage, fill = species)) +
   geom_bar(stat = "identity") +
   scale_fill_manual(values = custom_pal_hex2) +
-  labs(x = "Seascape class", y = "Species concentration (%)") +
+  labs(x = "Seascape class", y = "Relative concentration (%)") +
   theme_minimal() +
-  theme(axis.text.x = element_text(size = 12, angle = 90, hjust = 1)) +
-  theme(axis.text.y = element_text(size = 12)) +
-  theme(axis.title.x = element_text(size = 14)) +
-  theme(axis.title.y = element_text(size = 14)) +
-  theme(legend.text = element_text(size = 12))
+  theme(axis.text.x = element_text(size = 18),  # Set X-axis label font size
+        axis.text.y = element_text(size = 18)) +
+  theme(axis.title.x = element_text(size = 18),
+        axis.title.y = element_text(size = 18)) +
+  theme(legend.text = element_text(size = 16))
 concentration_percent_stackplot
+
+# Gather columns containing species counts into key-value pairs and calculate concentrations
+spp_concentration_long <- spp_df %>%
+  gather(key = "species", value = "count", -(X8.day.seascapes:date)) %>%
+  mutate(concentration = (count / total_vol_sampled) * 1e6)
+
+# Calculate the mean concentration and its standard deviation per species and 8X.day.seascapes category. This is likely more representative since the approach will capture high concentration events (high counts in low volumes) that otherwise get filtered out when using an overall integrated sampled volume and total counts for the total concentration.
+avg_concentration_per_class <- spp_concentration_long %>%
+  group_by(species, `X8.day.seascapes`) %>%
+  summarize(
+    mean_concentration = mean(concentration, na.rm = TRUE),
+    sd_concentration = sd(concentration, na.rm = TRUE)
+  )
+
+avg_concentration_per_class$X8.day.seascapes <- factor(avg_concentration_per_class$X8.day.seascapes, levels = c("3", "5", "7", "11", "13", "15","21","27"))
+
+avg_stackplot <- ggplot(avg_concentration_per_class, aes(x = X8.day.seascapes, y = mean_concentration, fill = species)) +
+  geom_bar(stat = "identity") +
+  # scale_fill_manual(values = custom_pal_hex2) + # use for zooplankton
+  scale_colour_brewer(palette = "Set2") + # use for phytoplankton
+  labs(x = "Seascape class", y = "Mean density (org. m"^"-3"~")") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(size = 18),  # Set X-axis label font size
+        axis.text.y = element_text(size = 18)) +
+  theme(axis.title.x = element_text(size = 18),
+        axis.title.y = element_text(size = 18)) +
+  theme(legend.text = element_text(size = 16))
+avg_stackplot
+
+# Calculate percentages
+avg_concentration_percent <- avg_concentration_per_class %>%
+  group_by(`X8.day.seascapes`) %>%
+  mutate(mean_concentration_percent = mean_concentration / sum(mean_concentration) * 100)
+
+avg_percent_stackplot <- ggplot(avg_concentration_percent, aes(x = X8.day.seascapes, y = mean_concentration_percent, fill = species)) +
+  geom_bar(stat = "identity") +
+  scale_fill_manual(values = custom_pal_hex2) + # use for zooplankton
+  # scale_colour_brewer(palette = "Set2") + # use for phytoplankton
+  labs(x = "Seascape class", y = "Relative concentration (%)") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(size = 18),  # Set X-axis label font size
+        axis.text.y = element_text(size = 18)) +
+  theme(axis.title.x = element_text(size = 18),
+        axis.title.y = element_text(size = 18)) +
+  theme(legend.text = element_text(size = 16))
+avg_percent_stackplot
 
 ```
 
@@ -417,7 +467,7 @@ pp <- df_filtered %>%
     geom_boxplot() +
     # scale_fill_viridis(option="H", discrete = TRUE, alpha=0.6) +
     scale_fill_manual(values = custom_colors) +
-    geom_jitter(color="black", size=0.8, alpha=0.9) +
+    geom_jitter(color="grey", size=0.8, alpha=0.7) +
     labs(x = "Seascape class") +
     # labs(y = expression("[Chl-a] (mg/L)")) +
     # labs(y = expression("Salinity")) +
@@ -532,11 +582,11 @@ qq <- ggplot(df_sum, aes(x = X8.day.seascapes, y = freq, fill = Species)) +
   #                            "Temperate Transition")) +
   # theme(axis.text.x = element_text(angle = 45)) +
   theme_minimal() +
-  theme(axis.text.x = element_text(size = 32),  # Set X-axis label font size
-        axis.text.y = element_text(size = 32)) +
-  theme(axis.title.x = element_text(size = 32),
-        axis.title.y = element_text(size = 32)) +
-  theme(legend.text = element_text(size = 20)) 
+  theme(axis.text.x = element_text(size = 18),  # Set X-axis label font size
+        axis.text.y = element_text(size = 18)) +
+  theme(axis.title.x = element_text(size = 18),
+        axis.title.y = element_text(size = 18)) +
+  theme(legend.text = element_text(size = 16)) 
   #theme(axis.text.x = element_text(hjust = 1))
 qq
 ```
@@ -579,7 +629,7 @@ shannon_df <- df_long %>%
 # Filter the data to exclude specified seascapes
 shannon_df_filtered <- shannon_df[!shannon_df$X8.day.seascapes %in% exclude_seascapes, ]
 
-# create the bar plot
+# create the bar plot of Shannon diversity
 ff <- ggplot(shannon_df_filtered, aes(x = X8.day.seascapes, y = shannon, fill = X8.day.seascapes)) +
   geom_bar(stat = "identity") +
   # scale_fill_viridis(option="plasma", discrete = TRUE, alpha=0.6) +
@@ -597,23 +647,24 @@ ff <- ggplot(shannon_df_filtered, aes(x = X8.day.seascapes, y = shannon, fill = 
   theme(axis.title.x = element_text(size = 32),
         axis.title.y = element_text(size = 32)) +
   theme(legend.text = element_text(size = 32)) +
-  guides(fill = FALSE)
+  guides()
 ff
 
-# Subset the data to exclude specified seascapes
+# # Subset the data to exclude specified seascapes
 filtered_taxa_meta <- taxa_meta[complete.cases(taxa_meta$X8.day.seascapes), ]
 filtered_taxa_meta <- filtered_taxa_meta[!filtered_taxa_meta$X8.day.seascapes %in% exclude_seascapes, ]
 
+# # Plot sampled seascape frequency
 tt <- ggplot(filtered_taxa_meta, aes(x = factor(X8.day.seascapes), fill = factor(X8.day.seascapes))) +
   geom_bar(color = "black", alpha = 0.7) +
   scale_fill_manual(values = custom_colors) +
-  labs(title = "Histogram of 8X.day.seascapes", x = "Seascape Class", y = "Frequency") +
+  labs(x = "Seascape Class", y = "Frequency") +
   theme_minimal() +
-    theme(axis.text.x = element_text(size = 32),  # Set X-axis label font size
-        axis.text.y = element_text(size = 32)) +
-  theme(axis.title.x = element_text(size = 32),
-        axis.title.y = element_text(size = 32)) +
-  theme(legend.text = element_text(size = 32)) +
+    theme(axis.text.x = element_text(size = 22),  # Set X-axis label font size
+        axis.text.y = element_text(size = 22)) +
+  theme(axis.title.x = element_text(size = 22),
+        axis.title.y = element_text(size = 22)) +
+  theme(legend.text = element_text(size = 22)) +
   guides(fill = FALSE)
 tt
 
@@ -622,7 +673,7 @@ df_sum_abund <- df_long %>%
   group_by(X8.day.seascapes, Species) %>%
   summarise(n = sum(Abundance)) 
 
-df_sum_abund_filt <- df_sum_abund[df_sum_abund$Species == "Guinardia",]
+df_sum_abund_filt <- df_sum_abund[df_sum_abund$Species == "Pteropods",]
 # Filter the data to exclude specified seascapes
 df_sum_abund_filt2 <- df_sum_abund_filt[!df_sum_abund_filt$X8.day.seascapes %in% exclude_seascapes, ]
 
@@ -638,7 +689,7 @@ dd
 df_long2 <- tidyr::gather(df_subset_shannon, key = "Species", value = "Abundance", -X8.day.seascapes)
 
 spp_seascape_normalized <- df_long2 %>%
-  filter(Species == "Guinardia") %>%
+  filter(Species == "Pteropods") %>%
   group_by(X8.day.seascapes) %>%
   summarise(spp_count = sum(Abundance))
 
@@ -659,12 +710,12 @@ bb <- ggplot(spp_seascape_normalized_filt, aes(x = factor(X8.day.seascapes), y =
   scale_fill_manual(values = custom_colors) +
   labs(x = "Seascape Class", y = "Counts / Seascape freq * 1000") +
   theme_minimal() +
-    theme(axis.text.x = element_text(size = 32),  # Set X-axis label font size
-        axis.text.y = element_text(size = 32)) +
-  theme(axis.title.x = element_text(size = 32),
-        axis.title.y = element_text(size = 32)) +
-  theme(legend.text = element_text(size = 32)) +
-  guides(fill = FALSE)
+  #   theme(axis.text.x = element_text(size = 32),  # Set X-axis label font size
+  #       axis.text.y = element_text(size = 32)) +
+  # theme(axis.title.x = element_text(size = 32),
+  #       axis.title.y = element_text(size = 32)) +
+  # theme(legend.text = element_text(size = 32)) +
+  guides()
 bb
 
 ```
@@ -790,7 +841,7 @@ filt_df_pca$X8.day.seascapes <- as.factor(filt_df_pca$X8.day.seascapes)
 
 # # For hydrography
 qq <- ggplot(filt_df_pca, aes(x = pc_scores2[,1], y = pc_scores2[,2], color = X8.day.seascapes)) +
-  geom_point(size = 4) +
+  geom_point(size = 3, alpha = 0.7) +
   scale_color_manual(values = custom_colors_pca) +
   geom_segment(aes(x = 0, y = 0, xend = eigenvectors[1, 1], yend = eigenvectors[2, 1]),
                arrow = arrow(length = unit(0.2, "inches")), color = "black") +  # Add vector for PC1
@@ -817,121 +868,121 @@ qq <- ggplot(filt_df_pca, aes(x = pc_scores2[,1], y = pc_scores2[,2], color = X8
   ylim(-1.5, 1.5) +
   guides(colour = guide_legend(override.aes = list(size=2))) + 
   theme_classic() +
-  theme(axis.text.x = element_text(size = 32),  # Set X-axis label font size
-        axis.text.y = element_text(size = 32)) +
-  theme(axis.title.x = element_text(size = 32),
-        axis.title.y = element_text(size = 32)) +
-  theme(legend.text = element_text(size = 32)) 
+  theme(axis.text.x = element_text(size = 22),  # Set X-axis label font size
+        axis.text.y = element_text(size = 22)) +
+  theme(axis.title.x = element_text(size = 22),
+        axis.title.y = element_text(size = 22)) +
+  theme(legend.text = element_text(size = 22)) 
 qq
 
 
-# # For phytoplankton
-qq2 <- ggplot(filt_df_pca, aes(x = pc_scores2[,1], y = pc_scores2[,3], color = X8.day.seascapes)) +
-  geom_point(size = 4) +
-  scale_color_manual(values = custom_colors_pca) +
-  geom_segment(aes(x = 0, y = 0, xend = eigenvectors[1, 1], yend = eigenvectors[2, 1]),
-               arrow = arrow(length = unit(0.2, "inches")), color = "black") +  # Add vector for PC1
-  geom_segment(aes(x = 0, y = 0, xend = eigenvectors[1, 2], yend = eigenvectors[2, 2]),
-               arrow = arrow(length = unit(0.2, "inches")), color = "black") + # Add vector for PC2
-  geom_segment(aes(x = 0, y = 0, xend = eigenvectors[1, 3], yend = eigenvectors[2, 3]),
-               arrow = arrow(length = unit(0.2, "inches")), color = "black") + # Add vector for PC3
-  geom_segment(aes(x = 0, y = 0, xend = eigenvectors[1, 4], yend = eigenvectors[2, 4]),
-               arrow = arrow(length = unit(0.2, "inches")), color = "black") + # Add vector for PC4
-  geom_segment(aes(x = 0, y = 0, xend = eigenvectors[1, 5], yend = eigenvectors[2, 5]),
-               arrow = arrow(length = unit(0.2, "inches")), color = "black") + # Add vector for PC5
-  geom_segment(aes(x = 0, y = 0, xend = eigenvectors[1, 6], yend = eigenvectors[2, 6]),
-               arrow = arrow(length = unit(0.2, "inches")), color = "black") + # Add vector for PC6
-  geom_segment(aes(x = 0, y = 0, xend = eigenvectors[1, 7], yend = eigenvectors[2, 7]),
-               arrow = arrow(length = unit(0.2, "inches")), color = "black") + # Add vector for PC7
-  geom_text(aes(x = eigenvectors[1, 1], y = eigenvectors[2, 1], 
-                label = paste("PC1 (", pc_var_percent[1], "%: Ceratium)", sep = "")),
-            vjust = -0.5, hjust = 0.5, color = "black") +  # Add label for PC1
-  geom_text(aes(x = eigenvectors[1, 2], y = eigenvectors[2, 2], 
-                label = paste("PC2 (", pc_var_percent[2], "%: Chaetoceros)", sep = "")),
-            vjust = -0.5, hjust = 0.5, color = "black") +  # Add label for PC2
-  geom_text(aes(x = eigenvectors[1, 3], y = eigenvectors[2, 3], 
-                label = paste("PC3 (", pc_var_percent[3], "%: Diatoms)", sep = "")),
-            vjust = -0.5, hjust = 0.5, color = "black") +  # Add label for PC3
-  geom_text(aes(x = eigenvectors[1, 4], y = eigenvectors[2, 4], 
-                label = paste("PC4 (", pc_var_percent[4], "%: Diatoms2)", sep = "")),
-            vjust = -0.5, hjust = 0.5, color = "black") +  # Add label for PC4
-  geom_text(aes(x = eigenvectors[1, 5], y = eigenvectors[2, 5], 
-                label = paste("PC5 (", pc_var_percent[5], "%: Guinardia)", sep = "")),
-            vjust = -0.5, hjust = 0.5, color = "black") +  # Add label for PC5
-  geom_text(aes(x = eigenvectors[1, 6], y = eigenvectors[2, 6], 
-                label = paste("PC6 (", pc_var_percent[6], "%: Neocalyptrella)", sep = "")),
-            vjust = -0.5, hjust = 0.5, color = "black") +  # Add label for PC6
-  geom_text(aes(x = eigenvectors[1, 7], y = eigenvectors[2, 7], 
-                label = paste("PC7 (", pc_var_percent[7], "%: Trichodesmium)", sep = "")),
-            vjust = -0.5, hjust = 0.5, color = "black") +  # Add label for PC7
-  labs(x = "PC1", y = "PC3", color = "X8.day.seascapes") +
-  xlim(-1, 1) +
-  ylim(-1, 1) +
-  guides(colour = guide_legend(override.aes = list(size=2))) + 
-  theme_classic() +
-  theme(axis.text.x = element_text(size = 32),  # Set X-axis label font size
-        axis.text.y = element_text(size = 32)) +
-  theme(axis.title.x = element_text(size = 32),
-        axis.title.y = element_text(size = 32)) +
-  theme(legend.text = element_text(size = 32)) 
-qq2
-
-
-# # For zooplankton
-qq3 <- ggplot(filt_df_pca, aes(x = pc_scores2[,1], y = pc_scores2[,2], color = X8.day.seascapes)) +
-  geom_point(size = 4) +
-  scale_color_manual(values = custom_colors_pca) +
-  geom_segment(aes(x = 0, y = 0, xend = eigenvectors[1, 1], yend = eigenvectors[2, 1]),
-               arrow = arrow(length = unit(0.2, "inches")), color = "black") +  # Add vector for PC1
-  geom_segment(aes(x = 0, y = 0, xend = eigenvectors[1, 2], yend = eigenvectors[2, 2]),
-               arrow = arrow(length = unit(0.2, "inches")), color = "black") + # Add vector for PC2
-  geom_segment(aes(x = 0, y = 0, xend = eigenvectors[1, 3], yend = eigenvectors[2, 3]),
-               arrow = arrow(length = unit(0.2, "inches")), color = "black") + # Add vector for PC3
-  geom_segment(aes(x = 0, y = 0, xend = eigenvectors[1, 4], yend = eigenvectors[2, 4]),
-               arrow = arrow(length = unit(0.2, "inches")), color = "black") + # Add vector for PC4
-  geom_segment(aes(x = 0, y = 0, xend = eigenvectors[1, 5], yend = eigenvectors[2, 5]),
-               arrow = arrow(length = unit(0.2, "inches")), color = "black") + # Add vector for PC5
-  geom_segment(aes(x = 0, y = 0, xend = eigenvectors[1, 6], yend = eigenvectors[2, 6]),
-               arrow = arrow(length = unit(0.2, "inches")), color = "black") + # Add vector for PC6
-  geom_segment(aes(x = 0, y = 0, xend = eigenvectors[1, 7], yend = eigenvectors[2, 7]),
-               arrow = arrow(length = unit(0.2, "inches")), color = "black") + # Add vector for PC7
-  geom_segment(aes(x = 0, y = 0, xend = eigenvectors[1, 8], yend = eigenvectors[2, 8]),
-               arrow = arrow(length = unit(0.2, "inches")), color = "black") + # Add vector for PC8
-  geom_text(aes(x = eigenvectors[1, 1], y = eigenvectors[2, 1], 
-                label = paste("PC1 (", pc_var_percent[1], "%: Acantharea)", sep = "")),
-            vjust = -0.5, hjust = 0.5, color = "black") +  # Add label for PC1
-  geom_text(aes(x = eigenvectors[1, 2], y = eigenvectors[2, 2], 
-                label = paste("PC2 (", pc_var_percent[2], "%: Copepods)", sep = "")),
-            vjust = -0.5, hjust = 0.5, color = "black") +  # Add label for PC2
-  geom_text(aes(x = eigenvectors[1, 3], y = eigenvectors[2, 3], 
-                label = paste("PC3 (", pc_var_percent[3], "%: Echinoderms)", sep = "")),
-            vjust = -0.5, hjust = 0.5, color = "black") +  # Add label for PC3
-  geom_text(aes(x = eigenvectors[1, 4], y = eigenvectors[2, 4], 
-                label = paste("PC4 (", pc_var_percent[4], "%: Jellies)", sep = "")),
-            vjust = -0.5, hjust = 0.5, color = "black") +  # Add label for PC4
-  geom_text(aes(x = eigenvectors[1, 5], y = eigenvectors[2, 5], 
-                label = paste("PC5 (", pc_var_percent[5], "%: Larvaceans)", sep = "")),
-            vjust = -0.5, hjust = 0.5, color = "black") +  # Add label for PC5
-  geom_text(aes(x = eigenvectors[1, 6], y = eigenvectors[2, 6], 
-                label = paste("PC6 (", pc_var_percent[6], "%: Polychaetes)", sep = "")),
-            vjust = -0.5, hjust = 0.5, color = "black") +  # Add label for PC6
-  geom_text(aes(x = eigenvectors[1, 7], y = eigenvectors[2, 7], 
-                label = paste("PC7 (", pc_var_percent[7], "%: Chaetognaths)", sep = "")),
-            vjust = -0.5, hjust = 0.5, color = "black") +  # Add label for PC7
-  geom_text(aes(x = eigenvectors[1, 8], y = eigenvectors[2, 8], 
-                label = paste("PC8 (", pc_var_percent[8], "%: Pteropods)", sep = "")),
-            vjust = -0.5, hjust = 0.5, color = "black") +  # Add label for PC8
-  labs(x = "PC1", y = "PC2", color = "X8.day.seascapes") +
-  xlim(-1, 1) +
-  ylim(-1, 1) +
-  guides(colour = guide_legend(override.aes = list(size=2))) + 
-  theme_classic() +
-  theme(axis.text.x = element_text(size = 32),  # Set X-axis label font size
-        axis.text.y = element_text(size = 32)) +
-  theme(axis.title.x = element_text(size = 32),
-        axis.title.y = element_text(size = 32)) +
-  theme(legend.text = element_text(size = 32)) 
-qq3
+# # # For phytoplankton
+# qq2 <- ggplot(filt_df_pca, aes(x = pc_scores2[,1], y = pc_scores2[,3], color = X8.day.seascapes)) +
+#   geom_point(size = 4) +
+#   scale_color_manual(values = custom_colors_pca) +
+#   geom_segment(aes(x = 0, y = 0, xend = eigenvectors[1, 1], yend = eigenvectors[2, 1]),
+#                arrow = arrow(length = unit(0.2, "inches")), color = "black") +  # Add vector for PC1
+#   geom_segment(aes(x = 0, y = 0, xend = eigenvectors[1, 2], yend = eigenvectors[2, 2]),
+#                arrow = arrow(length = unit(0.2, "inches")), color = "black") + # Add vector for PC2
+#   geom_segment(aes(x = 0, y = 0, xend = eigenvectors[1, 3], yend = eigenvectors[2, 3]),
+#                arrow = arrow(length = unit(0.2, "inches")), color = "black") + # Add vector for PC3
+#   geom_segment(aes(x = 0, y = 0, xend = eigenvectors[1, 4], yend = eigenvectors[2, 4]),
+#                arrow = arrow(length = unit(0.2, "inches")), color = "black") + # Add vector for PC4
+#   geom_segment(aes(x = 0, y = 0, xend = eigenvectors[1, 5], yend = eigenvectors[2, 5]),
+#                arrow = arrow(length = unit(0.2, "inches")), color = "black") + # Add vector for PC5
+#   geom_segment(aes(x = 0, y = 0, xend = eigenvectors[1, 6], yend = eigenvectors[2, 6]),
+#                arrow = arrow(length = unit(0.2, "inches")), color = "black") + # Add vector for PC6
+#   geom_segment(aes(x = 0, y = 0, xend = eigenvectors[1, 7], yend = eigenvectors[2, 7]),
+#                arrow = arrow(length = unit(0.2, "inches")), color = "black") + # Add vector for PC7
+#   geom_text(aes(x = eigenvectors[1, 1], y = eigenvectors[2, 1], 
+#                 label = paste("PC1 (", pc_var_percent[1], "%: Ceratium)", sep = "")),
+#             vjust = -0.5, hjust = 0.5, color = "black") +  # Add label for PC1
+#   geom_text(aes(x = eigenvectors[1, 2], y = eigenvectors[2, 2], 
+#                 label = paste("PC2 (", pc_var_percent[2], "%: Chaetoceros)", sep = "")),
+#             vjust = -0.5, hjust = 0.5, color = "black") +  # Add label for PC2
+#   geom_text(aes(x = eigenvectors[1, 3], y = eigenvectors[2, 3], 
+#                 label = paste("PC3 (", pc_var_percent[3], "%: Diatoms)", sep = "")),
+#             vjust = -0.5, hjust = 0.5, color = "black") +  # Add label for PC3
+#   geom_text(aes(x = eigenvectors[1, 4], y = eigenvectors[2, 4], 
+#                 label = paste("PC4 (", pc_var_percent[4], "%: Diatoms2)", sep = "")),
+#             vjust = -0.5, hjust = 0.5, color = "black") +  # Add label for PC4
+#   geom_text(aes(x = eigenvectors[1, 5], y = eigenvectors[2, 5], 
+#                 label = paste("PC5 (", pc_var_percent[5], "%: Guinardia)", sep = "")),
+#             vjust = -0.5, hjust = 0.5, color = "black") +  # Add label for PC5
+#   geom_text(aes(x = eigenvectors[1, 6], y = eigenvectors[2, 6], 
+#                 label = paste("PC6 (", pc_var_percent[6], "%: Neocalyptrella)", sep = "")),
+#             vjust = -0.5, hjust = 0.5, color = "black") +  # Add label for PC6
+#   geom_text(aes(x = eigenvectors[1, 7], y = eigenvectors[2, 7], 
+#                 label = paste("PC7 (", pc_var_percent[7], "%: Trichodesmium)", sep = "")),
+#             vjust = -0.5, hjust = 0.5, color = "black") +  # Add label for PC7
+#   labs(x = "PC1", y = "PC3", color = "X8.day.seascapes") +
+#   xlim(-1, 1) +
+#   ylim(-1, 1) +
+#   guides(colour = guide_legend(override.aes = list(size=2))) + 
+#   theme_classic() +
+#   theme(axis.text.x = element_text(size = 32),  # Set X-axis label font size
+#         axis.text.y = element_text(size = 32)) +
+#   theme(axis.title.x = element_text(size = 32),
+#         axis.title.y = element_text(size = 32)) +
+#   theme(legend.text = element_text(size = 32)) 
+# qq2
+# 
+# 
+# # # For zooplankton
+# qq3 <- ggplot(filt_df_pca, aes(x = pc_scores2[,1], y = pc_scores2[,2], color = X8.day.seascapes)) +
+#   geom_point(size = 4) +
+#   scale_color_manual(values = custom_colors_pca) +
+#   geom_segment(aes(x = 0, y = 0, xend = eigenvectors[1, 1], yend = eigenvectors[2, 1]),
+#                arrow = arrow(length = unit(0.2, "inches")), color = "black") +  # Add vector for PC1
+#   geom_segment(aes(x = 0, y = 0, xend = eigenvectors[1, 2], yend = eigenvectors[2, 2]),
+#                arrow = arrow(length = unit(0.2, "inches")), color = "black") + # Add vector for PC2
+#   geom_segment(aes(x = 0, y = 0, xend = eigenvectors[1, 3], yend = eigenvectors[2, 3]),
+#                arrow = arrow(length = unit(0.2, "inches")), color = "black") + # Add vector for PC3
+#   geom_segment(aes(x = 0, y = 0, xend = eigenvectors[1, 4], yend = eigenvectors[2, 4]),
+#                arrow = arrow(length = unit(0.2, "inches")), color = "black") + # Add vector for PC4
+#   geom_segment(aes(x = 0, y = 0, xend = eigenvectors[1, 5], yend = eigenvectors[2, 5]),
+#                arrow = arrow(length = unit(0.2, "inches")), color = "black") + # Add vector for PC5
+#   geom_segment(aes(x = 0, y = 0, xend = eigenvectors[1, 6], yend = eigenvectors[2, 6]),
+#                arrow = arrow(length = unit(0.2, "inches")), color = "black") + # Add vector for PC6
+#   geom_segment(aes(x = 0, y = 0, xend = eigenvectors[1, 7], yend = eigenvectors[2, 7]),
+#                arrow = arrow(length = unit(0.2, "inches")), color = "black") + # Add vector for PC7
+#   geom_segment(aes(x = 0, y = 0, xend = eigenvectors[1, 8], yend = eigenvectors[2, 8]),
+#                arrow = arrow(length = unit(0.2, "inches")), color = "black") + # Add vector for PC8
+#   geom_text(aes(x = eigenvectors[1, 1], y = eigenvectors[2, 1], 
+#                 label = paste("PC1 (", pc_var_percent[1], "%: Acantharea)", sep = "")),
+#             vjust = -0.5, hjust = 0.5, color = "black") +  # Add label for PC1
+#   geom_text(aes(x = eigenvectors[1, 2], y = eigenvectors[2, 2], 
+#                 label = paste("PC2 (", pc_var_percent[2], "%: Copepods)", sep = "")),
+#             vjust = -0.5, hjust = 0.5, color = "black") +  # Add label for PC2
+#   geom_text(aes(x = eigenvectors[1, 3], y = eigenvectors[2, 3], 
+#                 label = paste("PC3 (", pc_var_percent[3], "%: Echinoderms)", sep = "")),
+#             vjust = -0.5, hjust = 0.5, color = "black") +  # Add label for PC3
+#   geom_text(aes(x = eigenvectors[1, 4], y = eigenvectors[2, 4], 
+#                 label = paste("PC4 (", pc_var_percent[4], "%: Jellies)", sep = "")),
+#             vjust = -0.5, hjust = 0.5, color = "black") +  # Add label for PC4
+#   geom_text(aes(x = eigenvectors[1, 5], y = eigenvectors[2, 5], 
+#                 label = paste("PC5 (", pc_var_percent[5], "%: Larvaceans)", sep = "")),
+#             vjust = -0.5, hjust = 0.5, color = "black") +  # Add label for PC5
+#   geom_text(aes(x = eigenvectors[1, 6], y = eigenvectors[2, 6], 
+#                 label = paste("PC6 (", pc_var_percent[6], "%: Polychaetes)", sep = "")),
+#             vjust = -0.5, hjust = 0.5, color = "black") +  # Add label for PC6
+#   geom_text(aes(x = eigenvectors[1, 7], y = eigenvectors[2, 7], 
+#                 label = paste("PC7 (", pc_var_percent[7], "%: Chaetognaths)", sep = "")),
+#             vjust = -0.5, hjust = 0.5, color = "black") +  # Add label for PC7
+#   geom_text(aes(x = eigenvectors[1, 8], y = eigenvectors[2, 8], 
+#                 label = paste("PC8 (", pc_var_percent[8], "%: Pteropods)", sep = "")),
+#             vjust = -0.5, hjust = 0.5, color = "black") +  # Add label for PC8
+#   labs(x = "PC1", y = "PC2", color = "X8.day.seascapes") +
+#   xlim(-1, 1) +
+#   ylim(-1, 1) +
+#   guides(colour = guide_legend(override.aes = list(size=2))) + 
+#   theme_classic() +
+#   theme(axis.text.x = element_text(size = 32),  # Set X-axis label font size
+#         axis.text.y = element_text(size = 32)) +
+#   theme(axis.title.x = element_text(size = 32),
+#         axis.title.y = element_text(size = 32)) +
+#   theme(legend.text = element_text(size = 32)) 
+# qq3
 
 ```
 
