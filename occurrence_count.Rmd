@@ -1004,11 +1004,11 @@ concentration_df <- taxa_meta_concentration %>%
 # Compute weighted average lat lons based on selected variable, and mean variable values (e.g., Copepods)
 taxa_concentration_avg <- concentration_df %>%
   group_by(line_id) %>%
-  mutate(weight = Copepods / sum(Copepods, na.rm = TRUE)) %>%
+  mutate(weight = Larvaceans / sum(Larvaceans, na.rm = TRUE)) %>%
   summarise(longitude = weighted.mean(dec_lon, w = weight, na.rm = TRUE),
             latitude = weighted.mean(dec_lat, w = weight, na.rm = TRUE),
-            sel_taxa_mean = mean(Copepods, na.rm = TRUE),
-            sel_taxa_sd = sd(Copepods, na.rm = TRUE))
+            sel_taxa_mean = mean(Larvaceans, na.rm = TRUE),
+            sel_taxa_sd = sd(Larvaceans, na.rm = TRUE))
 
 # # Map with bathymetry
   # Overlay color-scaled dots
@@ -1023,6 +1023,7 @@ concentration_map <- basemap(limits = c(-84, -79.5, 24, 28.5), bathymetry = TRUE
   scale_color_gradient(low = "yellow", high = "red", na.value = NA, name = "Standard Deviation") +
   geom_point(data = taxa_meta_concentration, aes(x = dec_lon, y = dec_lat), color = "black", shape = 3, size = 1.5) +
   scale_size_continuous(name = "Average concentration", 
+                        breaks = c(2000, 4000, 6000),
                         range = c(1, 10),
                         guide = guide_legend(override.aes = list(color = "black", fill = "white"))) +
   theme_minimal() 
