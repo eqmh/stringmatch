@@ -146,33 +146,33 @@ taxa_meta <- cbind(ctd_meta, conc_occ_final)
 # Calculate species concentration (counts/ml) for each species
 
 # For zooplankton
+# taxa_meta_concentration <- taxa_meta %>%
+#   mutate(across(c(Acantharea,Copepods,Echinoderms,Jellies,Larvaceans,Chaetognaths,
+#                   Polychaetes,Pteropods), ~ ./total_vol_sampled * 1e6)) %>%
+#   select(Station, dec_lat, dec_lon, year, month, date, Avg.chl.a..ug.L.,
+#          temp..degC., salinity, total_vol_sampled,
+#          Acantharea,Copepods, Echinoderms,Jellies,Larvaceans,Chaetognaths,Polychaetes,Pteropods) %>%
+#   filter(!is.na(total_vol_sampled))
+# 
+# # # Transform taxa_meta_concentration to long format
+# taxa_meta_long <- taxa_meta_concentration %>%
+#   pivot_longer(cols = c(Acantharea, Copepods, Echinoderms, Jellies, Larvaceans,
+#                         Chaetognaths, Polychaetes, Pteropods),
+#                names_to = "species", values_to = "species_concentration")
+
+# # For phytoplankton
 taxa_meta_concentration <- taxa_meta %>%
-  mutate(across(c(Acantharea,Copepods,Echinoderms,Jellies,Larvaceans,Chaetognaths,
-                  Polychaetes,Pteropods), ~ ./total_vol_sampled * 1e6)) %>%
+  mutate(across(c(Ceratium,Chaetoceros,Diatoms,Diatoms2,Guinardia,Neocalyptrella,Trichodesmium), ~ ./total_vol_sampled * 1e6)) %>%
   select(Station, dec_lat, dec_lon, year, month, date, Avg.chl.a..ug.L.,
-         temp..degC., salinity, total_vol_sampled,
-         Acantharea,Copepods, Echinoderms,Jellies,Larvaceans,Chaetognaths,Polychaetes,Pteropods) %>%
+         temp..degC., salinity,total_vol_sampled,
+         Ceratium,Chaetoceros,Diatoms,Diatoms2,Guinardia,Neocalyptrella,Trichodesmium) %>%
   filter(!is.na(total_vol_sampled))
 
 # # Transform taxa_meta_concentration to long format
 taxa_meta_long <- taxa_meta_concentration %>%
-  pivot_longer(cols = c(Acantharea, Copepods, Echinoderms, Jellies, Larvaceans,
-                        Chaetognaths, Polychaetes, Pteropods),
+  pivot_longer(cols = c(Ceratium,Chaetoceros,Diatoms,Diatoms2,Guinardia,
+                        Neocalyptrella,Trichodesmium),
                names_to = "species", values_to = "species_concentration")
-
-# For phytoplankton
-# taxa_meta_concentration <- taxa_meta %>%
-#   mutate(across(c(Ceratium,Chaetoceros,Diatoms,Diatoms2,Guinardia,Neocalyptrella,Trichodesmium), ~ ./total_vol_sampled * 1e6)) %>%
-#   select(Station, dec_lat, dec_lon, year, month, date, Avg.chl.a..ug.L.,
-#          temp..degC., salinity,total_vol_sampled,
-#          Ceratium,Chaetoceros,Diatoms,Diatoms2,Guinardia,Neocalyptrella,Trichodesmium) %>%
-#   filter(!is.na(total_vol_sampled))
-# 
-# # Transform taxa_meta_concentration to long format
-# taxa_meta_long <- taxa_meta_concentration %>%
-#   pivot_longer(cols = c(Ceratium,Chaetoceros,Diatoms,Diatoms2,Guinardia,
-#                         Neocalyptrella,Trichodesmium),
-#                names_to = "species", values_to = "species_concentration")
 
 # Filter the data for Stations
 # station_list_fk <- c("WS","21/LK","MR","16","18","10","12","9.5","9","7","2","KW1","KW2","KW4")
@@ -227,7 +227,7 @@ zz
 # Acantharea, Copepods, Echinoderms, Jellies, Larvaceans, Chaetognaths, Polychaetes, Pteropods
 # Ceratium,Chaetoceros,Diatoms,Diatoms2,Guinardia,Neocalyptrella,Trichodesmium
 summary_selected <- filtered_taxa_meta_long %>%
-  filter(species == "Pteropods") %>%
+  filter(species == "Diatoms") %>%
   mutate(date = as.Date(paste(year, month, "15", sep = "-")))
 
 # Create the time series boxplot
@@ -502,25 +502,25 @@ pp
 # convert abundance columns to relative frequency
 
 # subsets taxa for zooplankton
-df_subset <- df_filtered[ , c("X8.day.seascapes",
-                              "Acantharea",
-                              "Copepods",
-                              "Echinoderms",
-                              "Jellies",
-                              "Larvaceans",
-                              "Polychaetes",
-                              "Chaetognaths",
-                              "Pteropods")]
+# df_subset <- df_filtered[ , c("X8.day.seascapes",
+#                               "Acantharea",
+#                               "Copepods",
+#                               "Echinoderms",
+#                               "Jellies",
+#                               "Larvaceans",
+#                               "Polychaetes",
+#                               "Chaetognaths",
+#                               "Pteropods")]
 
 # subsets taxa for phytoplankton
-# df_subset <- df_filtered[ , c("X8.day.seascapes",
-#                             "Ceratium",
-#                             "Chaetoceros",
-#                             "Diatoms",
-#                             "Diatoms2",
-#                             "Guinardia",
-#                             "Neocalyptrella",
-#                             "Trichodesmium")]
+df_subset <- df_filtered[ , c("X8.day.seascapes",
+                            "Ceratium",
+                            "Chaetoceros",
+                            "Diatoms",
+                            "Diatoms2",
+                            "Guinardia",
+                            "Neocalyptrella",
+                            "Trichodesmium")]
 
 # subsets taxa for all species
 # df_subset <- df_filtered[ , c("X8.day.seascapes",
@@ -570,8 +570,8 @@ custom_pal_hex2 <- c('#e41a1c','#377eb8','#4daf4a','#984ea3','#ff7f00','#ffff33'
 # create the stackplot
 qq <- ggplot(df_sum, aes(x = X8.day.seascapes, y = freq, fill = Species)) +
   # scale_fill_viridis(option="Set3", discrete = TRUE, alpha=0.8) +
-  # scale_fill_viridis(discrete = TRUE, alpha=0.8) +
-  scale_fill_manual(values = custom_pal_hex2) +
+  scale_fill_viridis(discrete = TRUE, alpha=0.8) +
+  # scale_fill_manual(values = custom_pal_hex2) +
   geom_bar(stat = "identity") +
   labs(x = "Seascape class") +
   labs(y = "Relative frequency") +
@@ -1004,11 +1004,11 @@ concentration_df <- taxa_meta_concentration %>%
 # Compute weighted average lat lons based on selected variable, and mean variable values (e.g., Copepods)
 taxa_concentration_avg <- concentration_df %>%
   group_by(line_id) %>%
-  mutate(weight = Larvaceans / sum(Larvaceans, na.rm = TRUE)) %>%
+  mutate(weight = Ceratium / sum(Ceratium, na.rm = TRUE)) %>%
   summarise(longitude = weighted.mean(dec_lon, w = weight, na.rm = TRUE),
             latitude = weighted.mean(dec_lat, w = weight, na.rm = TRUE),
-            sel_taxa_mean = mean(Larvaceans, na.rm = TRUE),
-            sel_taxa_sd = sd(Larvaceans, na.rm = TRUE))
+            sel_taxa_mean = mean(Ceratium, na.rm = TRUE),
+            sel_taxa_sd = sd(Ceratium, na.rm = TRUE))
 
 # # Map with bathymetry
   # Overlay color-scaled dots
@@ -1023,7 +1023,7 @@ concentration_map <- basemap(limits = c(-84, -79.5, 24, 28.5), bathymetry = TRUE
   scale_color_gradient(low = "yellow", high = "red", na.value = NA, name = "Standard Deviation") +
   geom_point(data = taxa_meta_concentration, aes(x = dec_lon, y = dec_lat), color = "black", shape = 3, size = 1.5) +
   scale_size_continuous(name = "Average concentration", 
-                        breaks = c(2000, 4000, 6000),
+                        breaks = c(250, 500, 750),
                         range = c(1, 10),
                         guide = guide_legend(override.aes = list(color = "black", fill = "white"))) +
   theme_minimal() 
