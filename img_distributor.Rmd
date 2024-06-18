@@ -101,6 +101,18 @@ if (length(missing_files) > 0) {
 } else {
   cat("All files were found and copied successfully.\n")
 }
+
+# Set path to main directory
+path_to_dest_files <- "~/Desktop/selected/"
+
+# List all image files in all folders within the main directory
+image_dest_files <- list.files(path = path_to_dest_files, pattern = "\\.(png|jpg|jpeg|tif|tiff)$", recursive = TRUE, full.names = TRUE)
+
+# Count the number of image files
+num_image_dest_files <- length(image_dest_files)
+
+# Print the count of image files
+cat("Number of image files in destination folder:", num_image_dest_files, "\n")
 ```
 
 # Loop through each data frame (lists of annotated images) and copy them in dedicated folders
