@@ -34,9 +34,9 @@ data_frame_names <- ls(pattern = "^class\\.")  # Get all data frames starting wi
 
 # Set path to and create main directories (base directory where all images are and destination directory)
 ```{r}
-path_to_files <- "~/Desktop/test_pngs/" # Base directory for all images
+path_to_files <- "~/Desktop/cpics_img/" # Base directory for all images
 selected_base_dir <- "~/Desktop/selected_per_class/"  # Base directory for selected files in separate folders
-selected_destination_dir_all <- "~/Desktop/selected/"  # Base directory for selected files in common folder
+selected_destination_dir_all <- "~/Desktop/selected2/"  # Base directory for selected files in common folder
 
 # Create the base directory for selected files if it doesn't exist
 if (!dir.exists(selected_base_dir)) {
