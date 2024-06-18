@@ -1,0 +1,170 @@
+---
+title: "Image Distributor"
+output: null
+---
+
+This script copies annotated images from the main data folder (cpics_img) into corresponding folders in another directoty: diatoms, acantharea, copedos, etc. Use Section 1 for this function.
+
+For copying annotated images into a single folder (not aggregated by class), use Section 2.
+
+Created: June 18th 2024
+By: Enrique Montes
+
+# Load taxa lists and metadata table
+```{r}
+library(tidyverse)
+library(lubridate)
+
+# specify the directory where the files are located
+dir_path <- "~/Library/CloudStorage/GoogleDrive-enriquemontes01@gmail.com/My Drive/GDrive/OCED_AOML/WS_cruises/plankton_imaging/CPICS/TS.Master_selection"
+
+# obtain a list of file names in the directory
+file_names <- list.files(path = dir_path, pattern = ".txt", full.names = TRUE)
+
+# loop over each file and import the tables (use this for DATES)
+for (file in file_names) {
+  table_name <- gsub(".txt", "", basename(file)) # get the name of the table from the file name
+  assign(table_name, read.table(file = file, header = FALSE, sep = "\t") %>%
+           mutate(date = as.POSIXct(substr(V1, start = 24, stop = 38), format="%Y%m%d_%H%M%S", tz="UTC")))
+}
+
+# List of folder names with files lists
+data_frame_names <- ls(pattern = "^class\\.")  # Get all data frames starting with "class."
+```
+
+# Set path to and create main directories (base directory where all images are and destination directory)
+```{r}
+path_to_files <- "~/Desktop/test_pngs/" # Base directory for all images
+selected_base_dir <- "~/Desktop/selected_per_class/"  # Base directory for selected files in separate folders
+selected_destination_dir_all <- "~/Desktop/selected/"  # Base directory for selected files in common folder
+
+# Create the base directory for selected files if it doesn't exist
+if (!dir.exists(selected_base_dir)) {
+  dir.create(selected_base_dir)
+}
+
+if (!dir.exists(selected_destination_dir_all)) {
+  dir.create(selected_destination_dir_all)
+}
+
+# List all image files in all folders within the main directory
+image_files <- list.files(path = path_to_files, pattern = "\\.(png|jpg|jpeg|tif|tiff)$", recursive = TRUE, full.names = TRUE)
+
+# Count the number of image files
+num_image_files <- length(image_files)
+
+# Print the count of image files
+cat("Number of image files in base directory:", num_image_files, "\n")
+```
+
+# Loop through each data frame (lists of annotated images) and copy them all in a common folder
+```{r}
+# Initialize an empty list to keep track of missing files
+missing_files <- list()
+
+# Loop through each data frame
+for (df_name in data_frame_names) {
+  # Get the data frame using the name
+  current_df <- get(df_name)
+  
+  # Rename filename column if needed
+  current_df <- current_df %>% rename(img_file_name = V1)
+  
+  # Get the data frame name without the "class." prefix
+  df_name_without_prefix <- sub("^class\\.", "", df_name)
+  
+  # Iterate through each row in the data frame
+  for (row in 1:nrow(current_df)) {
+    filename <- current_df[row, "img_file_name"]
+    
+    # Construct the full path to the image file in the main directory
+    full_path <- file.path(path_to_files, filename)
+    
+    # Construct the full path to the image file to be copied in the selected directory 
+    selected_path <- file.path(selected_destination_dir_all, basename(filename))
+    
+    # Check if the file exists before copying
+    if (file.exists(full_path)) {
+      # Copy the image to the 'selected_per_class' directory
+      file.copy(full_path, selected_path)
+    } else {
+      # Add the missing file to the list
+      missing_files <- c(missing_files, filename)
+    }
+  }
+}
+
+# Print the list of missing files
+if (length(missing_files) > 0) {
+  cat("The following files were not found:\n")
+  print(missing_files)
+} else {
+  cat("All files were found and copied successfully.\n")
+}
+```
+
+# Loop through each data frame (lists of annotated images) and copy them in dedicated folders
+```{r}
+# Initialize an empty list to keep track of missing files
+missing_files <- list()
+
+# Loop through each data frame
+for (df_name in data_frame_names) {
+  # Get the data frame using the name
+  current_df <- get(df_name)
+  
+  # Rename filename column if needed
+  current_df <- current_df %>% rename(img_file_name = V1)
+  
+  # Get the data frame name without the "class." prefix
+  df_name_without_prefix <- sub("^class\\.", "", df_name)
+  
+  # Create directory for the current taxa list under the base selected directory
+  selected_destination_dir <- file.path(selected_base_dir, df_name_without_prefix)
+  if (!dir.exists(selected_destination_dir)) {
+    dir.create(selected_destination_dir)
+  }
+  
+  # Iterate through each row in the data frame
+  for (row in 1:nrow(current_df)) {
+    filename <- current_df[row, "img_file_name"]
+    
+    # Construct the full path to the image file in the main directory
+    full_path <- file.path(path_to_files, filename)
+    
+    # Construct the full path to the image file in the selected directory 
+    selected_path <- file.path(selected_destination_dir, basename(filename))
+    
+    # Check if the file exists before copying
+    if (file.exists(full_path)) {
+      # Copy the image to the 'selected_per_class' directory
+      file.copy(full_path, selected_path)
+    } else {
+      # Add the missing file to the list
+      missing_files <- c(missing_files, filename)
+    }
+  }
+}
+
+# Print the list of missing files
+if (length(missing_files) > 0) {
+  cat("The following files were not found:\n")
+  print(missing_files)
+} else {
+  cat("All files were found and copied successfully.\n")
+}
+
+# Set path to main directory
+path_to_sel_files <- "~/Desktop/selected_per_class/"
+
+# List all image files in all folders within the main directory
+image_sel_files <- list.files(path = path_to_sel_files, pattern = "\\.(png|jpg|jpeg|tif|tiff)$", recursive = TRUE, full.names = TRUE)
+
+# Count the number of image files
+num_image_sel_files <- length(image_sel_files)
+
+# Print the count of image files
+cat("Number of image files in destination folder:", num_image_sel_files, "\n")
+```
+
+

@@ -24,8 +24,16 @@ for (file in file_names) {
 data_frame_names <- ls(pattern = "^class\\.")  # Get all data frames starting with "class."
 
 # Set path to main directory
-path_to_files <- "~/Desktop/cpics_img/"
-setwd(path_to_files)
+path_to_files <- "~/Desktop/test_pngs/"
+selected_base_dir <- "~/Desktop/selected_per_class/"  # Base directory for selected files
+
+# Create the base directory for selected files if it doesn't exist
+if (!dir.exists(selected_base_dir)) {
+  dir.create(selected_base_dir)
+}
+
+# Initialize an empty list to keep track of missing files
+missing_files <- list()
 
 # Loop through each data frame
 for (df_name in data_frame_names) {
@@ -38,19 +46,37 @@ for (df_name in data_frame_names) {
   # Get the data frame name without the "class." prefix
   df_name_without_prefix <- sub("^class\\.", "", df_name)
   
-  # Create directory for the current taxa list
-  dir.create(df_name_without_prefix)
+  # Create directory for the current taxa list under the base selected directory
+  selected_dir <- file.path(selected_base_dir, df_name_without_prefix)
+  if (!dir.exists(selected_dir)) {
+    dir.create(selected_dir)
+  }
   
   # Iterate through each row in the data frame
   for (row in 1:nrow(current_df)) {
     filename <- current_df[row, "img_file_name"]
     
-    # Construct the full path to the image file in directory
+    # Construct the full path to the image file in the main directory
     full_path <- file.path(path_to_files, filename)
     
-    # # Copy the image to the 'selected' directory - USE TO SAVE IMAGES LISTED IN TAXA LISTS IN "SELECTED" FOLDER
+    # Construct the full path to the image file in the selected directory 
     selected_path <- file.path(selected_dir, basename(filename))
-    file.copy(full_path, selected_path)
+    
+    # Check if the file exists before copying
+    if (file.exists(full_path)) {
+      # Copy the image to the 'selected_per_class' directory
+      file.copy(full_path, selected_path)
+    } else {
+      # Add the missing file to the list
+      missing_files <- c(missing_files, filename)
+    }
   }
 }
 
+# Print the list of missing files
+if (length(missing_files) > 0) {
+  cat("The following files were not found:\n")
+  print(missing_files)
+} else {
+  cat("All files were found and copied successfully.\n")
+}
