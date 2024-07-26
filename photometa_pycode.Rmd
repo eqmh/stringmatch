@@ -161,10 +161,12 @@ combined_table$object_depth_min = 1
 acquisition_instrument = "CPICS"
 process_pixel = "3.45"
 acquisition_author = "Enrique Montes (NOAA AOML)"
+acquisition_id = "export_11454_20240726_2245_sfer" # as export_#images_yyyymmdd_hhmm_sfer
 
 # Add new columns 'acq_author' and 'acq_instrument' to the data frame
 combined_table$acq_author <- rep(acquisition_author, nrow(combined_table))
 combined_table$acq_instrument <- rep(acquisition_instrument, nrow(combined_table))
+combined_table$acq_id <- rep(acquisition_id, nrow(combined_table))
 
 #Correction for pixel size (converts pixels from CPICS to um)
 combined_table %>%
@@ -183,9 +185,9 @@ print(num_non_matching)
 
 # Export table
 # - add data format codes; [f] for floats, [t] for text
-format_codes <- as.data.frame(matrix(c("[t]", "[t]", "[t]", "[t]", "[t]", "[t]", "[t]", "[t]", "[t]", "[f]", "[f]", "[f]", "[f]", "[f]", "[f]", "[f]", "[f]", "[f]", "[f]", "[f]", "[t]", "[t]", "[t]", "[f]", "[f]", "[f]", "[f]", "[f]", "[f]", "[f]", "[f]", "[f]", "[f]", "[f]", "[f]", "[f]", "[t]", "[t]"), nrow = 1))
+format_codes <- as.data.frame(matrix(c("[t]", "[t]", "[t]", "[t]", "[t]", "[t]", "[t]", "[t]", "[t]", "[f]", "[f]", "[f]", "[f]", "[f]", "[f]", "[f]", "[f]", "[f]", "[f]", "[f]", "[t]", "[t]", "[t]", "[f]", "[f]", "[f]", "[f]", "[f]", "[f]", "[f]", "[f]", "[f]", "[f]", "[f]", "[f]", "[f]", "[t]", "[t]", "[t]"), nrow = 1))
 colnames(format_codes) <- colnames(combined_table)
-selected_columns <- c(1,2,4,5,10:13,24:38)
+selected_columns <- c(1,2,4,5,10:13,24:39)
 ecotaxa_table <- rbind(format_codes[, selected_columns], select(combined_table, 
                                                                 img_file_name, 
                                                                 object_id, 
@@ -209,10 +211,13 @@ ecotaxa_table <- rbind(format_codes[, selected_columns], select(combined_table,
                                                                 object_blueness,
                                                                 object_colorfulness,
                                                                 acq_instrument,
-                                                                acq_author))
+                                                                acq_author,
+                                                                acq_id))
 
 # DO NOT WRITE CSV TABLE becasue turns date and time strings into floating objects
-write.table(ecotaxa_table,"~/Desktop/ecotaxa_sfer-mbon.txt",sep="\t",row.names=FALSE)
+write.table(ecotaxa_table,"~/Desktop/ecotaxa_sfer_mbon.txt",sep="\t",row.names=FALSE)
+# Write the ecotaxa_table to a TSV file on the desktop
+# write.table(ecotaxa_table, "~/Desktop/ecotaxa_sfer-mbon.tsv", sep = "\t", row.names = FALSE, quote = FALSE)
 
 ```
 
