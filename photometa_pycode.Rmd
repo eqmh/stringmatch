@@ -157,15 +157,35 @@ combined_table <- cbind(final_table_all, ellipse_data_selected_unclassified[matc
 # correct values in ecotaxa_table (eg min depth)
 combined_table$object_depth_min = 1
 
+# Add additional fields
+acquisition_instrument = "CPICS"
+process_pixel = "3.45"
+acquisition_author = "Enrique Montes (NOAA AOML)"
+
+# Add new columns 'acq_author' and 'acq_instrument' to the data frame
+combined_table$acq_author <- rep(acquisition_author, nrow(combined_table))
+combined_table$acq_instrument <- rep(acquisition_instrument, nrow(combined_table))
+
+#Correction for pixel size (converts pixels from CPICS to um)
+combined_table %>%
+  mutate(
+    object_major = object_major  *  as.numeric(process_pixel),
+    object_minor = object_minor *  as.numeric(process_pixel),
+    object_area = object_area   *   (as.numeric(process_pixel)^2),
+    object_width = object_width  *  as.numeric(process_pixel),
+    object_height = object_height  *  as.numeric(process_pixel),
+    object_perimeter = object_perimeter  *  as.numeric(process_pixel)
+  ) -> combined_table
+
 # Count the number of rows in final_table_all that don't match imageFile_ids objects
 num_non_matching <- sum(is.na(matching_indices))
 print(num_non_matching)
 
 # Export table
 # - add data format codes; [f] for floats, [t] for text
-format_codes <- as.data.frame(matrix(c("t", "t", "t", "t", "t", "t", "t", "t", "t", "f", "f", "f", "f", "f", "f", "f", "f", "f", "f", "f", "t", "t", "t", "f", "f", "f", "f", "f", "f", "f", "f", "f", "f", "f", "f", "f"), nrow = 1))
+format_codes <- as.data.frame(matrix(c("[t]", "[t]", "[t]", "[t]", "[t]", "[t]", "[t]", "[t]", "[t]", "[f]", "[f]", "[f]", "[f]", "[f]", "[f]", "[f]", "[f]", "[f]", "[f]", "[f]", "[t]", "[t]", "[t]", "[f]", "[f]", "[f]", "[f]", "[f]", "[f]", "[f]", "[f]", "[f]", "[f]", "[f]", "[f]", "[f]", "[t]", "[t]"), nrow = 1))
 colnames(format_codes) <- colnames(combined_table)
-selected_columns <- c(1,2,4,5,10:13,24:36)
+selected_columns <- c(1,2,4,5,10:13,24:38)
 ecotaxa_table <- rbind(format_codes[, selected_columns], select(combined_table, 
                                                                 img_file_name, 
                                                                 object_id, 
@@ -187,7 +207,9 @@ ecotaxa_table <- rbind(format_codes[, selected_columns], select(combined_table,
                                                                 object_redness,
                                                                 object_greeness,
                                                                 object_blueness,
-                                                                object_colorfulness))
+                                                                object_colorfulness,
+                                                                acq_instrument,
+                                                                acq_author))
 
 # DO NOT WRITE CSV TABLE becasue turns date and time strings into floating objects
 write.table(ecotaxa_table,"~/Desktop/ecotaxa_sfer-mbon.txt",sep="\t",row.names=FALSE)
