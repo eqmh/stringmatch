@@ -9,3 +9,4 @@ Workflow:
 - Run photometa_pycode.Rmd to merge image records with cruise data and deep feature tables
 - Place ecotaxa_sfer-mbon.txt into 'selected_unclassified' folder containing all annotated images and zip compress
 - Upload to Ecotaxa
+- If metadata will be updated the ecotaxa_import.tsv file must be zip compressed, otherwise Ecotaxa does not recognize it.
