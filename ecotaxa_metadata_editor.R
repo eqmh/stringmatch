@@ -5,7 +5,9 @@
 library(readr)
 
 # read table
-path <- "/Users/enrique.montes/Desktop/planktoscope/ecotaxa_ws23011_2023-09-19T05_54_09.156965_ws23011_WS_64um/ecotaxa_export.tsv"
+sample <- "ecotaxa_ws23203_2023-09-26T02_15_45.164133_ws23203_LK_64um"
+
+path <- paste0("/Users/enrique.montes/Desktop/planktoscope/", sample, "/ecotaxa_export.tsv")
 df <- readr::read_tsv(path)
 
 # replace values under a specific column
