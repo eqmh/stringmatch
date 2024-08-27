@@ -83,10 +83,8 @@ for (i in 1:(length(dt_list))) {
     chain1_count <- nrow(chain1_subset)
   chain2_subset <- subset(class.Chain3, date >= dt_list[i]-start & date < dt_list[i]+stop) 
     chain2_count <- nrow(chain2_subset)
-  # chain3_subset <- subset(class.Chain4, date >= dt_list[i]-start & date < dt_list[i]+stop) 
-  #   chain3_count <- nrow(chain3_subset)
-  clado_subset <- subset(class.Cladocera, date >= dt_list[i]-start & date < dt_list[i]+stop) 
-    clado_count <- nrow(clado_subset)
+  ostra_subset <- subset(class.Ostracods, date >= dt_list[i]-start & date < dt_list[i]+stop) 
+    ostra_count <- nrow(ostra_subset)
   copepod_subset <- subset(class.Copepods, date >= dt_list[i]-start & date < dt_list[i]+stop) 
     copepod_count <- nrow(copepod_subset)
   deca_subset <- subset(class.Decapods, date >= dt_list[i]-start & date < dt_list[i]+stop) 
@@ -113,14 +111,13 @@ for (i in 1:(length(dt_list))) {
   # Add date and count to results data frame
   result <- data.frame(date = dt_list[i], 
                        Acantharea = acantha_count,
-                       Centric_diatoms = centric_count,
+                       Centric = centric_count,
                        Ceratium = ceratium_count,
                        Chaetoceros = chaetoceros_count,
                        Chaetognaths = chaetog_count,
                        Diatoms = chain1_count,
                        Diatoms2 = chain2_count,
-                       # Diatom_chains_3 = chain3_count,
-                       Cladocera = clado_count,
+                       Ostracods = ostra_count,
                        Copepods = copepod_count,
                        Decapods = deca_count,
                        Echinoderms = echino_count,
@@ -128,7 +125,7 @@ for (i in 1:(length(dt_list))) {
                        Jellies = jel_count,
                        Larvaceans = larv_count,
                        Neocalyptrella = neocal_count,
-                       Noctiluca_sp = nocti_count,
+                       Noctiluca = nocti_count,
                        Polychaetes = poly_count,
                        Pteropods = ptero_count,
                        Trichodesmium = tricho_count)
@@ -162,20 +159,22 @@ taxa_meta <- cbind(ctd_meta, conc_occ_final)
 
 # # For phytoplankton
 taxa_meta_concentration <- taxa_meta %>%
-  mutate(across(c(Ceratium,Chaetoceros,Diatoms,Diatoms2,Guinardia,Neocalyptrella,Trichodesmium), ~ ./total_vol_sampled * 1e6)) %>%
+  mutate(across(c(Centric,Ceratium,Chaetoceros,Diatoms,Diatoms2,Guinardia,Neocalyptrella,
+                  Noctiluca,Trichodesmium), ~ ./total_vol_sampled * 1e6)) %>%
   select(Station, dec_lat, dec_lon, year, month, date, Avg.chl.a..ug.L.,
          temp..degC., salinity,total_vol_sampled,
-         Ceratium,Chaetoceros,Diatoms,Diatoms2,Guinardia,Neocalyptrella,Trichodesmium) %>%
+         Centric,Ceratium,Chaetoceros,Diatoms,Diatoms2,Guinardia,Neocalyptrella,
+         Noctiluca,Trichodesmium) %>%
   filter(!is.na(total_vol_sampled))
 
 # # Transform taxa_meta_concentration to long format
 taxa_meta_long <- taxa_meta_concentration %>%
-  pivot_longer(cols = c(Ceratium,Chaetoceros,Diatoms,Diatoms2,Guinardia,
-                        Neocalyptrella,Trichodesmium),
+  pivot_longer(cols = c(Centric,Ceratium,Chaetoceros,Diatoms,Diatoms2,
+                        Guinardia,Neocalyptrella,Noctiluca,Trichodesmium),
                names_to = "species", values_to = "species_concentration")
 
 # Filter the data for Stations
-# station_list_fk <- c("WS","21/LK","MR","16","18","10","12","9.5","9","7","2","KW1","KW2","KW4")
+station_list_fk <- c("WS","21/LK","MR","16","18","10","12","9.5","9","7","2","KW1","KW2","KW4")
 # station_list_sr <- c("68","65","64","60","58","57.3","57.2","57.1","57","56","55","54","53","51",
 #                   "49","47","45","41","30","31","33")
 # station_list_cal <- c("CAL5","CAL4","CAL3","CAL2","CAL1","RP1","RP2","RP3","RP4","GP5","BG4","BG3",
@@ -184,7 +183,7 @@ taxa_meta_long <- taxa_meta_concentration %>%
 # station_list_tb <- c("AMI9","AMI8","AMI7","AMI6","AMI5","AMI4","AMI3","AMI2","AMI1","TB1","TB2",
 #                   "TB3","TB4","TB5","TB10","CW4","CW3","CW2","CW1")
 # filtered_taxa_meta_long <- taxa_meta_long %>%
-#   filter(Station %in% station_list_cal)
+#   filter(Station %in% station_list_fk)
 
 # Without filtering per group of stations but looking at the entire region
 filtered_taxa_meta_long <- taxa_meta_long
@@ -199,7 +198,7 @@ summary_data <- filtered_taxa_meta_long %>%
 summary_data$date <- as.Date(paste(summary_data$year, summary_data$month, "15", sep = "-"))
 
 # custom_pal_hex2 <- c('#e41a1c','#377eb8','#4daf4a','#984ea3','#ff7f00','#ffff33','#a65628','#f781bf')
-custom_pal_hex2 <- c('darkturquoise','red','#4daf4a','slategray4','orange','dodgerblue','purple', "yellow")
+custom_pal_hex2 <- c('darkturquoise','red','#4daf4a','slategray4','orange','dodgerblue','purple', "yellow","pink")
 
 # Acantharea = darkturquoise
 # Copepods = red
@@ -217,7 +216,7 @@ custom_pal_hex2 <- c('darkturquoise','red','#4daf4a','slategray4','orange','dodg
 zz <- ggplot(summary_data, aes(x = date, y = mean_concentration, fill = species)) +
   geom_bar(stat = "identity", alpha = 0.7) +
   scale_fill_manual(values = custom_pal_hex2) +
-  # geom_errorbar(aes(ymin = 0, ymax = mean_concentration + sd_concentration), 
+  # geom_errorbar(aes(ymin = 0, ymax = mean_concentration + sd_concentration),
   #               position = position_dodge(width = 0.9), width = 0.2) +
   labs(x = "Date", y = "Mean Species Concentration", fill = "Species") +
   theme_minimal()
@@ -225,9 +224,9 @@ zz
 
 # Filter summary_data for selected only
 # Acantharea, Copepods, Echinoderms, Jellies, Larvaceans, Chaetognaths, Polychaetes, Pteropods
-# Ceratium,Chaetoceros,Diatoms,Diatoms2,Guinardia,Neocalyptrella,Trichodesmium
+# Centric,Ceratium,Chaetoceros,Diatoms,Diatoms2,Guinardia,Neocalyptrella,Noctiluca,Trichodesmium
 summary_selected <- filtered_taxa_meta_long %>%
-  filter(species == "Diatoms") %>%
+  filter(species == "Noctiluca") %>%
   mutate(date = as.Date(paste(year, month, "15", sep = "-")))
 
 # Create the time series boxplot
@@ -276,6 +275,71 @@ summary_selected <- filtered_taxa_meta_long %>%
   
 ```
 
+# # Calculates total plankton concentrations aggregating data from selected stations (eg FK)
+```{r}
+# Calculate plankton concentration for all species summed up
+# For Phyto
+taxa_meta_concentration_all <- taxa_meta %>%
+  mutate(total_concentration = (
+    Centric + Ceratium + Chaetoceros + Diatoms + Diatoms2 + Guinardia + Neocalyptrella +
+    Noctiluca + Trichodesmium) / total_vol_sampled * 1e6) %>%
+  select(Station, dec_lat, dec_lon, year, month, date, Avg.chl.a..ug.L.,
+         temp..degC., salinity, total_vol_sampled, total_concentration) %>%
+  filter(!is.na(total_vol_sampled))
+
+# Filter the data for Stations
+station_list_fk <- c("WS","21/LK","MR","16","18","10","12","9.5","9","7","2")
+filtered_taxa_conc_all <- taxa_meta_concentration_all %>%
+  filter(Station %in% station_list_fk)
+
+# Aggregate total concentration and total volume sampled per year and month
+aggregated_concentration <- filtered_taxa_conc_all %>%
+  group_by(year, month) %>%
+  summarise(
+    total_counts = sum(total_concentration * total_vol_sampled / 1e6, na.rm = TRUE), # Sum up all counts
+    total_vol_sampled = sum(total_vol_sampled, na.rm = TRUE), # Sum up all volume sampled
+    mean_temp_degC = mean(temp..degC., na.rm = TRUE), # Calculate mean temperature
+    mean_salinity = mean(salinity, na.rm = TRUE), # Calculate mean salinity
+    mean_chla = mean(Avg.chl.a..ug.L., na.rm = TRUE) 
+  ) %>%
+  ungroup() %>%
+  mutate(total_concentration = (total_counts / total_vol_sampled) * 1e6) # Recalculate the concentration
+
+# Create a Date column for plotting purposes
+aggregated_concentration <- aggregated_concentration %>%
+  mutate(year_month = as.Date(paste(year, month, "01", sep = "-")))
+
+# Create the time series plot
+concentration_ts <- ggplot(aggregated_concentration, aes(x = year_month)) +
+  geom_line(aes(y = total_concentration), color = "blue", size = 1) + # Line plot for total concentration
+  geom_point(aes(y = total_concentration), color = "red", size = 2) +  # Points for total concentration
+  geom_line(aes(y = (mean_temp_degC - 20) / (35 - 20) * max(total_concentration)), 
+            color = "orange", size = 1) +  # Line plot for temperature (normalized)
+  labs(title = "Total Phytoplankton Concentration and Temperature Time Series",
+       x = "Date",
+       y = expression("Total Concentration (org/m"^3~")")) +
+  scale_x_date(date_breaks = "1 month", date_labels = "%b %Y") +  # Show ticks for every month
+  scale_y_continuous(
+    name = expression("Total Concentration (org/m"^3~")"),            # Primary y-axis label
+    sec.axis = sec_axis(~ . * (35 - 20) / max(aggregated_concentration$total_concentration) + 20, 
+                        name = "Temperature (°C)", 
+                        breaks = seq(20, 35, by = 5))  # Secondary y-axis label
+  ) +
+  theme_minimal() +
+  theme(
+    axis.text.x = element_text(angle = 45, hjust = 1),
+    axis.title.y.right = element_text(color = "orange"),  # Color the secondary y-axis label
+    axis.line.y.right = element_line(color = "orange"),    # Color the secondary y-axis line   
+    # panel.grid.major = element_blank(),  # Remove major grid lines
+    panel.grid.minor = element_blank(),  # Remove minor grid lines
+    # panel.border = element_blank()       # Remove panel border if necessary
+  )
+
+# Print the plot
+concentration_ts
+
+
+```
 
 # # Calculate plankton concentrations per seascape class
 ```{r}
@@ -1189,7 +1253,7 @@ ggplot(monthly_means, aes(x = year_month, y = mean_value)) +
 #             class.Chain2,
 #             class.Chain3,
 #             class.Chain4,
-#             class.Cladocera,
+#             class.Ostracods,
 #             class.Jellies,
 #             class.Larvaceans,
 #             class.pellets)
@@ -1213,7 +1277,7 @@ ggplot(monthly_means, aes(x = year_month, y = mean_value)) +
 #   chain2 <- as.data.frame(str_count(class.Chain2$V1, id_list[i]))
 #   chain3 <- as.data.frame(str_count(class.Chain3$V1, id_list[i]))
 #   chain4 <- as.data.frame(str_count(class.Chain4$V1, id_list[i]))
-#   clado <- as.data.frame(str_count(class.Cladocera$V1, id_list[i]))
+#   ostra <- as.data.frame(str_count(class.Ostracods$V1, id_list[i]))
 #   copepods <- as.data.frame(str_count(class.Copepods$V1, id_list[i]))
 #   decapod <- as.data.frame(str_count(class.Decapods$V1, id_list[i]))
 #   echino <- as.data.frame(str_count(class.Echinoderms$V1, id_list[i]))
@@ -1225,21 +1289,21 @@ ggplot(monthly_means, aes(x = year_month, y = mean_value)) +
 #   tricho <- as.data.frame(str_count(class.Tricho$V1, id_list[i]))
 # 
 #   Acantharea <- colSums(acantha != 0)
-#   Centric_diatoms <- colSums(centric != 0)
+#   Centric <- colSums(centric != 0)
 #   Ceratium_spp <- colSums(ceratium != 0)
 #   Chaetoceros <- colSums(chaetoceros != 0)
 #   Chaetognaths <- colSums(chaetog != 0)
 #   Diatom_chains_1 <- colSums(chain2 != 0)
 #   Diatom_chains_2 <- colSums(chain3 != 0)
 #   Diatom_chains_3 <- colSums(chain4 != 0)
-#   Cladocera <- colSums(clado != 0)
+#   Ostracods <- colSums(ostra != 0)
 #   Copepods <- colSums(copepods != 0)
 #   Decapods <- colSums(decapod != 0)
 #   Echinoderms <- colSums(echino != 0)
 #   Eucampia_spp <- colSums(eucampia != 0)
 #   Jellies<- colSums(jellies != 0)
 #   Larvaceans <- colSums(larvae != 0)
-#   Noctiluca_sp <- colSums(nocti != 0)
+#   Noctiluca <- colSums(nocti != 0)
 #   Polychaetes <- colSums(polychaetes != 0)
 #   Trichodesmium_spp <- colSums(tricho != 0)
 # 
@@ -1249,21 +1313,21 @@ ggplot(monthly_means, aes(x = year_month, y = mean_value)) +
 # 
 #   row_df <- data.frame(date = occ_datetime, occ_datetime_str,
 #                        Acantharea,
-#                        Centric_diatoms,
+#                        Centric,
 #                        Ceratium_spp,
 #                        Chaetoceros,
 #                        Chaetognaths,
 #                        Diatom_chains_1,
 #                        Diatom_chains_2,
 #                        Diatom_chains_3,
-#                        Cladocera,
+#                        Ostracods,
 #                        Copepods,
 #                        Decapods,
 #                        Echinoderms,
 #                        Eucampia_spp,
 #                        Jellies,
 #                        Larvaceans,
-#                        Noctiluca_sp,
+#                        Noctiluca,
 #                        Polychaetes,
 #                        Trichodesmium_spp
 #                        )
