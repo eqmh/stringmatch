@@ -33,111 +33,11 @@ for (file in file_names) {
 ```
 
 
-# Match file name using DATE values (not string matching) 
+# Match file name using DATE values
 ```{r}
 library(tidyverse)
 library(lubridate)
 
-# Directory where the CTD metadata is located
-# For NOAA machines
-# dir_path2 <- "/Users/enrique.montes/Library/CloudStorage/GoogleDrive-enriquemontes01@gmail.com/My Drive/GDrive/OCED_AOML/WS_cruises/plankton_imaging/CPICS/ws_cruise_ctd"
-# For personal machine
-dir_path2 <- "~/Library/CloudStorage/GoogleDrive-enriquemontes01@gmail.com/My Drive/GDrive/OCED_AOML/WS_cruises/plankton_imaging/CPICS/ws_cruise_ctd"
-
-file_name <- list.files(path = dir_path2, pattern = "ctd_meta_v3.csv", full.names = TRUE)
-ctd_meta <- read.csv(file_name, fill = TRUE)
-
-# # USE WITH ctd_meta_v2.csv
-# dt_list <- ctd_meta$GMT.datetime %>% as.POSIXct(unique_all, format="%Y%m%d_%H%M", tz="UTC")
-
-# # USE WITH ctd_meta_v3.csv
-dt_list <- as.POSIXct(paste(ctd_meta$year,
-                                         sprintf("%02d", ctd_meta$month),
-                                         sprintf("%02d", ctd_meta$day),
-                                         ctd_meta$time_gmt),
-                                   format = "%Y%m%d %I:%M:%S %p",
-                                   tz = "UTC")
-            
-# Create empty data frame to store results
-conc_occ_final <- data.frame(date = character(), count = numeric())
-
-# time before and after CTD time in seconds so that CPICS records are matched to CTD times centered around start and stop intervals.
-start <- 5 * 60 
-stop <- 20 * 60 
-
-# Iterate over dt_list intervals.
-for (i in 1:(length(dt_list))) {
-  
-  # Subset A for dates within current interval
-  acantha_subset <- subset(class.Acantharea, date >= dt_list[i]-start & date < dt_list[i]+stop) 
-    acantha_count <- nrow(acantha_subset)
-  centric_subset <- subset(class.Centric, date >= dt_list[i]-start & date < dt_list[i]+stop) 
-    centric_count <- nrow(centric_subset)
-  ceratium_subset <- subset(class.Ceratium, date >= dt_list[i]-start & date < dt_list[i]+stop) 
-    ceratium_count <- nrow(ceratium_subset)
-  chaetoceros_subset <- subset(class.Chaetoceros, date >= dt_list[i]-start & date < dt_list[i]+stop) 
-    chaetoceros_count <- nrow(chaetoceros_subset)
-  chaetog_subset <- subset(class.Chaetognaths, date >= dt_list[i]-start & date < dt_list[i]+stop) 
-    chaetog_count <- nrow(chaetog_subset)
-  chain1_subset <- subset(class.Chain2, date >= dt_list[i]-start & date < dt_list[i]+stop) 
-    chain1_count <- nrow(chain1_subset)
-  chain2_subset <- subset(class.Chain3, date >= dt_list[i]-start & date < dt_list[i]+stop) 
-    chain2_count <- nrow(chain2_subset)
-  ostra_subset <- subset(class.Ostracods, date >= dt_list[i]-start & date < dt_list[i]+stop) 
-    ostra_count <- nrow(ostra_subset)
-  copepod_subset <- subset(class.Copepods, date >= dt_list[i]-start & date < dt_list[i]+stop) 
-    copepod_count <- nrow(copepod_subset)
-  deca_subset <- subset(class.Decapods, date >= dt_list[i]-start & date < dt_list[i]+stop) 
-    deca_count <- nrow(deca_subset)
-  echino_subset <- subset(class.Echinoderms, date >= dt_list[i]-start & date < dt_list[i]+stop) 
-    echino_count <- nrow(echino_subset)
-  gui_subset <- subset(class.Guinardia, date >= dt_list[i]-start & date < dt_list[i]+stop) 
-    gui_count <- nrow(gui_subset)
-  jel_subset <- subset(class.Jellies, date >= dt_list[i]-start & date < dt_list[i]+stop) 
-    jel_count <- nrow(jel_subset)
-  larv_subset <- subset(class.Larvaceans, date >= dt_list[i]-start & date < dt_list[i]+stop) 
-    larv_count <- nrow(larv_subset)
-  neocal_subset <- subset(class.Neocalyptrella, date >= dt_list[i]-start & date < dt_list[i]+stop) 
-    neocal_count <- nrow(neocal_subset)
-  nocti_subset <- subset(class.Noctiluca, date >= dt_list[i]-start & date < dt_list[i]+stop) 
-    nocti_count <- nrow(nocti_subset)
-  poly_subset <- subset(class.Polychaets, date >= dt_list[i]-start & date < dt_list[i]+stop) 
-    poly_count <- nrow(poly_subset)
-  ptero_subset <- subset(class.Pteropods, date >= dt_list[i]-start & date < dt_list[i]+stop) 
-    ptero_count <- nrow(ptero_subset)  
-  tricho_subset <- subset(class.Tricho, date >= dt_list[i]-start & date < dt_list[i]+stop) 
-    tricho_count <- nrow(tricho_subset)
-    
-  # Add date and count to results data frame
-  result <- data.frame(date = dt_list[i], 
-                       Acantharea = acantha_count,
-                       Centric = centric_count,
-                       Ceratium = ceratium_count,
-                       Chaetoceros = chaetoceros_count,
-                       Chaetognaths = chaetog_count,
-                       Diatoms = chain1_count,
-                       Diatoms2 = chain2_count,
-                       Ostracods = ostra_count,
-                       Copepods = copepod_count,
-                       Decapods = deca_count,
-                       Echinoderms = echino_count,
-                       Guinardia = gui_count,
-                       Jellies = jel_count,
-                       Larvaceans = larv_count,
-                       Neocalyptrella = neocal_count,
-                       Noctiluca = nocti_count,
-                       Polychaetes = poly_count,
-                       Pteropods = ptero_count,
-                       Trichodesmium = tricho_count)
-                       
-  conc_occ_final <- do.call(rbind, list(conc_occ_final, result))
-} 
-
-taxa_meta <- cbind(ctd_meta, conc_occ_final)
-
-```
-
-```{r}
 dir_path2 <- "~/Library/CloudStorage/GoogleDrive-enriquemontes01@gmail.com/My Drive/GDrive/OCED_AOML/WS_cruises/plankton_imaging/CPICS/ws_cruise_ctd"
 
 file_name <- list.files(path = dir_path2, pattern = "ctd_meta_v3.csv", full.names = TRUE)
@@ -150,6 +50,9 @@ dt_list <- as.POSIXct(paste(ctd_meta$year,
                             ctd_meta$time_gmt),
                       format = "%Y%m%d %I:%M:%S %p",
                       tz = "UTC")
+
+#####################################################################################################################
+# This section looks at time stamp mismatches between CTD and CPICS data
 
 # Calculate time differences in seconds between consecutive dt_list objects
 time_differences <- as.numeric(difftime(dt_list[-1], dt_list[-length(dt_list)], units = "secs"))
@@ -164,8 +67,20 @@ time_diff_df <- data.frame(
   time_difference_mins = time_differences_mins
 )
 
-# Print minimum time difference
-print(min(time_diff_df$time_difference_mins))
+# find CTD time stamps of consecutive stations within less than 20 min. This will identify CTD casts that are close to each other
+short_t_idx <- which(time_diff_df$time_difference_mins < 20)
+short_timestamps <- dt_list[short_t_idx]
+
+# Calculate the time differences in minutes between consecutive dates is selected class. 
+# This finds time stamps for individual casts based on the actual CPICS data
+time_diffs <- difftime(class.Copepods$date[-1], class.Copepods$date[-nrow(class.Copepods)], units = "mins")
+
+# Find the indices where the time difference is greater than 20 minutes
+indices <- which(time_diffs > 20)
+timestamp_list <- class.Copepods$date[indices]
+
+
+#####################################################################################################################
 
 # Create empty data frame to store results
 conc_occ_final <- data.frame(date = character(), count = numeric())
@@ -178,7 +93,7 @@ class_names <- c("Acantharea", "Centric", "Ceratium", "Chaetoceros", "Chaetognat
 
 # time buffer before and after CTD time in seconds so that CPICS records are matched to CTD times.
 start <- 10 * 60 
-stop <- 5 * 60 
+stop <- 10 * 60 
 
 # Iterate over dt_list intervals
 for (i in 1:length(dt_list)) {
