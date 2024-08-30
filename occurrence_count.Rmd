@@ -137,6 +137,78 @@ taxa_meta <- cbind(ctd_meta, conc_occ_final)
 
 ```
 
+```{r}
+dir_path2 <- "~/Library/CloudStorage/GoogleDrive-enriquemontes01@gmail.com/My Drive/GDrive/OCED_AOML/WS_cruises/plankton_imaging/CPICS/ws_cruise_ctd"
+
+file_name <- list.files(path = dir_path2, pattern = "ctd_meta_v3.csv", full.names = TRUE)
+ctd_meta <- read.csv(file_name, fill = TRUE)
+
+# USE WITH ctd_meta_v3.csv
+dt_list <- as.POSIXct(paste(ctd_meta$year,
+                            sprintf("%02d", ctd_meta$month),
+                            sprintf("%02d", ctd_meta$day),
+                            ctd_meta$time_gmt),
+                      format = "%Y%m%d %I:%M:%S %p",
+                      tz = "UTC")
+
+# Calculate time differences in seconds between consecutive dt_list objects
+time_differences <- as.numeric(difftime(dt_list[-1], dt_list[-length(dt_list)], units = "secs"))
+
+# Convert time differences from seconds to minutes
+time_differences_mins <- time_differences / 60
+
+# Create a data frame showing the original times and their differences in minutes
+time_diff_df <- data.frame(
+  start_time = dt_list[-length(dt_list)],
+  end_time = dt_list[-1],
+  time_difference_mins = time_differences_mins
+)
+
+# Print minimum time difference
+print(min(time_diff_df$time_difference_mins))
+
+# Create empty data frame to store results
+conc_occ_final <- data.frame(date = character(), count = numeric())
+
+# List of class objects to be processed
+class_names <- c("Acantharea", "Centric", "Ceratium", "Chaetoceros", "Chaetognaths", 
+                 "Chain2", "Chain3", "Ostracods", "Copepods", "Decapods", "Echinoderms", 
+                 "Guinardia", "Jellies", "Larvaceans", "Neocalyptrella", "Noctiluca", 
+                 "Polychaets", "Pteropods", "Tricho")
+
+# time buffer before and after CTD time in seconds so that CPICS records are matched to CTD times.
+start <- 10 * 60 
+stop <- 5 * 60 
+
+# Iterate over dt_list intervals
+for (i in 1:length(dt_list)) {
+  
+  # Initialize a list to store counts for the current interval
+  counts_list <- list(date = dt_list[i])
+  
+  # Iterate over each class object and perform subsetting
+  for (class_name in class_names) {
+    class_data <- get(paste0("class.", class_name))  # Dynamically get the class data frame
+    
+    if (i < length(dt_list)) {
+      # Subsetting for all intervals except the last one
+      subset_data <- subset(class_data, date >= dt_list[i]-start & date < dt_list[i+1]-stop)
+    } else {
+      # Subsetting for the last interval: capture all data greater than or equal to the last dt_list
+      subset_data <- subset(class_data, date >= dt_list[i]-start)
+    }
+    
+    counts_list[[class_name]] <- nrow(subset_data)
+  }
+  
+  # Convert counts_list to a data frame and bind it to the result
+  result <- as.data.frame(counts_list)
+  conc_occ_final <- rbind(conc_occ_final, result)
+} 
+
+# Combine with ctd_meta
+taxa_meta <- cbind(ctd_meta, conc_occ_final)
+```
 
 # # Calculate plankton concentration time series per station
 ```{r}
