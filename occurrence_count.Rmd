@@ -51,8 +51,8 @@ dt_list <- as.POSIXct(paste(ctd_meta$year,
                       format = "%Y%m%d %I:%M:%S %p",
                       tz = "UTC")
 
-#####################################################################################################################
-# This section looks at time stamp mismatches between CTD and CPICS data
+################################################################################################################
+# This section detects short transit times between stations
 
 # Calculate time differences in seconds between consecutive dt_list objects
 time_differences <- as.numeric(difftime(dt_list[-1], dt_list[-length(dt_list)], units = "secs"))
@@ -70,17 +70,7 @@ time_diff_df <- data.frame(
 # find CTD time stamps of consecutive stations within less than 20 min. This will identify CTD casts that are close to each other
 short_t_idx <- which(time_diff_df$time_difference_mins < 20)
 short_timestamps <- dt_list[short_t_idx]
-
-# Calculate the time differences in minutes between consecutive dates is selected class. 
-# This finds time stamps for individual casts based on the actual CPICS data
-time_diffs <- difftime(class.Copepods$date[-1], class.Copepods$date[-nrow(class.Copepods)], units = "mins")
-
-# Find the indices where the time difference is greater than 20 minutes
-indices <- which(time_diffs > 20)
-timestamp_list <- class.Copepods$date[indices]
-
-
-#####################################################################################################################
+#################################################################################################################
 
 # Create empty data frame to store results
 conc_occ_final <- data.frame(date = character(), count = numeric())
@@ -123,43 +113,87 @@ for (i in 1:length(dt_list)) {
 
 # Combine with ctd_meta
 taxa_meta <- cbind(ctd_meta, conc_occ_final)
+
+################################################################################
+# Check for unaccounted CPICS records 
+
+# Initialize a list to store unaccounted dates for each class
+unaccounted_dates_list <- list()
+
+# Iterate over each class object
+for (class_name in class_names) {
+  # Get the date-time objects from the current class
+  sel_class_dates <- get(paste0("class.", class_name))$date
+  
+  # Initialize a logical vector to track whether each class date is accounted for
+  is_accounted_for <- rep(FALSE, length(sel_class_dates))
+  
+  # Check each class date against the intervals in dt_list
+  for (i in 1:length(dt_list)) {
+    if (i < length(dt_list)) {
+      # Check all intervals except the last one
+      interval_start <- dt_list[i] - start
+      interval_end <- dt_list[i + 1] - stop
+    } else {
+      # Last interval captures all data greater than or equal to the last dt_list
+      interval_start <- dt_list[i] - start
+      interval_end <- Inf  # Effectively no upper bound
+    }
+    
+    # Mark class dates that fall within the current interval as accounted for
+    is_accounted_for <- is_accounted_for | (sel_class_dates >= interval_start & sel_class_dates < interval_end)
+  }
+  
+  # Subset the class dates that were not accounted for
+  unaccounted_sel_class_dates <- sel_class_dates[!is_accounted_for]
+  
+  # Store the unaccounted dates in the list
+  unaccounted_dates_list[[class_name]] <- unaccounted_sel_class_dates
+}
+
+# Print or view the unaccounted dates for each class
+for (class_name in class_names) {
+  cat("Unaccounted dates for class:", class_name, "\n")
+  print(unaccounted_dates_list[[class_name]])
+  cat("\n")
+}
 ```
 
 # # Calculate plankton concentration time series per station
 ```{r}
 # Calculate species concentration (counts/ml) for each species
 
-# For zooplankton
-taxa_meta_concentration <- taxa_meta %>%
-  mutate(across(c(Acantharea,Chaetognaths,Ostracods,Copepods,Decapods,Echinoderms,Jellies,
-    Larvaceans,Polychaetes,Pteropods), ~ ./total_vol_sampled * 1e6)) %>%
-  select(Station, dec_lat, dec_lon, year, month, date, Avg.chl.a..ug.L.,
-         temp..degC., salinity, total_vol_sampled,
-         Acantharea,Chaetognaths,Ostracods,Copepods,Decapods,Echinoderms,
-         Jellies,Larvaceans,Polychaetes,Pteropods) %>%
-  filter(!is.na(total_vol_sampled))
-
-# # Transform taxa_meta_concentration to long format
-taxa_meta_long <- taxa_meta_concentration %>%
-  pivot_longer(cols = c(Acantharea, Chaetognaths,Ostracods,Copepods,Decapods,
-                        Echinoderms, Jellies, Larvaceans,Polychaetes, Pteropods),
-               names_to = "species", values_to = "species_concentration")
-
-# # For phytoplankton
+# # For zooplankton
 # taxa_meta_concentration <- taxa_meta %>%
-#   mutate(across(c(Centric,Ceratium,Chaetoceros,Diatoms,Diatoms2,Guinardia,Neocalyptrella,
-#                   Noctiluca,Trichodesmium), ~ ./total_vol_sampled * 1e6)) %>%
+#   mutate(across(c(Acantharea,Chaetognaths,Ostracods,Copepods,Decapods,Echinoderms,Jellies,
+#     Larvaceans,Polychaets,Pteropods), ~ ./total_vol_sampled * 1e6)) %>%
 #   select(Station, dec_lat, dec_lon, year, month, date, Avg.chl.a..ug.L.,
-#          temp..degC., salinity,total_vol_sampled,
-#          Centric,Ceratium,Chaetoceros,Diatoms,Diatoms2,Guinardia,Neocalyptrella,
-#          Noctiluca,Trichodesmium) %>%
+#          temp..degC., salinity, total_vol_sampled,
+#          Acantharea,Chaetognaths,Ostracods,Copepods,Decapods,Echinoderms,
+#          Jellies,Larvaceans,Polychaets,Pteropods) %>%
 #   filter(!is.na(total_vol_sampled))
 # 
 # # # Transform taxa_meta_concentration to long format
 # taxa_meta_long <- taxa_meta_concentration %>%
-#   pivot_longer(cols = c(Centric,Ceratium,Chaetoceros,Diatoms,Diatoms2,
-#                         Guinardia,Neocalyptrella,Noctiluca,Trichodesmium),
+#   pivot_longer(cols = c(Acantharea, Chaetognaths,Ostracods,Copepods,Decapods,
+#                         Echinoderms, Jellies, Larvaceans,Polychaets, Pteropods),
 #                names_to = "species", values_to = "species_concentration")
+
+# For phytoplankton
+taxa_meta_concentration <- taxa_meta %>%
+  mutate(across(c(Centric,Ceratium,Chaetoceros,Chain2,Chain3,Guinardia,Neocalyptrella,
+                  Noctiluca,Tricho), ~ ./total_vol_sampled * 1e6)) %>%
+  select(Station, dec_lat, dec_lon, year, month, date, Avg.chl.a..ug.L.,
+         temp..degC., salinity,total_vol_sampled,
+         Centric,Ceratium,Chaetoceros,Chain2,Chain3,Guinardia,Neocalyptrella,
+                  Noctiluca,Tricho) %>%
+  filter(!is.na(total_vol_sampled))
+
+# # Transform taxa_meta_concentration to long format
+taxa_meta_long <- taxa_meta_concentration %>%
+  pivot_longer(cols = c(Centric,Ceratium,Chaetoceros,Chain2,Chain3,Guinardia,Neocalyptrella,
+                  Noctiluca,Tricho),
+               names_to = "species", values_to = "species_concentration")
 
 # Filter the data for Stations
 station_list_fk <- c("WS","21/LK","MR","16","18","10","12","9.5","9","7","2")
@@ -214,7 +248,7 @@ zz
 # Acantharea, Copepods, Echinoderms, Jellies, Larvaceans, Chaetognaths, Polychaetes, Pteropods
 # Centric,Ceratium,Chaetoceros,Diatoms,Diatoms2,Guinardia,Neocalyptrella,Noctiluca,Trichodesmium
 summary_selected <- filtered_taxa_meta_long %>%
-  filter(species == "Copepods") %>%
+  filter(species == "Tricho") %>%
   mutate(date = as.Date(paste(year, month, "15", sep = "-")))
 
 # Create the time series boxplot
@@ -269,8 +303,8 @@ summary_selected <- filtered_taxa_meta_long %>%
 # For Phyto
 taxa_meta_concentration_all <- taxa_meta %>%
   mutate(total_concentration = (
-    Centric + Ceratium + Chaetoceros + Diatoms + Diatoms2 + Guinardia + Neocalyptrella +
-    Noctiluca + Trichodesmium) / total_vol_sampled * 1e6) %>%
+    Centric + Ceratium + Chaetoceros + Chain2 + Chain3 + Guinardia + Neocalyptrella +
+    Noctiluca + Tricho) / total_vol_sampled * 1e6) %>%
   select(Station, dec_lat, dec_lon, year, month, date, Avg.chl.a..ug.L.,
          temp..degC., salinity, total_vol_sampled, total_concentration) %>%
   filter(!is.na(total_vol_sampled))
@@ -279,7 +313,7 @@ taxa_meta_concentration_all <- taxa_meta %>%
 # taxa_meta_concentration_all <- taxa_meta %>%
 #   mutate(total_concentration = (
 #     Acantharea + Chaetognaths + Ostracods + Copepods + Decapods + Echinoderms + Jellies +
-#     Larvaceans + Polychaetes + Pteropods) / total_vol_sampled * 1e6) %>%
+#     Larvaceans + Polychaets + Pteropods) / total_vol_sampled * 1e6) %>%
 #   select(Station, dec_lat, dec_lon, year, month, date, Avg.chl.a..ug.L.,
 #          temp..degC., salinity, total_vol_sampled, total_concentration) %>%
 #   filter(!is.na(total_vol_sampled))
@@ -344,18 +378,18 @@ spp_df <- taxa_meta[ , c("X8.day.seascapes", "total_vol_sampled", "date",
                          "Echinoderms",
                          "Jellies",
                          "Larvaceans",
-                         "Polychaetes",
+                         "Polychaets",
                          "Chaetognaths",
                          "Pteropods")]
 
 # spp_df <- taxa_meta[ , c("X8.day.seascapes", "total_vol_sampled", "date",
 #                          "Ceratium",
 #                          "Chaetoceros",
-#                          "Diatoms",
-#                          "Diatoms2",
+#                          "Chain2",
+#                          "Chain3",
 #                          "Guinardia",
 #                          "Neocalyptrella",
-#                          "Trichodesmium")]
+#                          "Tricho")]
 
 # Remove rows with NaN values in X8.day.seascapes and total_vol_sampled
 spp_df <- subset(spp_df, !is.na(X8.day.seascapes) & !is.na(total_vol_sampled))
@@ -575,11 +609,11 @@ pp
 df_subset <- df_filtered[ , c("X8.day.seascapes",
                             "Ceratium",
                             "Chaetoceros",
-                            "Diatoms",
-                            "Diatoms2",
+                            "Chain2",
+                            "Chain3",
                             "Guinardia",
                             "Neocalyptrella",
-                            "Trichodesmium")]
+                            "Tricho")]
 
 # subsets taxa for all species
 # df_subset <- df_filtered[ , c("X8.day.seascapes",
@@ -663,16 +697,16 @@ df_subset_shannon <- df_filtered[ , c("X8.day.seascapes",
                               "Echinoderms",
                               "Jellies",
                               "Larvaceans",
-                              "Polychaetes",
+                              "Polychaets",
                               "Chaetognaths",
                               "Pteropods",
                               "Ceratium",
                               "Chaetoceros",
-                              "Diatoms",
-                              "Diatoms2",
+                              "Chain2",
+                              "Chain3",
                               "Guinardia",
                               "Neocalyptrella",
-                              "Trichodesmium")]
+                              "Tricho")]
 
 # reshape the data to long format
 df_long <- tidyr::gather(df_subset_shannon, key = "Species", value = "Abundance", -X8.day.seascapes)
@@ -801,18 +835,18 @@ sel_vars <- c(
 #               "Echinoderms",
 #               "Jellies",
 #               "Larvaceans",
-#               "Polychaetes",
+#               "Polychaets",
 #               "Chaetognaths",
 #               "Pteropods")
 
 # sel_vars <- c("X8.day.seascapes",
 #               "Ceratium",
 #               "Chaetoceros",
-#               "Diatoms",
-#               "Diatoms2",
+#               "Chain2",
+#               "Chain3",
 #               "Guinardia",
 #               "Neocalyptrella",
-#               "Trichodesmium")
+#               "Tricho")
 
 # sel_vars <- c("X8.day.seascapes",
 #               "Acantharea",
@@ -820,16 +854,16 @@ sel_vars <- c(
 #               "Echinoderms",
 #               "Jellies",
 #               "Larvaceans",
-#               "Polychaetes",
+#               "Polychaets",
 #               "Chaetognaths",
 #               "Pteropods",
 #               "Ceratium",
 #               "Chaetoceros",
-#               "Diatoms",
-#               "Diatoms2",
+#               "Chain2",
+#               "Chain3",
 #               "Guinardia",
 #               "Neocalyptrella",
-#               "Trichodesmium")
+#               "Tricho")
 
 # filter out rows with NA values in column seascapes
 # df_filtered_pca <- taxa_meta[complete.cases(taxa_meta$X8.day.seascapes), ]
@@ -1063,11 +1097,11 @@ concentration_df <- taxa_meta_concentration %>%
 # Compute weighted average lat lons based on selected variable, and mean variable values (e.g., Copepods)
 taxa_concentration_avg <- concentration_df %>%
   group_by(line_id) %>%
-  mutate(weight = Ceratium / sum(Ceratium, na.rm = TRUE)) %>%
+  mutate(weight = Tricho / sum(Tricho, na.rm = TRUE)) %>%
   summarise(longitude = weighted.mean(dec_lon, w = weight, na.rm = TRUE),
             latitude = weighted.mean(dec_lat, w = weight, na.rm = TRUE),
-            sel_taxa_mean = mean(Ceratium, na.rm = TRUE),
-            sel_taxa_sd = sd(Ceratium, na.rm = TRUE))
+            sel_taxa_mean = mean(Tricho, na.rm = TRUE),
+            sel_taxa_sd = sd(Tricho, na.rm = TRUE))
 
 # # Map with bathymetry
   # Overlay color-scaled dots
@@ -1077,7 +1111,7 @@ dt <- data.frame(
   mean_param = taxa_concentration_avg$sel_taxa_mean,
   sd_param = taxa_concentration_avg$sel_taxa_sd)
 
-concentration_map <- basemap(limits = c(-84, -79.5, 24, 28.5), bathymetry = TRUE) +
+concentration_map <- basemap(limits = c(-86, -79.5, 24, 28.5), bathymetry = TRUE) +
   geom_point(data = dt, aes(x = lon, y = lat, size = mean_param, color = sd_param)) +
   scale_color_gradient(low = "yellow", high = "red", na.value = NA, name = "Standard Deviation") +
   geom_point(data = taxa_meta_concentration, aes(x = dec_lon, y = dec_lat), color = "black", shape = 3, size = 1.5) +
