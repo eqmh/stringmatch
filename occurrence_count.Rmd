@@ -1086,7 +1086,7 @@ qq
 ```
 
 
-# Map overall mean concentration values of selected taxa 
+# Map overall WEIGHTED mean concentration values of selected taxa by transect
 ```{r}
 library(ggOceanMaps)
 library(leaflet)
@@ -1132,7 +1132,7 @@ concentration_map
 ```
 
 
-# Map overall mean concentration values of selected taxa
+# Map overall mean concentration values of selected taxa per station
 ```{r}
 # Compute mean concentration of selected groups per station
 taxa_concentration_avg_station <- taxa_meta_concentration %>%
