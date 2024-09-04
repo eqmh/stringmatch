@@ -1113,7 +1113,7 @@ taxa_meta_concentration <- taxa_meta %>%
 #   filter(!is.na(total_vol_sampled))
 
 # List of class names to loop through
-class_names <- c("Acantharea", "Chaetognaths", "Ostracods", "Copepods", "Decapods", "Echinoderms", "Jellies", "Larvaceans", "Polychaets", "Pteropods")
+# class_names <- c("Acantharea", "Chaetognaths", "Ostracods", "Copepods", "Decapods", "Echinoderms", "Jellies", "Larvaceans", "Polychaets", "Pteropods")
 
 class_names <- "Acantharea"
 
@@ -1132,11 +1132,11 @@ sfer_sta_list <- read.csv(sfer_curated, header = TRUE)
     # Compute weighted average lat/lons and mean variable values for the current class
     taxa_concentration_avg <- concentration_df %>%
       group_by(line_id) %>%
-      mutate(weight = get(class_name) / sum(get(class_name), na.rm = TRUE)) %>%
+      mutate(weight = get(class_names) / sum(get(class_names), na.rm = TRUE)) %>%
       summarise(longitude = weighted.mean(dec_lon, w = weight, na.rm = TRUE),
                 latitude = weighted.mean(dec_lat, w = weight, na.rm = TRUE),
-                sel_taxa_mean = mean(get(class_name), na.rm = TRUE),
-                sel_taxa_sd = sd(get(class_name), na.rm = TRUE))
+                sel_taxa_mean = mean(get(class_names), na.rm = TRUE),
+                sel_taxa_sd = sd(get(class_names), na.rm = TRUE))
 
     # Prepare data for mapping
     dt <- data.frame(
@@ -1158,10 +1158,12 @@ sfer_sta_list <- read.csv(sfer_curated, header = TRUE)
                             range = c(0, 10),
                             guide = guide_legend(override.aes = list(color = "black", fill = "white"))) +
     theme_minimal() +
-    ggtitle(paste(class_name))
+    ggtitle(paste(class_names))
       
     # Optionally, save each map as an image
-    ggsave(paste0("concentration_map_", class_name, ".png"), plot = concentration_map, width = 8, height = 6)
+    ggsave(paste0("concentration_map_", class_names, ".png"), plot = concentration_map, width = 8, height = 6)
+    
+    print(concentration_map)
 # }
 ```
 
