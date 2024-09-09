@@ -1091,7 +1091,7 @@ qq
 # install.packages("svglite")
 library(ggOceanMaps)
 library(leaflet)
-library(patchwork)
+# library(patchwork)
 
 # List of class names
 # Acantharea, Chaetognaths, Ostracods, Copepods, Decapods, Echinoderms, Jellies, Larvaceans, Polychaets, Pteropods
