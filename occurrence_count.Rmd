@@ -1114,8 +1114,8 @@ taxa_meta_concentration <- taxa_meta %>%
 #                   Noctiluca,Tricho) %>%
 #   filter(!is.na(total_vol_sampled))
 
+# Get station coordinates
 path_sfer_list <- "~/Library/CloudStorage/GoogleDrive-enriquemontes01@gmail.com/My Drive/GDrive/proposals/2022_02_MultiStressor_NOAA/module_1"
-
 sfer_curated <- list.files(path_sfer_list, pattern = "sfer_stations_curated.csv", full.names = TRUE)
 sfer_sta_list <- read.csv(sfer_curated, header = TRUE)
 
@@ -1167,13 +1167,28 @@ sfer_sta_list <- read.csv(sfer_curated, header = TRUE)
 
 # Map overall mean concentration values of selected taxa per station
 ```{r}
+# List of class names
+# Acantharea, Chaetognaths, Ostracods, Copepods, Decapods, Echinoderms, Jellies, Larvaceans, Polychaets, Pteropods
+# Centric, Ceratium, Chaetoceros, Chain2, Chain3, Guinardia, Neocalyptrella, Noctiluca, Tricho
+selected_class <- "Tricho"
+
+taxa_meta_concentration <- taxa_meta %>%
+  mutate(across(all_of(selected_class), ~ . / total_vol_sampled * 1e6)) %>%
+  select(Station, dec_lat, dec_lon, year, month, date, total_vol_sampled, all_of(selected_class)) %>%
+  filter(!is.na(total_vol_sampled))
+
 # Compute mean concentration of selected groups per station
 taxa_concentration_avg_station <- taxa_meta_concentration %>%
   group_by(Station) %>%
   summarise(longitude_station = mean(dec_lon, na.rm = TRUE),
             latitude_station = mean(dec_lat, na.rm = TRUE),
-            sel_taxa_mean_station = mean(Tricho, na.rm = TRUE),
-            sel_taxa_sd_station = sd(Tricho, na.rm = TRUE))
+            sel_taxa_mean_station = mean(get(selected_class), na.rm = TRUE),
+            sel_taxa_sd_station = sd(get(selected_class), na.rm = TRUE))
+
+# Get station coordinates
+path_sfer_list <- "~/Library/CloudStorage/GoogleDrive-enriquemontes01@gmail.com/My Drive/GDrive/proposals/2022_02_MultiStressor_NOAA/module_1"
+sfer_curated <- list.files(path_sfer_list, pattern = "sfer_stations_curated.csv", full.names = TRUE)
+sfer_sta_list <- read.csv(sfer_curated, header = TRUE)
 
 # # Map with bathymetry
   # Overlay color-scaled dots
@@ -1187,6 +1202,9 @@ dt_station <- data.frame(
 dt_station <- dt_station %>%
   mutate(sd_param_station = replace_na(sd_param_station, 0))
 
+# Add station markers
+station_markers <- sfer_sta_list %>% filter(station_class %in% "C")
+    
 concentration_map_station <- basemap(limits = c(-86, -79.5, 24, 28.5), bathymetry = TRUE) +
   geom_point(data = dt_station, aes(x = lon_station, 
                                     y = lat_station, 
@@ -1195,11 +1213,15 @@ concentration_map_station <- basemap(limits = c(-86, -79.5, 24, 28.5), bathymetr
   scale_color_gradient(low = "yellow", high = "red", na.value = NA, name = "Standard Deviation") +
   geom_point(data = station_markers, aes(x = mean_lon, y = mean_lat), color = "black", shape = 3, size = 1.5) +
   scale_size_continuous(name = "Average concentration", 
-                        breaks = c(250, 500, 750),
+                        # breaks = c(250, 500, 750),
                         range = c(1, 10),
                         guide = guide_legend(override.aes = list(color = "black", fill = "white"))) +
   theme_minimal() 
-concentration_map_station
+
+# Optionally, save each map as an image
+ggsave(paste0("conc_map_station_", selected_class, ".png"), plot = concentration_map_station, width = 8, height = 6)
+ggsave(paste0("conc_map_station_", selected_class, ".svg"), plot = concentration_map_station, width = 8, height = 6, device = "svg")
+print(concentration_map_station)
 ```
 
 
