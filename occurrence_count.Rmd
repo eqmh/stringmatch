@@ -163,7 +163,7 @@ for (class_name in class_names) {
 ```{r}
 # Calculate species concentration (counts/ml) for each species
 
-# For zooplankton
+# # For zooplankton
 taxa_meta_concentration <- taxa_meta %>%
   mutate(across(c(Acantharea,Chaetognaths,Ostracods,Copepods,Decapods,Echinoderms,Jellies,
     Larvaceans,Polychaets,Pteropods), ~ ./total_vol_sampled * 1e6)) %>%
@@ -179,7 +179,7 @@ taxa_meta_long <- taxa_meta_concentration %>%
                         Echinoderms, Jellies, Larvaceans,Polychaets, Pteropods),
                names_to = "species", values_to = "species_concentration")
 
-# # For phytoplankton
+# For phytoplankton
 # taxa_meta_concentration <- taxa_meta %>%
 #   mutate(across(c(Centric,Ceratium,Chaetoceros,Chain2,Chain3,Guinardia,Neocalyptrella,
 #                   Noctiluca,Tricho), ~ ./total_vol_sampled * 1e6)) %>%
@@ -204,11 +204,12 @@ taxa_meta_long <- taxa_meta_concentration %>%
 # station_list_vl <- c("V1","V2","V3","V4","V5","V6","V7","V8","V9","L1","L3","L5","L7","L9")
 # station_list_tb <- c("AMI9","AMI8","AMI7","AMI6","AMI5","AMI4","AMI3","AMI2","AMI1","TB1","TB2",
 #                   "TB3","TB4","TB5","TB10","CW4","CW3","CW2","CW1")
-# filtered_taxa_meta_long <- taxa_meta_long %>%
-  # filter(Station %in% station_list_fk)
+station_selected <- "31"
+filtered_taxa_meta_long <- taxa_meta_long %>%
+filter(Station %in% station_selected)
 
-# Without filtering per group of stations but looking at the entire region
-filtered_taxa_meta_long <- taxa_meta_long
+# # Without filtering per group of stations but looking at the entire region
+# filtered_taxa_meta_long <- taxa_meta_long
 
 # Calculate mean and standard deviation of species concentration for each date
 summary_data <- filtered_taxa_meta_long %>%
@@ -248,9 +249,9 @@ zz
 
 # Filter summary_data for selected only
 # Acantharea, Copepods, Echinoderms, Jellies, Larvaceans, Chaetognaths, Polychaetes, Pteropods
-# Centric,Ceratium,Chaetoceros,Chain2,Chain2,Guinardia,Neocalyptrella,Noctiluca,Trichodesmium
+# Centric,Ceratium,Chaetoceros,Chain2,Chain3,Guinardia,Neocalyptrella,Noctiluca,Trichodesmium
 
-selected_group <- "Pteropods"
+selected_group <- "Copepods"
 
 summary_selected <- filtered_taxa_meta_long %>%
   filter(species == selected_group) %>%
@@ -286,7 +287,7 @@ summary_selected <- filtered_taxa_meta_long %>%
   sel_box
 
 # Save figure as a svg file  
-ggsave(paste0("conc_time-series_", selected_group, ".svg"), plot = sel_box, width = 10, height = 8, device = "svg")
+# ggsave(paste0("conc_time-series_", selected_group, ".svg"), plot = sel_box, width = 10, height = 8, device = "svg")
   
 # # Plot concentration time series for all selected sites
 # kk <- ggplot(summary_selected, aes(x = date, y = species_concentration, shape = factor(Station))) +
