@@ -164,36 +164,36 @@ for (class_name in class_names) {
 # Calculate species concentration (counts/ml) for each species
 
 # # For zooplankton
-taxa_meta_concentration <- taxa_meta %>%
-  mutate(across(c(Acantharea,Chaetognaths,Ostracods,Copepods,Decapods,Echinoderms,Jellies,
-    Larvaceans,Polychaets,Pteropods), ~ ./total_vol_sampled * 1e6)) %>%
-  select(Station, dec_lat, dec_lon, year, month, date, Avg.chl.a..ug.L.,
-         temp..degC., salinity, total_vol_sampled,
-         Acantharea,Chaetognaths,Ostracods,Copepods,Decapods,Echinoderms,
-         Jellies,Larvaceans,Polychaets,Pteropods) %>%
-  filter(!is.na(total_vol_sampled))
-
-# # Transform taxa_meta_concentration to long format
-taxa_meta_long <- taxa_meta_concentration %>%
-  pivot_longer(cols = c(Acantharea, Chaetognaths,Ostracods,Copepods,Decapods,
-                        Echinoderms, Jellies, Larvaceans,Polychaets, Pteropods),
-               names_to = "species", values_to = "species_concentration")
-
-# For phytoplankton
 # taxa_meta_concentration <- taxa_meta %>%
-#   mutate(across(c(Centric,Ceratium,Chaetoceros,Chain2,Chain3,Guinardia,Neocalyptrella,
-#                   Noctiluca,Tricho), ~ ./total_vol_sampled * 1e6)) %>%
+#   mutate(across(c(Acantharea,Chaetognaths,Ostracods,Copepods,Decapods,Echinoderms,Jellies,
+#     Larvaceans,Polychaets,Pteropods), ~ ./total_vol_sampled * 1e6)) %>%
 #   select(Station, dec_lat, dec_lon, year, month, date, Avg.chl.a..ug.L.,
-#          temp..degC., salinity,total_vol_sampled,
-#          Centric,Ceratium,Chaetoceros,Chain2,Chain3,Guinardia,Neocalyptrella,
-#                   Noctiluca,Tricho) %>%
+#          temp..degC., salinity, total_vol_sampled,
+#          Acantharea,Chaetognaths,Ostracods,Copepods,Decapods,Echinoderms,
+#          Jellies,Larvaceans,Polychaets,Pteropods) %>%
 #   filter(!is.na(total_vol_sampled))
 # 
 # # # Transform taxa_meta_concentration to long format
 # taxa_meta_long <- taxa_meta_concentration %>%
-#   pivot_longer(cols = c(Centric,Ceratium,Chaetoceros,Chain2,Chain3,Guinardia,Neocalyptrella,
-#                   Noctiluca,Tricho),
+#   pivot_longer(cols = c(Acantharea, Chaetognaths,Ostracods,Copepods,Decapods,
+#                         Echinoderms, Jellies, Larvaceans,Polychaets, Pteropods),
 #                names_to = "species", values_to = "species_concentration")
+
+# For phytoplankton
+taxa_meta_concentration <- taxa_meta %>%
+  mutate(across(c(Centric,Ceratium,Chaetoceros,Chain2,Chain3,Guinardia,Neocalyptrella,
+                  Noctiluca,Tricho), ~ ./total_vol_sampled * 1e6)) %>%
+  select(Station, dec_lat, dec_lon, year, month, date, Avg.chl.a..ug.L.,
+         temp..degC., salinity,total_vol_sampled,
+         Centric,Ceratium,Chaetoceros,Chain2,Chain3,Guinardia,Neocalyptrella,
+                  Noctiluca,Tricho) %>%
+  filter(!is.na(total_vol_sampled))
+
+# # Transform taxa_meta_concentration to long format
+taxa_meta_long <- taxa_meta_concentration %>%
+  pivot_longer(cols = c(Centric,Ceratium,Chaetoceros,Chain2,Chain3,Guinardia,Neocalyptrella,
+                  Noctiluca,Tricho),
+               names_to = "species", values_to = "species_concentration")
 
 # Filter the data for Stations
 # station_list_fk <- c("WS","21/LK","MR","16","18","10","12","9.5","9","7","2")
@@ -251,7 +251,7 @@ zz
 # Acantharea, Copepods, Echinoderms, Jellies, Larvaceans, Chaetognaths, Polychaetes, Pteropods
 # Centric,Ceratium,Chaetoceros,Chain2,Chain3,Guinardia,Neocalyptrella,Noctiluca,Trichodesmium
 
-selected_group <- "Copepods"
+selected_group <- "Chain3"
 
 summary_selected <- filtered_taxa_meta_long %>%
   filter(species == selected_group) %>%
@@ -275,7 +275,7 @@ summary_selected <- filtered_taxa_meta_long %>%
     #                       limits = c(30, 38),
     #                       breaks = c(30, 32, 34, 36, 38),
     #                       range = c(1, 4)) +
-    ylim(0, 30000) +
+    # ylim(0, 30000) +
     theme_minimal() +
     theme(axis.text.x = element_text(size = 18, color = "black"),  # Set X-axis label font size
           axis.text.y = element_text(size = 18, color = "black")) +
@@ -1189,12 +1189,15 @@ sfer_sta_list <- read.csv(sfer_curated, header = TRUE)
 # List of class names
 # Acantharea, Chaetognaths, Ostracods, Copepods, Decapods, Echinoderms, Jellies, Larvaceans, Polychaets, Pteropods, pellets
 # Centric, Ceratium, Chaetoceros, Chain2, Chain3, Guinardia, Neocalyptrella, Noctiluca, Tricho
-selected_class <- "pellets"
+selected_class <- "Chain3"
 
 taxa_meta_concentration <- taxa_meta %>%
   mutate(across(all_of(selected_class), ~ . / total_vol_sampled * 1e6)) %>%
   select(Station, dec_lat, dec_lon, year, month, date, total_vol_sampled, all_of(selected_class)) %>%
   filter(!is.na(total_vol_sampled))
+
+# Use this to select a specific time period
+taxa_meta_concentration <- taxa_meta_concentration %>% filter(year == 2023 & month == 7)
 
 # Compute mean concentration of selected groups per station
 taxa_concentration_avg_station <- taxa_meta_concentration %>%
@@ -1239,10 +1242,10 @@ concentration_map_station <- basemap(limits = c(-86, -79.5, 24, 28.5), bathymetr
 
 # Optionally, save each map as an image
 # ggsave(paste0("conc_map_station_", selected_class, ".png"), plot = concentration_map_station, width = 8, height = 6)
-ggsave(paste0("conc_map_station_", selected_class, ".svg"), plot = concentration_map_station, width = 8, height = 6, device = "svg")
+# ggsave(paste0("conc_map_station_", selected_class, ".svg"), plot = concentration_map_station, width = 8, height = 6, device = "svg")
 print(concentration_map_station)
 
-write.csv(dt_station, paste0("df_",selected_class,".csv"), row.names = FALSE)
+# write.csv(dt_station, paste0("df_",selected_class,".csv"), row.names = FALSE)
 print(max(dt_station$mean_param_station))
 ```
 
