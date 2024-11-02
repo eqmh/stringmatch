@@ -756,7 +756,7 @@ ff
 
 # # Subset the data to exclude specified seascapes
 filtered_taxa_meta <- taxa_meta[complete.cases(taxa_meta$X8.day.seascapes), ]
-filtered_taxa_meta <- filtered_taxa_meta[!filtered_taxa_meta$X8.day.seascapes %in% exclude_seascapes, ]
+# filtered_taxa_meta <- filtered_taxa_meta[!filtered_taxa_meta$X8.day.seascapes %in% exclude_seascapes, ]
 
 # # Plot sampled seascape frequency
 tt <- ggplot(filtered_taxa_meta, aes(x = factor(X8.day.seascapes), fill = factor(X8.day.seascapes))) +
@@ -772,12 +772,23 @@ tt <- ggplot(filtered_taxa_meta, aes(x = factor(X8.day.seascapes), fill = factor
   guides(fill = FALSE)
 tt
 
+# Calculate percent frequency of each X8.day.seascapes category
+# see seascapes classes here: https://coastwatch.noaa.gov/cwn/products/seascape-pelagic-habitat-classification.html
+percent_frequency <- filtered_taxa_meta %>%
+  group_by(X8.day.seascapes) %>%
+  summarise(count = n()) %>%
+  mutate(percent_frequency = (count / sum(count)) * 100)
+# Display the result
+# print(percent_frequency)
+
 # # Counts of species per seascape
 df_sum_abund <- df_long %>%
   group_by(X8.day.seascapes, Species) %>%
   summarise(n = sum(Abundance)) 
+# Display the result
+# print(df_sum_abund)
 
-df_sum_abund_filt <- df_sum_abund[df_sum_abund$Species == "Pteropods",]
+df_sum_abund_filt <- df_sum_abund[df_sum_abund$Species == "Larvaceans",]
 # Filter the data to exclude specified seascapes
 df_sum_abund_filt2 <- df_sum_abund_filt[!df_sum_abund_filt$X8.day.seascapes %in% exclude_seascapes, ]
 
@@ -793,7 +804,7 @@ dd
 df_long2 <- tidyr::gather(df_subset_shannon, key = "Species", value = "Abundance", -X8.day.seascapes)
 
 spp_seascape_normalized <- df_long2 %>%
-  filter(Species == "Pteropods") %>%
+  filter(Species == "Larvaceans") %>%
   group_by(X8.day.seascapes) %>%
   summarise(spp_count = sum(Abundance))
 
