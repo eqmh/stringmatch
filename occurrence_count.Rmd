@@ -164,36 +164,36 @@ for (class_name in class_names) {
 # Calculate species concentration (counts/ml) for each species
 
 # # For zooplankton
-# taxa_meta_concentration <- taxa_meta %>%
-#   mutate(across(c(Acantharea,Chaetognaths,Ostracods,Copepods,Decapods,Echinoderms,Jellies,
-#     Larvaceans,Polychaets,Pteropods), ~ ./total_vol_sampled * 1e6)) %>%
-#   select(Station, dec_lat, dec_lon, year, month, date, Avg.chl.a..ug.L.,
-#          temp..degC., salinity, total_vol_sampled,
-#          Acantharea,Chaetognaths,Ostracods,Copepods,Decapods,Echinoderms,
-#          Jellies,Larvaceans,Polychaets,Pteropods) %>%
-#   filter(!is.na(total_vol_sampled))
-# 
-# # # Transform taxa_meta_concentration to long format
-# taxa_meta_long <- taxa_meta_concentration %>%
-#   pivot_longer(cols = c(Acantharea, Chaetognaths,Ostracods,Copepods,Decapods,
-#                         Echinoderms, Jellies, Larvaceans,Polychaets, Pteropods),
-#                names_to = "species", values_to = "species_concentration")
-
-# For phytoplankton
 taxa_meta_concentration <- taxa_meta %>%
-  mutate(across(c(Centric,Ceratium,Chaetoceros,Chain2,Chain3,Guinardia,Neocalyptrella,
-                  Noctiluca,Tricho), ~ ./total_vol_sampled * 1e6)) %>%
+  mutate(across(c(Acantharea,Chaetognaths,Ostracods,Copepods,Decapods,Echinoderms,Jellies,
+    Larvaceans,Polychaets,Pteropods), ~ ./total_vol_sampled * 1e6)) %>%
   select(Station, dec_lat, dec_lon, year, month, date, Avg.chl.a..ug.L.,
-         temp..degC., salinity,total_vol_sampled,
-         Centric,Ceratium,Chaetoceros,Chain2,Chain3,Guinardia,Neocalyptrella,
-                  Noctiluca,Tricho) %>%
+         temp..degC., salinity, total_vol_sampled,
+         Acantharea,Chaetognaths,Ostracods,Copepods,Decapods,Echinoderms,
+         Jellies,Larvaceans,Polychaets,Pteropods) %>%
   filter(!is.na(total_vol_sampled))
 
 # # Transform taxa_meta_concentration to long format
 taxa_meta_long <- taxa_meta_concentration %>%
-  pivot_longer(cols = c(Centric,Ceratium,Chaetoceros,Chain2,Chain3,Guinardia,Neocalyptrella,
-                  Noctiluca,Tricho),
+  pivot_longer(cols = c(Acantharea, Chaetognaths,Ostracods,Copepods,Decapods,
+                        Echinoderms, Jellies, Larvaceans,Polychaets, Pteropods),
                names_to = "species", values_to = "species_concentration")
+
+# For phytoplankton
+# taxa_meta_concentration <- taxa_meta %>%
+#   mutate(across(c(Centric,Ceratium,Chaetoceros,Chain2,Chain3,Guinardia,Neocalyptrella,
+#                   Noctiluca,Tricho), ~ ./total_vol_sampled * 1e6)) %>%
+#   select(Station, dec_lat, dec_lon, year, month, date, Avg.chl.a..ug.L.,
+#          temp..degC., salinity,total_vol_sampled,
+#          Centric,Ceratium,Chaetoceros,Chain2,Chain3,Guinardia,Neocalyptrella,
+#                   Noctiluca,Tricho) %>%
+#   filter(!is.na(total_vol_sampled))
+# 
+# # # Transform taxa_meta_concentration to long format
+# taxa_meta_long <- taxa_meta_concentration %>%
+#   pivot_longer(cols = c(Centric,Ceratium,Chaetoceros,Chain2,Chain3,Guinardia,Neocalyptrella,
+#                   Noctiluca,Tricho),
+#                names_to = "species", values_to = "species_concentration")
 
 # Filter the data for Stations
 # station_list_fk <- c("WS","21/LK","MR","16","18","10","12","9.5","9","7","2")
@@ -204,7 +204,7 @@ taxa_meta_long <- taxa_meta_concentration %>%
 # station_list_vl <- c("V1","V2","V3","V4","V5","V6","V7","V8","V9","L1","L3","L5","L7","L9")
 # station_list_tb <- c("AMI9","AMI8","AMI7","AMI6","AMI5","AMI4","AMI3","AMI2","AMI1","TB1","TB2",
 #                   "TB3","TB4","TB5","TB10","CW4","CW3","CW2","CW1")
-station_selected <- "31"
+station_selected <- "MR"
 filtered_taxa_meta_long <- taxa_meta_long %>%
 filter(Station %in% station_selected)
 
@@ -251,7 +251,7 @@ zz
 # Acantharea, Copepods, Echinoderms, Jellies, Larvaceans, Chaetognaths, Polychaetes, Pteropods
 # Centric,Ceratium,Chaetoceros,Chain2,Chain3,Guinardia,Neocalyptrella,Noctiluca,Trichodesmium
 
-selected_group <- "Chain3"
+selected_group <- "Copepods"
 
 summary_selected <- filtered_taxa_meta_long %>%
   filter(species == selected_group) %>%
