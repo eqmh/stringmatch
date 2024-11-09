@@ -1,0 +1,50 @@
+---
+title: "net_tow_stats"
+output: html_document
+date: "2024-11-09"
+---
+
+# Load data table
+```{r setup, include=FALSE}
+library(dplyr)
+library(ggplot2)
+
+df_all_taxa <- read.csv("enrique_calc_zoo_data_pre_obis_merg.csv", fill = TRUE)
+
+# Filter the df_all_taxa data frame to include only rows where class is "Copepoda"
+df_copepoda <- df_all_taxa %>%
+  filter(class == "Copepoda")
+
+# Summarize ind_m3 values by size fraction, site, and date
+selected_net_tow <- df_copepoda %>%
+  filter(duplicate_mesh_col == 64 & site == "57" & cruise_id == "WS19028")
+selected_total = sum(selected_net_tow$ind_m3)
+
+# Summarize ind_m3 values by size fraction, site, and date
+aggregated_data <- df_copepoda %>%
+  group_by(duplicate_mesh_col, site, date, cruise_id) %>%
+  summarise(total_ind_m3 = sum(ind_m3, na.rm = TRUE)) %>%
+  ungroup()
+
+# Create the stacked area plot
+filtered_data <- aggregated_data %>%
+    filter(site == "57")
+
+# Create the stacked bar plot
+# stacked_plot <- ggplot(filtered_data, aes(x = as.Date(date), y = total_ind_m3, fill = factor(duplicate_mesh_col))) +
+stacked_plot <- ggplot(filtered_data, aes(x = cruise_id, y = total_ind_m3)) +
+  geom_bar(stat = "identity", alpha = 0.8, width = 0.15) +
+  labs(title = "Total Individuals per Cubic Meter at Site 57 (64 um)",
+       x = "Cruise ID",
+       y = expression("Total ind. m"^"-3"),
+       fill = "Size Fraction (µm)") +
+  # scale_fill_manual(values = c("64" = "#1b9e77", "200" = "#d95f02", "500" = "#7570b3")) +
+  # scale_x_date(date_breaks = "1 month", date_labels = "%Y-%m") +  # Customize x-axis labels
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+stacked_plot
+
+```
+
+
