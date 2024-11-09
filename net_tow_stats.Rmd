@@ -28,18 +28,17 @@ aggregated_data <- df_copepoda %>%
 
 # Create the stacked area plot
 filtered_data <- aggregated_data %>%
-    filter(site == "57")
+    filter(site == "LK")
 
 # Create the stacked bar plot
-# stacked_plot <- ggplot(filtered_data, aes(x = as.Date(date), y = total_ind_m3, fill = factor(duplicate_mesh_col))) +
-stacked_plot <- ggplot(filtered_data, aes(x = cruise_id, y = total_ind_m3)) +
-  geom_bar(stat = "identity", alpha = 0.8, width = 0.15) +
-  labs(title = "Total Individuals per Cubic Meter at Site 57 (64 um)",
-       x = "Cruise ID",
+stacked_plot <- ggplot(filtered_data, aes(x = as.Date(date), y = total_ind_m3, fill = factor(duplicate_mesh_col))) +
+  geom_bar(stat = "identity", position = "stack", alpha = 0.8) +
+  labs(title = "Total Individuals per Cubic Meter at Site LK",
+       x = "Date",
        y = expression("Total ind. m"^"-3"),
        fill = "Size Fraction (µm)") +
-  # scale_fill_manual(values = c("64" = "#1b9e77", "200" = "#d95f02", "500" = "#7570b3")) +
-  # scale_x_date(date_breaks = "1 month", date_labels = "%Y-%m") +  # Customize x-axis labels
+  scale_fill_manual(values = c("64" = "#1b9e77", "200" = "#d95f02", "500" = "#7570b3")) +
+  scale_x_date(date_breaks = "1 month", date_labels = "%Y-%m") +  # Customize x-axis labels
   theme_minimal() +
   theme(axis.text.x = element_text(angle = 45, hjust = 1))
 
