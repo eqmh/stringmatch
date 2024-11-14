@@ -37,7 +37,7 @@ library(lubridate)
 
 dir_path2 <- "~/Library/CloudStorage/GoogleDrive-enriquemontes01@gmail.com/My Drive/GDrive/OCED_AOML/WS_cruises/plankton_imaging/CPICS/ws_cruise_ctd"
 
-file_name <- list.files(path = dir_path2, pattern = "ctd_meta_v3.csv", full.names = TRUE)
+file_name <- list.files(path = dir_path2, pattern = "ctd_meta_v4.csv", full.names = TRUE)
 ctd_meta <- read.csv(file_name, fill = TRUE)
 
 # USE WITH ctd_meta_v3.csv
@@ -161,36 +161,36 @@ for (class_name in class_names) {
 # Calculate species concentration (counts/ml) for each species
 
 # # For zooplankton
-taxa_meta_concentration <- taxa_meta %>%
-  mutate(across(c(Acantharea,Chaetognaths,Ostracods,Copepods,Decapods,Echinoderms,Jellies,
-    Larvaceans,Polychaets,Pteropods), ~ ./total_vol_sampled * 1e6)) %>%
-  select(Station, dec_lat, dec_lon, year, month, date, Avg.chl.a..ug.L.,
-         temp..degC., salinity, total_vol_sampled,
-         Acantharea,Chaetognaths,Ostracods,Copepods,Decapods,Echinoderms,
-         Jellies,Larvaceans,Polychaets,Pteropods) %>%
-  filter(!is.na(total_vol_sampled))
-
-# # Transform taxa_meta_concentration to long format
-taxa_meta_long <- taxa_meta_concentration %>%
-  pivot_longer(cols = c(Acantharea, Chaetognaths,Ostracods,Copepods,Decapods,
-                        Echinoderms, Jellies, Larvaceans,Polychaets, Pteropods),
-               names_to = "species", values_to = "species_concentration")
-
-# # For phytoplankton
 # taxa_meta_concentration <- taxa_meta %>%
-#   mutate(across(c(Centric,Ceratium,Chaetoceros,Chain2,Chain3,Guinardia,Neocalyptrella,
-#                   Noctiluca,Tricho), ~ ./total_vol_sampled * 1e6)) %>%
+#   mutate(across(c(Acantharea,Chaetognaths,Ostracods,Copepods,Decapods,Echinoderms,Jellies,
+#     Larvaceans,Polychaets,Pteropods), ~ ./total_vol_sampled * 1e6)) %>%
 #   select(Station, dec_lat, dec_lon, year, month, date, Avg.chl.a..ug.L.,
-#          temp..degC., salinity,total_vol_sampled,
-#          Centric,Ceratium,Chaetoceros,Chain2,Chain3,Guinardia,Neocalyptrella,
-#                   Noctiluca,Tricho) %>%
+#          temp..degC., salinity, total_vol_sampled,
+#          Acantharea,Chaetognaths,Ostracods,Copepods,Decapods,Echinoderms,
+#          Jellies,Larvaceans,Polychaets,Pteropods) %>%
 #   filter(!is.na(total_vol_sampled))
 # 
 # # # Transform taxa_meta_concentration to long format
 # taxa_meta_long <- taxa_meta_concentration %>%
-#   pivot_longer(cols = c(Centric,Ceratium,Chaetoceros,Chain2,Chain3,Guinardia,Neocalyptrella,
-#                   Noctiluca,Tricho),
+#   pivot_longer(cols = c(Acantharea, Chaetognaths,Ostracods,Copepods,Decapods,
+#                         Echinoderms, Jellies, Larvaceans,Polychaets, Pteropods),
 #                names_to = "species", values_to = "species_concentration")
+
+# # For phytoplankton
+taxa_meta_concentration <- taxa_meta %>%
+  mutate(across(c(Centric,Ceratium,Chaetoceros,Chain2,Chain3,Guinardia,Neocalyptrella,
+                  Noctiluca,Tricho), ~ ./total_vol_sampled * 1e6)) %>%
+  select(Station, dec_lat, dec_lon, year, month, date, Avg.chl.a..ug.L.,
+         temp..degC., salinity,total_vol_sampled,
+         Centric,Ceratium,Chaetoceros,Chain2,Chain3,Guinardia,Neocalyptrella,
+                  Noctiluca,Tricho) %>%
+  filter(!is.na(total_vol_sampled))
+
+# # Transform taxa_meta_concentration to long format
+taxa_meta_long <- taxa_meta_concentration %>%
+  pivot_longer(cols = c(Centric,Ceratium,Chaetoceros,Chain2,Chain3,Guinardia,Neocalyptrella,
+                  Noctiluca,Tricho),
+               names_to = "species", values_to = "species_concentration")
 
 # Filter the data for Stations
 # station_list_fk <- c("WS","21/LK","MR","16","18","10","12","9.5","9","7","2")
@@ -257,10 +257,10 @@ zz <- ggplot(summary_data, aes(x = date, y = mean_concentration, fill = species)
 zz
 
 # Filter summary_data for selected only
-# Acantharea, Copepods, Echinoderms, Jellies, Larvaceans, Chaetognaths, Polychaetes, Pteropods
+# Acantharea, Copepods, Echinoderms, Jellies, Larvaceans, Chaetognaths, Polychaets, Pteropods
 # Centric,Ceratium,Chaetoceros,Chain2,Chain3,Guinardia,Neocalyptrella,Noctiluca,Tricho
 
-selected_group <- "Copepods"
+selected_group <- "Chaetoceros"
 
 summary_selected <- filtered_taxa_meta_long %>%
   filter(species == selected_group) %>%
@@ -320,17 +320,23 @@ summary_selected <- summary_selected %>%
 # Step 2: Convert season to a factor with specified order
 summary_selected$season <- factor(summary_selected$season, levels = c("Winter", "Spring", "Summer", "Fall"))
 
+spp_colors_zoopl <- c("#551F00FF", "#889D35FF", "#DF7700FF", "#F5B642FF","#FFF179FF","#C3F4F6FF", "#6AD5E8FF", "#32B2DAFF")
+spp_colors_phyto <- c("#42511AFF", "#889D35FF", "#D3D175FF", "#B50200FF","#DA6C41FF","#7C6E66FF", "#BCAFA6FF")
+
 # Step 3: Create the box plot
   season_boxplot <- ggplot(summary_selected, aes(x = season, y = species_concentration)) +
-    geom_boxplot(fill = "lightblue", notch = TRUE) +
+    geom_boxplot(fill = spp_colors_phyto[2], notch = TRUE) +
     labs(x = "Season", y = expression("Density (org. m"^"-3"~")")) +
-    scale_y_log10(labels = scales::trans_format("log10", scales::math_format(10^.x)), limits = c(1e2, 1e5)) +
+    scale_y_log10(labels = scales::trans_format("log10", scales::math_format(10^.x)), limits = c(1e2, 1e6)) +
     theme_minimal() +
-    theme(axis.text.x = element_text(size = 18, color = "black"),
-          axis.title = element_text(size = 18, color = "black"),
-          axis.text.y = element_text(size = 18, color = "black")) +
+    theme(axis.text.x = element_text(size = 32, color = "black"),
+          axis.title = element_text(size = 32, color = "black"),
+          axis.text.y = element_text(size = 32, color = "black")) +
     theme(axis.line = element_line(color = "black")) 
   season_boxplot
+  
+# Save figure as a svg file  
+ggsave(paste0("boxplot_seasonal_", selected_group, ".svg"), plot = season_boxplot, width = 10, height = 8, device = "svg")
   
 # # Plot concentration time series for all selected sites
 # kk <- ggplot(summary_selected, aes(x = date, y = species_concentration, shape = factor(Station))) +
@@ -477,13 +483,7 @@ spp_concentration <- merge(spp_count_per_seascape, total_vol_per_seascape, by = 
 spp_concentration$species_per_cubic_meter <- spp_concentration$total_count / spp_concentration$total_vol_sampled * 1e6
 
 # # Select desired seascapes and reorder categories in X axis
-spp_concentration$X8.day.seascapes <- factor(spp_concentration$X8.day.seascapes, levels = c("3", "5", "7", "11", "13", "15","21","27"))
-
-# Filter out seascape class as desired
-# exclude_classes <- c(5, 7, 11)
-# spp_concentration <- spp_concentration[!spp_concentration$X8.day.seascapes %in% exclude_classes, ]
-
-# custom_pal_hex2 <- c('#e41a1c','#377eb8','#4daf4a','#984ea3','#ff7f00','#ffff33','#a65628','#f781bf')
+spp_concentration$X8.day.seascapes <- factor(spp_concentration$X8.day.seascapes, levels = c("3", "13", "15","21","27"))
 
 # Create the stack plot
 concentration_stackplot <- ggplot(spp_concentration, aes(x = X8.day.seascapes, y = species_per_cubic_meter, fill = species)) +
@@ -530,20 +530,26 @@ avg_concentration_per_class <- spp_concentration_long %>%
     mean_concentration = mean(concentration, na.rm = TRUE)/1000  # the 1000 term is for plotting simplicity
   )
 
-avg_concentration_per_class$X8.day.seascapes <- factor(avg_concentration_per_class$X8.day.seascapes, levels = c("3", "5", "7", "11", "13", "15","21","27"))
+avg_concentration_per_class$X8.day.seascapes <- factor(avg_concentration_per_class$X8.day.seascapes, levels = c("3", "13", "15","21","27"))
 
-seascape_labels = c("TST", "SGT", "TT", "TSU", "SGMI", "TS", "WBHN", "HE")
+seascape_labels = c("TST", "SGMI", "TS", "WBHN", "HE")
 
 # seascape classes: 
 # 3:Tropical/Subtrop. Trans.| 5: Subtrop. Gyre Trans | 7: Temperate Trans | 11: Tropical/Subtrop. Upwelling | 13: Subtrop. Gyre Mesos. Influenced | 15: Tropical Seas | 21: Warm Bloom High Nutrients | 27: Hypersal. Eutrophic
 
-font_size = 24
+font_size = 22
+spp_labels_zoopl <- c("Rhizaria spp", "Chaetognaths", "Copepods", "Echinorderms", "Gelatinuos", "Larvaceans", "Polychaetes", "Pteropods")
+spp_labels_phyto = c("Neoceratium spp", "Chaetoceros spp", "Chain diatoms", "Skeletonema spp", "Guinardia striata", "Neocalyptrella spp", "Trichodesmium spp")
+spp_colors_zoopl <- c("#551F00FF", "#889D35FF", "#DF7700FF", "#F5B642FF","#FFF179FF","#C3F4F6FF", "#6AD5E8FF", "#32B2DAFF")
+spp_colors_phyto <- c("#42511AFF", "#889D35FF", "#D3D175FF", "#B50200FF","#DA6C41FF","#7C6E66FF", "#BCAFA6FF")
+
 avg_stackplot <- ggplot(avg_concentration_per_class, aes(x = X8.day.seascapes, y = mean_concentration, fill = species)) +
-  geom_bar(stat = "identity") +
-  scale_fill_manual(values = c("#42511AFF", "#889D35FF", "#D3D175FF", "#B50200FF","#DA6C41FF","#7C6E66FF", "#BCAFA6FF"),
-  labels = c("Neoceratium spp", "Chaetoceros spp", "Chain diatoms", "Skeletonema spp", "Guinardia striata", "Neocalyptrella spp", "Trichodesmium spp")) +
-  # scale_fill_manual(values = c("#551F00FF", "#889D35FF", "#DF7700FF", "#F5B642FF","#FFF179FF","#C3F4F6FF", "#6AD5E8FF", "#32B2DAFF"), 
-  # labels = c("Rhizaria spp", "Chaetognath", "Copepods", "Echinorderms", "Gelatinuos", "Larvaceans", "Polychaetes", "Pteropods")) +
+  geom_bar(stat = "identity", width = 0.75) +
+  # scale_fill_manual(values = spp_colors_zoopl,
+    # labels = spp_labels_zoopl) +
+  scale_fill_manual(values = spp_colors_phyto,                  
+    labels = spp_labels_phyto) +
+  # ylim(0, 40) +
   scale_x_discrete(labels = seascape_labels) +
   labs(x = "Seascape class", y = expression("Density (org. m"^"-3"~") × 10"^3)) +
   theme_minimal() +
@@ -551,7 +557,8 @@ avg_stackplot <- ggplot(avg_concentration_per_class, aes(x = X8.day.seascapes, y
     axis.title = element_text(size = font_size, color = "black"),
     axis.text.y = element_text(size = font_size, color = "black")) +
   theme(axis.line = element_line(color = "black")) +
-  theme(legend.text = element_text(size = font_size))
+  theme(legend.text = element_text(size = font_size)) +
+  theme(legend.position = "none")
 avg_stackplot
 
 ggsave("abund_phyto.svg", plot = avg_stackplot, width = 14, height = 8, device = "svg")
@@ -562,11 +569,11 @@ avg_concentration_percent <- avg_concentration_per_class %>%
   mutate(mean_concentration_percent = mean_concentration / sum(mean_concentration) * 100)
 
 avg_percent_stackplot <- ggplot(avg_concentration_percent, aes(x = X8.day.seascapes, y = mean_concentration_percent, fill = species)) +
-  geom_bar(stat = "identity") +
-  scale_fill_manual(values = c("#42511AFF", "#889D35FF", "#D3D175FF", "#B50200FF","#DA6C41FF","#7C6E66FF", "#BCAFA6FF"),
-  labels = c("Neoceratium spp", "Chaetoceros spp", "Chain diatoms", "Skeletonema spp", "Guinardia striata", "Neocalyptrella spp", "Trichodesmium spp")) +
-  # scale_fill_manual(values = c("#551F00FF", "#889D35FF", "#DF7700FF", "#F5B642FF","#FFF179FF","#C3F4F6FF", "#6AD5E8FF", "#32B2DAFF"), 
-  #     labels = c("Rhizaria spp", "Chaetognath", "Copepods", "Echinorderms", "Gelatinuos", "Larvaceans", "Polychaetes", "Pteropods")) +
+  geom_bar(stat = "identity", width = 0.75) +
+  # scale_fill_manual(values = spp_colors_zoopl,
+    # labels = spp_labels_zoopl) +
+  scale_fill_manual(values = spp_colors_phyto,                  
+    labels = spp_labels_phyto) +
   scale_x_discrete(labels = seascape_labels) +
   labs(x = "Seascape class", y = "Relative concentration (%)") +
   theme_minimal() +
@@ -574,7 +581,8 @@ avg_percent_stackplot <- ggplot(avg_concentration_percent, aes(x = X8.day.seasca
     axis.title = element_text(size = font_size, color = "black"),
     axis.text.y = element_text(size = font_size, color = "black")) +
   theme(axis.line = element_line(color = "black")) +
-  theme(legend.text = element_text(size = font_size))
+  theme(legend.text = element_text(size = font_size)) +
+  theme(legend.position = "none")
 avg_percent_stackplot
 
 ggsave("abund_phyto_percent.svg", plot = avg_percent_stackplot, width = 14, height = 8, device = "svg")
@@ -617,7 +625,7 @@ colnames(palette_df) <- c("r", "g", "b")
 unique_seascapes <- sort(unique(na.omit(ctd_meta$X8.day.seascapes)))
 subset_palette_df <- palette_df[unique_seascapes, ]
 
-# set RGB values for the plots
+# set RGB values for the plots (for rainbow)
 r_vals <- round(subset_palette_df$r * 255, 0)
 g_vals <- round(subset_palette_df$g * 255, 0)
 b_vals <- round(subset_palette_df$b * 255, 0)
@@ -632,52 +640,50 @@ df_filtered <- taxa_meta[complete.cases(taxa_meta$X8.day.seascapes),]
 df_filtered$X8.day.seascapes <- as.character(df_filtered$X8.day.seascapes)
 
 # # Reorder seascape categories in X axis
-df_filtered$X8.day.seascapes <- factor(df_filtered$X8.day.seascapes, levels = c("3", "5", "7", "11", "13", "15","21","27"))
+df_filtered$X8.day.seascapes <- factor(df_filtered$X8.day.seascapes, levels = c("3", "13", "15","21","27"))
 
 # Define custom colors for each level
-custom_colors <- c("3" = custom_pal_hex[1], "5" = custom_pal_hex[2], "7" = custom_pal_hex[3],
-                   "11" = custom_pal_hex[4], "13" = custom_pal_hex[5], "15" = custom_pal_hex[6],
-                   "21" = custom_pal_hex[7], "27" = custom_pal_hex[8])
+# custom_colors <- c("3" = custom_pal_hex[1], "13" = custom_pal_hex[5], "15" = custom_pal_hex[6],
+#                    "21" = custom_pal_hex[7], "27" = custom_pal_hex[8])
+
+custom_colors <- c("3" = "#2A3F6E", "13" = "#3E92E0", "15" = "#61BEA4", "21" = "#FFB651FF", "27" = "#D85A44FF")
 
 # Filter out seascape class as desired
 # df_filtered <- df_filtered[df_filtered$X8.day.seascapes != "5", ]
 
 # Plot
 # See https://cran.r-project.org/web/packages/viridis/vignettes/intro-to-viridis.html for color palette options
+font_size = 36
 pp <- df_filtered %>%
-  ggplot( aes(x=X8.day.seascapes, y=Avg.chl.a..ug.L., fill=X8.day.seascapes)) +
+  ggplot( aes(x=X8.day.seascapes, y=temp..degC., fill=X8.day.seascapes)) +
     geom_boxplot() +
     # scale_fill_viridis(option="H", discrete = TRUE, alpha=0.6) +
     scale_fill_manual(values = custom_colors) +
     geom_jitter(color="grey", size=0.8, alpha=0.4) +
+    scale_x_discrete(labels = seascape_labels) +
+    scale_y_continuous(
+        breaks = seq(15, 35, by = 5),
+        labels = scales::label_number(accuracy = 1),
+        limits = c(15, 35)
+    ) +
     labs(x = "Seascape class") +
-    labs(y = expression("["*Chl-a*"]"~ mu*"g"~L^-1)) +
+    # labs(y = expression("["*Chl-a*"]"~ mu*"g"~L^-1)) +
     # labs(y = expression("Salinity")) +
-    # labs(y = expression(paste("Temperature (", degree, "C) at 1 m depth"))) +
+    labs(y = expression(paste("Temperature (", degree, "C) at 1 m depth"))) +
     # labs(y = expression("["*DO*"]"~mg~L^-1)) +
     # labs(y = expression("["*NO["x"]*"]" ~ mu*"M")) +
     # labs(y = expression("["*PO[4]^"3-"*"]" ~ mu*"M")) +
     # labs(y = expression("["*NH[4]^"+"*"]" ~ mu*"M")) +
     # theme(axis.title.y = element_text(hjust = 1))
-    # scale_x_discrete(labels= c("Tropical/Subtropical Upwelling", 
-    #                          "Tropical Seas", 
-    #                          "Warm, Blooms, High Nuts", 
-    #                          "Tropical/Subtropical Transition", 
-    #                          "Temperate Transition")) +
-    theme_ipsum() +
-    theme(
-      legend.position="none",
-      plot.title = element_text(size=11)
-    ) +
-    # ggtitle("A boxplot with jitter") +
-    # theme(axis.text.x = element_text(angle = 45)) +
-  ylim(0, 7) +
-  theme(axis.text.x = element_text(size = 32, family = "Arial"),  # Set X-axis label font size
-          axis.text.y = element_text(size = 32, family = "Arial")) +
-    theme(axis.title.x = element_text(size = 18, hjust = 0.5, family = "Arial"),
-          axis.title.y = element_text(size = 18, hjust = 0.5, family = "Arial")) +
-    theme(legend.text = element_text(size = 32)) 
+  theme_minimal() +
+  theme(axis.text.x = element_text(size = font_size, color = "black"),
+    axis.title = element_text(size = font_size, color = "black"),
+    axis.text.y = element_text(size = font_size, color = "black")) +
+  theme(axis.line = element_line(color = "black")) +
+  theme(legend.position = "none")
 pp
+
+# ggsave("temperature.svg", plot = pp, width = 14, height = 8, device = "svg")
 ```
 
 # Create stackplots showing relative frequency using counts only of plankton taxa per seascape category
@@ -801,30 +807,24 @@ df_subset_shannon <- df_filtered[ , c("X8.day.seascapes",
 # reshape the data to long format
 df_long <- tidyr::gather(df_subset_shannon, key = "Species", value = "Abundance", -X8.day.seascapes)
 
-# Exclude seascapes
-exclude_seascapes <- c(5, 7, 11)
-
 # Compute Shannon diversity per seascape class
 shannon_df <- df_long %>% 
   group_by(X8.day.seascapes) %>% 
   summarise(shannon = diversity(Abundance, index = "shannon"))
 
-# Filter the data to exclude specified seascapes
-shannon_df_filtered <- shannon_df[!shannon_df$X8.day.seascapes %in% exclude_seascapes, ]
+# # Filter the data to exclude specified seascapes
+# # Exclude seascapes
+# exclude_seascapes <- c(5, 7, 11)
+# shannon_df_filtered <- shannon_df[!shannon_df$X8.day.seascapes %in% exclude_seascapes, ]
 
 # create the bar plot of Shannon diversity
-ff <- ggplot(shannon_df_filtered, aes(x = X8.day.seascapes, y = shannon, fill = X8.day.seascapes)) +
-  geom_bar(stat = "identity") +
+ff <- ggplot(shannon_df, aes(x = X8.day.seascapes, y = shannon, fill = X8.day.seascapes)) +
+  geom_bar(stat = "identity", width = 0.75) +
   # scale_fill_viridis(option="plasma", discrete = TRUE, alpha=0.6) +
+  scale_x_discrete(labels = seascape_labels) +
   scale_fill_manual(values = custom_colors) +
   xlab("Seascape Class") +
   ylab("Shannon Diversity") +
-  # scale_x_discrete(labels= c("Tropical/Subtropical Upwelling", 
-  #                            "Tropical Seas", 
-  #                            "Warm, Blooms, High Nuts", 
-  #                            "Tropical/Subtropical Transition", 
-  #                            "Temperate Transition")) +
-  # theme(axis.text.x = element_text(angle = 45)) +
   theme(axis.text.x = element_text(size = 32),  # Set X-axis label font size
         axis.text.y = element_text(size = 32)) +
   theme(axis.title.x = element_text(size = 32),
@@ -839,15 +839,18 @@ filtered_taxa_meta <- taxa_meta[complete.cases(taxa_meta$X8.day.seascapes), ]
 
 # # Plot sampled seascape frequency
 tt <- ggplot(filtered_taxa_meta, aes(x = factor(X8.day.seascapes), fill = factor(X8.day.seascapes))) +
-  geom_bar(color = "black", alpha = 0.7) +
+  geom_bar(color = "black", alpha = 0.9, width = 0.75) +
   scale_fill_manual(values = custom_colors) +
+  scale_x_discrete(labels = seascape_labels) +
   labs(x = "Seascape Class", y = "Frequency") +
   theme_minimal() +
     theme(axis.text.x = element_text(size = 22),  # Set X-axis label font size
         axis.text.y = element_text(size = 22)) +
-  theme(axis.title.x = element_text(size = 22),
+  # theme(axis.title.x = element_text(size = 22),
+    theme(axis.title.x = element_blank(), 
         axis.title.y = element_text(size = 22)) +
   theme(legend.text = element_text(size = 22)) +
+  theme(axis.line = element_line(color = "black")) +
   guides(fill = FALSE)
 tt
 
@@ -858,7 +861,7 @@ percent_frequency <- filtered_taxa_meta %>%
   summarise(count = n()) %>%
   mutate(percent_frequency = (count / sum(count)) * 100)
 # Display the result
-# print(percent_frequency)
+print(percent_frequency)
 
 # # Counts of species per seascape
 df_sum_abund <- df_long %>%
@@ -869,10 +872,10 @@ df_sum_abund <- df_long %>%
 
 df_sum_abund_filt <- df_sum_abund[df_sum_abund$Species == "Larvaceans",]
 # Filter the data to exclude specified seascapes
-df_sum_abund_filt2 <- df_sum_abund_filt[!df_sum_abund_filt$X8.day.seascapes %in% exclude_seascapes, ]
+# df_sum_abund_filt2 <- df_sum_abund_filt[!df_sum_abund_filt$X8.day.seascapes %in% exclude_seascapes, ]
 
-dd <- ggplot(df_sum_abund_filt2, aes(x = factor(X8.day.seascapes), y = n, fill = factor(X8.day.seascapes))) +
-  geom_bar(color = "black", alpha = 0.7, stat = "identity") +
+dd <- ggplot(df_sum_abund_filt, aes(x = factor(X8.day.seascapes), y = n, fill = factor(X8.day.seascapes))) +
+  geom_bar(color = "black", alpha = 0.9, stat = "identity", width = 0.5) +
   # scale_fill_viridis(option = "magma", discrete = TRUE, alpha = 0.8)
   scale_fill_manual(values = custom_colors) +
   theme_minimal() 
@@ -897,17 +900,17 @@ spp_seascape_normalized <- merge(spp_seascape_normalized, seascape_frequencies, 
 
 # Normalize counts by frequency
 spp_seascape_normalized$spp_normalized <- (spp_seascape_normalized$spp_count / spp_seascape_normalized$freq) * 1000
-spp_seascape_normalized_filt <- spp_seascape_normalized[!spp_seascape_normalized$X8.day.seascapes %in% exclude_seascapes, ]
+# spp_seascape_normalized_filt <- spp_seascape_normalized[!spp_seascape_normalized$X8.day.seascapes %in% exclude_seascapes, ]
 
-bb <- ggplot(spp_seascape_normalized_filt, aes(x = factor(X8.day.seascapes), y = spp_normalized, fill = factor(X8.day.seascapes))) +
-  geom_bar(color = "black", alpha = 0.7, stat = "identity") +
+bb <- ggplot(spp_seascape_normalized, aes(x = factor(X8.day.seascapes), y = spp_normalized, fill = factor(X8.day.seascapes))) +
+  geom_bar(color = "black", alpha = 0.9, stat = "identity", width = 0.5) +
   scale_fill_manual(values = custom_colors) +
   labs(x = "Seascape Class", y = "Counts / Seascape freq * 1000") +
   theme_minimal() +
   #   theme(axis.text.x = element_text(size = 32),  # Set X-axis label font size
   #       axis.text.y = element_text(size = 32)) +
-  # theme(axis.title.x = element_text(size = 32),
-  #       axis.title.y = element_text(size = 32)) +
+  theme(axis.title.x = element_text(size = 32),
+        axis.title.y = element_text(size = 32)) +
   # theme(legend.text = element_text(size = 32)) +
   guides()
 bb
@@ -994,7 +997,7 @@ pc_scores <- data.frame(seascape = as.character(filt_df_pca$X8.day.seascapes), #
                         PC2 = pca$x[, 2])
 
 # Create the plot
-pc_scores$seascape <- factor(pc_scores$seascape, levels = c("3", "5", "7", "11", "13", "15", "21", "27"))
+pc_scores$seascape <- factor(pc_scores$seascape, levels = c("3", "13", "15", "21", "27"))
 bb <- ggplot(pc_scores, aes(x = PC1, y = PC2, color = seascape)) + 
   geom_point() +
   labs(x = "PC1", y = "PC2", color = "Seascape") 
@@ -1009,8 +1012,8 @@ yy <- ggplot(pc_scores, aes(x = PC1, y = PC2, color = seascape)) +
   scale_color_manual(values = custom_colors_pca) +
   scale_fill_manual(values = custom_colors_pca) +
   theme_classic() +
-  xlim(-2,2) +
-  ylim(-2,2) +
+  # xlim(-2,2) +
+  # ylim(-2,2) +
   # xlim(-1,1) +
   # ylim(-1,1) +
   geom_point(size=2) +
@@ -1038,8 +1041,8 @@ filt_df_pca$X8.day.seascapes <- as.factor(filt_df_pca$X8.day.seascapes)
 
 # # For hydrography
 qq <- ggplot(filt_df_pca, aes(x = pc_scores2[,1], y = pc_scores2[,2], color = X8.day.seascapes)) +
-  geom_point(size = 3, alpha = 0.7) +
-  scale_color_manual(values = custom_colors_pca) +
+  geom_point(size = 3, alpha = 0.9) +
+  scale_color_manual(values = custom_colors_pca, labels = seascape_labels) +
   geom_segment(aes(x = 0, y = 0, xend = eigenvectors[1, 1], yend = eigenvectors[2, 1]),
                arrow = arrow(length = unit(0.1, "inches")), color = "black") +  # Add vector for PC1
   geom_segment(aes(x = 0, y = 0, xend = eigenvectors[1, 2], yend = eigenvectors[2, 2]),
@@ -1073,7 +1076,7 @@ qq <- ggplot(filt_df_pca, aes(x = pc_scores2[,1], y = pc_scores2[,2], color = X8
   labs(x = "PC1", y = "PC2", color = "Seascape class") +
   xlim(-1.5, 1.5) +
   ylim(-1.5, 1.5) +
-  guides(colour = guide_legend(override.aes = list(size=5))) + 
+  guides(colour = guide_legend(title = NULL, override.aes = list(size=5))) + 
   theme_classic() +
   theme(axis.text.x = element_text(size = 18),  # Set X-axis label font size
         axis.text.y = element_text(size = 18)) +
