@@ -320,12 +320,12 @@ summary_selected <- summary_selected %>%
 # Step 2: Convert season to a factor with specified order
 summary_selected$season <- factor(summary_selected$season, levels = c("Winter", "Spring", "Summer", "Fall"))
 
-spp_colors_zoopl <- c("#551F00FF", "#889D35FF", "#DF7700FF", "#F5B642FF","#FFF179FF","#C3F4F6FF", "#6AD5E8FF", "#32B2DAFF")
-spp_colors_phyto <- c("#42511AFF", "#889D35FF", "#D3D175FF", "#B50200FF","#DA6C41FF","#7C6E66FF", "#BCAFA6FF")
+spp_colors_zoopl <- c("#551F00FF", "#889D35FF", "#DF7700FF", "#F5B642FF","#FFF179FF","#C3F4F6FF", "#6AD5E8FF", "#32B2DAFF", "#7992A6FF", "#C0D1CEFF")
+spp_colors_phyto <- c("#B4B87FFF", "#9C913FFF", "#585B33FF", "#6EA8ABFF", "#397893FF", "#31333FFF", "#8F5715FF", "#BA9A44FF", "#CFBB83FF")
 
 # Step 3: Create the box plot
   season_boxplot <- ggplot(summary_selected, aes(x = season, y = species_concentration)) +
-    geom_boxplot(fill = spp_colors_phyto[2], notch = TRUE) +
+    geom_boxplot(fill = spp_colors_phyto[3], notch = FALSE) +
     labs(x = "Season", y = expression("Density (org. m"^"-3"~")")) +
     scale_y_log10(labels = scales::trans_format("log10", scales::math_format(10^.x)), limits = c(1e2, 1e6)) +
     theme_minimal() +
@@ -444,21 +444,25 @@ library(paletteer)
 
 # spp_df <- taxa_meta[ , c("X8.day.seascapes", "total_vol_sampled", "date",
 #                          "Acantharea",
+#                          "Chaetognaths",
 #                          "Copepods",
+#                          "Decapods",
 #                          "Echinoderms",
 #                          "Jellies",
 #                          "Larvaceans",
+#                          "Ostracods",
 #                          "Polychaets",
-#                          "Chaetognaths",
 #                          "Pteropods")]
 
 spp_df <- taxa_meta[ , c("X8.day.seascapes", "total_vol_sampled", "date",
+                         "Centric",
                          "Ceratium",
                          "Chaetoceros",
                          "Chain2",
                          "Chain3",
                          "Guinardia",
                          "Neocalyptrella",
+                         "Noctiluca",
                          "Tricho")]
 
 # Remove rows with NaN values in X8.day.seascapes and total_vol_sampled
@@ -537,19 +541,20 @@ seascape_labels = c("TST", "SGMI", "TS", "WBHN", "HE")
 # seascape classes: 
 # 3:Tropical/Subtrop. Trans.| 5: Subtrop. Gyre Trans | 7: Temperate Trans | 11: Tropical/Subtrop. Upwelling | 13: Subtrop. Gyre Mesos. Influenced | 15: Tropical Seas | 21: Warm Bloom High Nutrients | 27: Hypersal. Eutrophic
 
-font_size = 22
-spp_labels_zoopl <- c("Rhizaria spp", "Chaetognaths", "Copepods", "Echinorderms", "Gelatinuos", "Larvaceans", "Polychaetes", "Pteropods")
-spp_labels_phyto = c("Neoceratium spp", "Chaetoceros spp", "Chain diatoms", "Skeletonema spp", "Guinardia striata", "Neocalyptrella spp", "Trichodesmium spp")
-spp_colors_zoopl <- c("#551F00FF", "#889D35FF", "#DF7700FF", "#F5B642FF","#FFF179FF","#C3F4F6FF", "#6AD5E8FF", "#32B2DAFF")
-spp_colors_phyto <- c("#42511AFF", "#889D35FF", "#D3D175FF", "#B50200FF","#DA6C41FF","#7C6E66FF", "#BCAFA6FF")
+font_size = 32
+spp_labels_zoopl <- c("Rhizaria spp", "Chaetognaths", "Copepods", "Decapods", "Echinoderms", "Gelatinous", "Larvaceans", "Ostracods", "Polychaetes", "Pteropods")
+spp_labels_phyto = c("Coscinodiscus spp", "Neoceratium spp", "Chaetoceros spp", "Chain diatoms", "Skeletonema spp", "Guinardia striata", "Neocalyptrella spp", "Hemidiscus spp", "Trichodesmium spp")
+spp_colors_zoopl <- c("#551F00FF", "#889D35FF", "#DF7700FF", "#F5B642FF","#FFF179FF","#C3F4F6FF", "#6AD5E8FF", "#32B2DAFF", "#7992A6FF", "#C0D1CEFF")
+spp_colors_phyto <- c("#B4B87FFF", "#9C913FFF", "#585B33FF", "#6EA8ABFF", "#397893FF", "#31333FFF", "#8F5715FF", "#BA9A44FF", "#CFBB83FF")
+# spp_colors_phyto <- c("#C969A1FF", "#CE4441FF", "#EE8577FF", "#EB7926FF", "#FFBB44FF", "#859B6CFF", "#62929AFF", "#004F63FF", "#122451FF")
 
 avg_stackplot <- ggplot(avg_concentration_per_class, aes(x = X8.day.seascapes, y = mean_concentration, fill = species)) +
   geom_bar(stat = "identity", width = 0.75) +
   # scale_fill_manual(values = spp_colors_zoopl,
-    # labels = spp_labels_zoopl) +
-  scale_fill_manual(values = spp_colors_phyto,                  
+  # labels = spp_labels_zoopl) +
+  scale_fill_manual(values = spp_colors_phyto,
     labels = spp_labels_phyto) +
-  # ylim(0, 40) +
+  ylim(0, 300) +
   scale_x_discrete(labels = seascape_labels) +
   labs(x = "Seascape class", y = expression("Density (org. m"^"-3"~") × 10"^3)) +
   theme_minimal() +
@@ -571,8 +576,8 @@ avg_concentration_percent <- avg_concentration_per_class %>%
 avg_percent_stackplot <- ggplot(avg_concentration_percent, aes(x = X8.day.seascapes, y = mean_concentration_percent, fill = species)) +
   geom_bar(stat = "identity", width = 0.75) +
   # scale_fill_manual(values = spp_colors_zoopl,
-    # labels = spp_labels_zoopl) +
-  scale_fill_manual(values = spp_colors_phyto,                  
+  # labels = spp_labels_zoopl) +
+  scale_fill_manual(values = spp_colors_phyto,
     labels = spp_labels_phyto) +
   scale_x_discrete(labels = seascape_labels) +
   labs(x = "Seascape class", y = "Relative concentration (%)") +
