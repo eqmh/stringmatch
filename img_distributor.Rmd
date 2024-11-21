@@ -201,6 +201,35 @@ cat("Unaccounted for image files in selected folder:", unaccounted_for, "\n")
 repeated_files <- sel1_last_25$fname_sel1[duplicated(sel1_last_25$fname_sel1)]
 cat("Duplicate image files in directory:", repeated_files, "\n")
 
+# List all folders in the directory
+folders <- list.dirs(selected_base_dir, full.names = TRUE, recursive = FALSE)
+
+# Initialize a list to store folders containing repeated files
+folders_with_repeats <- list()
+
+# Loop through each folder to check for repeated files
+for (folder in folders) {
+  # List all files in the folder
+  files_in_folder <- list.files(folder, full.names = FALSE)
+  
+  # Extract the last 25 characters of each file name
+  last_25_in_folder <- sapply(files_in_folder, function(name) {
+    substr(name, pmax(1, nchar(name) - 24), nchar(name))
+  })
+  
+  # Check if any of these file names match repeated_files
+  repeats_in_folder <- intersect(last_25_in_folder, repeated_files)
+  
+  # If there are matches, add the folder to the list
+  if (length(repeats_in_folder) > 0) {
+    folders_with_repeats[[folder]] <- repeats_in_folder
+  }
+}
+
+# Display folders with repeated files
+cat("Folders containing repeated files:\n")
+print(folders_with_repeats)
+
 ```
 
 
