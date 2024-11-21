@@ -180,7 +180,7 @@ cat("Number of image files in destination folder:", num_image_sel_files, "\n")
 ```
 
 
-# Check for repeated files in 'selected_per_class' and 'selected' folders
+# Check for repeated files in 'selected_per_class' and 'selected' folders. This can happen if the same image is annotated as two or more classes, say as nauplia and copepod.
 ```{r}
 # Function to extract the last 25 characters from file names
 get_last_25 <- function(file_names) {
