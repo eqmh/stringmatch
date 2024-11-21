@@ -36,7 +36,7 @@ data_frame_names <- ls(pattern = "^class\\.")  # Get all data frames starting wi
 ```{r}
 path_to_files <- "~/Desktop/cpics_img/" # Base directory for all images
 selected_base_dir <- "~/Desktop/selected_per_class/"  # Base directory for selected files in separate folders
-selected_destination_dir_all <- "~/Desktop/selected2/"  # Base directory for selected files in common folder
+selected_destination_dir_all <- "~/Desktop/selected/"  # Base directory for selected files in common folder
 
 # Create the base directory for selected files if it doesn't exist
 if (!dir.exists(selected_base_dir)) {
@@ -177,6 +177,30 @@ num_image_sel_files <- length(image_sel_files)
 
 # Print the count of image files
 cat("Number of image files in destination folder:", num_image_sel_files, "\n")
+```
+
+
+# Check for repeated files in 'selected_per_class' and 'selected' folders
+```{r}
+# Function to extract the last 25 characters from file names
+get_last_25 <- function(file_names) {
+  sapply(file_names, function(name) substr(name, pmax(1, nchar(name) - 24), nchar(name)))
+}
+
+# Apply the function to image_sel_files (selected_per_class) and image_dest_files (selected)
+sel1_last_25 <- as.data.frame(get_last_25(image_sel_files)) 
+colnames(sel1_last_25) <- "fname_sel1"
+sel2_last_25 <- as.data.frame(get_last_25(image_dest_files))
+colnames(sel2_last_25) <- "fname_sel2"
+
+# Look for files in one directory not present in the other
+unaccounted_for <- setdiff(sel2_last_25$fname_sel2, sel2_last_25$fname_sel2)
+cat("Unaccounted for image files in selected folder:", unaccounted_for, "\n")
+
+# Check for duplicate files
+repeated_files <- sel1_last_25$fname_sel1[duplicated(sel1_last_25$fname_sel1)]
+cat("Duplicate image files in directory:", repeated_files, "\n")
+
 ```
 
 
