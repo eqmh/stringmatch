@@ -55,7 +55,7 @@ dir_path2 <- "/Users/enrique.montes/Library/CloudStorage/GoogleDrive-enriquemont
 # or use this path
 # dir_path2 <- dir_path <- "~/Library/CloudStorage/GoogleDrive-enriquemontes01@gmail.com/My Drive/GDrive/OCED_AOML/WS_cruises/plankton_imaging/CPICS/ws_cruise_ctd"
 
-file_name <- list.files(path = dir_path2, pattern = "ctd_meta_v3.csv", full.names = TRUE)
+file_name <- list.files(path = dir_path2, pattern = "ctd_meta_v4.csv", full.names = TRUE)
 # # Use with ctd_meta_v2.csv:
 # ctd_meta <- read.csv(file_name, fill = TRUE) %>%
 #   mutate(GMT.datetime = as.POSIXct(GMT.datetime, format="%Y%m%d_%H%M", tz="UTC"))
@@ -86,7 +86,7 @@ for (df_name in data_frame_names) {
   for (i in seq_len(nrow(current_df))) {
     
     # Check if datetime is within range (MAKE SURE THE DATE IS LAST DAY OF LAST MONTH SAMPLED)
-    if (current_df$datetime[i] <= as.POSIXct("2024-03-31 23:59:59", tz = "UTC")) {
+    if (current_df$datetime[i] <= as.POSIXct("2024-11-30 23:59:59", tz = "UTC")) {
       
     # Find the index of the closest datetime in ctd_meta
     closest_index <- which.min(abs(ctd_meta$GMT.datetime - current_df$datetime[i]))
@@ -159,9 +159,9 @@ combined_table$object_depth_min = 1
 
 # Add additional fields
 acquisition_instrument = "CPICS"
-process_pixel = "3.45"
+process_pixel = "4.54"
 acquisition_author = "Enrique Montes (NOAA AOML)"
-acquisition_id = "export_11454_20240726_2245_sfer" # as export_#images_yyyymmdd_hhmm_sfer
+acquisition_id = "export_23642_20241122_1524_sfer" # as export_#images_yyyymmdd_hhmm_sfer
 
 # Add new columns 'acq_author' and 'acq_instrument' to the data frame
 combined_table$acq_author <- rep(acquisition_author, nrow(combined_table))
@@ -224,7 +224,7 @@ write.table(ecotaxa_table, "~/Desktop/ecotaxa_sfer-mbon.tsv", sep = "\t", row.na
 # Check if all files listed in 'ecotaxa_table' are present in the 'selected' directory
 ```{r, echo=FALSE}
 # Directory path where files should be present
-selected_directory <- "~/Desktop/selected_unclassified/"
+selected_directory <- "~/Desktop/selected/"
 
 # Get a list of file names from the data frame
 file_names_in_df <- final_table_all$img_file_name
@@ -253,3 +253,39 @@ if (length(duplicated_files) == 0) {
 }
 
 ```
+
+# Use this to subset the ecotaxa_table by species (object_speciesID)
+```{r, echo=FALSE}
+# Extract the first row of ecotaxa_table as the header row
+header_row <- ecotaxa_table[1, ]
+
+# Extract all unique object_speciesID from final_table_all
+unique_species <- unique(final_table_all$object_speciesID)
+
+# Initialize a list to store data frames
+species_data_frames <- list()
+
+# Loop through each unique species
+for (species in unique_species) {
+  # Find indices where object_speciesID matches the current species
+  species_indices <- which(final_table_all$object_speciesID == species)
+  
+  # Subset ecotaxa_table using these indices, skipping the first row
+  subset_data <- ecotaxa_table[(species_indices + 1), ]
+
+  # Prepend the header_row to the subset
+  species_data_frames[[species]] <- rbind(header_row, subset_data)
+}
+
+# Write each subset to a TSV file
+for (species in names(species_data_frames)) {
+  write.table(species_data_frames[[species]], 
+              paste0("ecotaxa_", species, "_sfer-mbon.tsv"), 
+              sep = "\t", 
+              row.names = FALSE, 
+              quote = FALSE)
+}
+
+```
+
+
