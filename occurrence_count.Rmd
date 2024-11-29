@@ -1305,18 +1305,24 @@ sfer_sta_list <- read.csv(sfer_curated, header = TRUE)
 
 # Map overall mean concentration values of selected taxa per station
 ```{r}
+library(ggOceanMaps)
+
 # List of class names
 # Acantharea, Chaetognaths, Ostracods, Copepods, Decapods, Echinoderms, Jellies, Larvaceans, Polychaets, Pteropods, pellets
 # Centric, Ceratium, Chaetoceros, Chain2, Chain3, Guinardia, Neocalyptrella, Noctiluca, Tricho
-selected_class <- "Chain3"
+selected_class <- "pellets"
 
 taxa_meta_concentration <- taxa_meta %>%
   mutate(across(all_of(selected_class), ~ . / total_vol_sampled * 1e6)) %>%
   select(Station, dec_lat, dec_lon, year, month, date, total_vol_sampled, all_of(selected_class)) %>%
-  filter(!is.na(total_vol_sampled))
+  filter(!is.na(total_vol_sampled)) 
+
+# Exclude rows where selected_class equals 0
+taxa_meta_concentration <- taxa_meta_concentration %>%
+  filter(get(selected_class) > 0)
 
 # Use this to select a specific time period
-taxa_meta_concentration <- taxa_meta_concentration %>% filter(year == 2023 & month == 7)
+# taxa_meta_concentration <- taxa_meta_concentration %>% filter(year == 2023 & month == 7)
 
 # Compute mean concentration of selected groups per station
 taxa_concentration_avg_station <- taxa_meta_concentration %>%
@@ -1364,7 +1370,7 @@ concentration_map_station <- basemap(limits = c(-86, -79.5, 24, 28.5), bathymetr
 # ggsave(paste0("conc_map_station_", selected_class, ".svg"), plot = concentration_map_station, width = 8, height = 6, device = "svg")
 print(concentration_map_station)
 
-# write.csv(dt_station, paste0("df_",selected_class,".csv"), row.names = FALSE)
+write.csv(dt_station, paste0("df_",selected_class,".csv"), row.names = FALSE)
 print(max(dt_station$mean_param_station))
 ```
 
