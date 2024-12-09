@@ -6,7 +6,7 @@ output: html_notebook
 
 # Load data files
 ```{r}
-library(dplyr)
+library(tidyverse)
 
 # specify the directory where the files are located
 dir_path <- "~/Library/CloudStorage/GoogleDrive-enriquemontes01@gmail.com/My Drive/GDrive/OCED_AOML/WS_cruises/plankton_imaging/CPICS/TS.Master_selection"
