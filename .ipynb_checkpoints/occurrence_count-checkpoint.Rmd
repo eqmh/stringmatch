@@ -629,6 +629,7 @@ avg_percent_stackplot
 
 # Generate plots 
 ```{r}
+library(tidyverse)
 library(hrbrthemes)
 library(viridis)
 
