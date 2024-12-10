@@ -1,0 +1,8 @@
+r-base
+r-essentials
+r-tidyverse
+r-paletteer
+r-hrbrthemes
+r-viridis
+r-ggalt
+r-ggoceanmaps
