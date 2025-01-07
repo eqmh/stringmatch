@@ -199,7 +199,7 @@ taxa_meta_long <- taxa_meta_concentration %>%
                names_to = "species", values_to = "species_concentration")
 
 # Filter the data for Stations
-# station_list_fk <- c("WS","21/LK","MR","16","18","10","12","9.5","9","7","2")
+station_list_fk <- c("WS","21/LK","MR","16","18","10","12","9.5","9","7","2")
 # station_list_sr <- c("68","65","64","60","58","57.3","57.2","57.1","57","56","55","54","53","51",
 #                   "49","47","45","41","30","31","33")
 # station_list_cal <- c("CAL5","CAL4","CAL3","CAL2","CAL1","RP1","RP2","RP3","RP4","GP5","BG4","BG3",
@@ -220,11 +220,16 @@ all_stations_taxa <- unique(taxa_meta$Station)
 stations_not_in_taxa <- setdiff(all_stations_taxa, all_stations_bathy)
 
 # filter the data using station lists
+filtered_taxa_meta_long <- taxa_meta_long %>%
+  filter(Station %in% station_list_fk) %>%
+  filter(year > 2023)
+
+# filter the data using station station_list_bathy
 # filtered_taxa_meta_long <- taxa_meta_long %>%
 # filter(Station %in% station_list_bathy[, 2])
 
 # # Without filtering per group of stations but looking at the entire region
-filtered_taxa_meta_long <- taxa_meta_long
+# filtered_taxa_meta_long <- taxa_meta_long
 
 # Calculate mean and standard deviation of species concentration for each date
 summary_data <- filtered_taxa_meta_long %>%
@@ -237,8 +242,8 @@ summary_data <- filtered_taxa_meta_long %>%
 # Combine year and month columns into a single date column
 summary_data$date <- as.Date(paste(summary_data$year, summary_data$month, summary_data$earliest_day, sep = "-")) 
 
-# custom_pal_hex2 <- c('#e41a1c','#377eb8','#4daf4a','#984ea3','#ff7f00','#ffff33','#a65628','#f781bf')
-custom_pal_hex2 <- c('darkturquoise','red','#4daf4a','slategray4','orange','dodgerblue','purple', "yellow","pink","violet")
+custom_pal_hex2 <- c('darkturquoise','#e41a1c','#377eb8','#4daf4a','#984ea3','#ff7f00','#ffff33','#a65628','#f781bf')
+# custom_pal_hex2 <- c('darkturquoise','red','#4daf4a','slategray4','orange','dodgerblue','purple', "yellow","pink","violet")
 
 # Acantharea = darkturquoise
 # Copepods = red
@@ -254,7 +259,7 @@ custom_pal_hex2 <- c('darkturquoise','red','#4daf4a','slategray4','orange','dodg
 
 # Plot time series of mean+sd planton concentration per group of sites
 zz <- ggplot(summary_data, aes(x = date, y = mean_concentration, fill = species)) +
-  geom_bar(stat = "identity", alpha = 0.7) +
+  geom_bar(stat = "identity", alpha = 0.7, width = 1) +
   scale_fill_manual(values = custom_pal_hex2) +
   # geom_errorbar(aes(ymin = 0, ymax = mean_concentration + sd_concentration),
   #               position = position_dodge(width = 0.9), width = 0.2) +
@@ -266,7 +271,7 @@ zz
 # Acantharea, Copepods, Echinoderms, Jellies, Larvaceans, Chaetognaths, Polychaets, Pteropods
 # Centric,Ceratium,Chaetoceros,Chain2,Chain3,Guinardia,Neocalyptrella,Noctiluca,Tricho
 
-selected_group <- "Guinardia"
+selected_group <- "Chain2"
 
 summary_selected <- filtered_taxa_meta_long %>%
   filter(species == selected_group) %>%
@@ -318,7 +323,7 @@ sel_bar <- ggplot(summary_selected, aes(x = as.factor(date), y = species_concent
   
   
 # Save figure as a svg file  
-ggsave(paste0("conc_time-series_1-50m_", selected_group, ".svg"), plot = sel_box, width = 10, height = 8, device = "svg")
+# ggsave(paste0("conc_time-series_1-50m_", selected_group, ".svg"), plot = sel_box, width = 10, height = 8, device = "svg")
 
 # # Create seasonal boxplots
 # Step 1: Define seasons based on the month column
@@ -378,7 +383,7 @@ tidy_plot2 <- tidy_plot +
 tidy_plot2
 
 # Save figure as a svg file  
-ggsave(paste0("tidyplot_seasonal_", selected_group, ".svg"), plot = tidy_plot2, width = 10, height = 10, device = "svg")
+# ggsave(paste0("tidyplot_seasonal_", selected_group, ".svg"), plot = tidy_plot2, width = 10, height = 10, device = "svg")
   
 # # Plot concentration time series for all selected sites
 # kk <- ggplot(summary_selected, aes(x = date, y = species_concentration, shape = factor(Station))) +
