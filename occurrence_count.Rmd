@@ -167,36 +167,36 @@ for (class_name in class_names) {
 # Calculate species concentration (counts/ml) for each species
 
 # # For zooplankton
-# taxa_meta_concentration <- taxa_meta %>%
-#   mutate(across(c(Acantharea,Chaetognaths,Ostracods,Copepods,Decapods,Echinoderms,Jellies,
-#     Larvaceans,Polychaets,Pteropods), ~ ./total_vol_sampled * 1e6)) %>%
-#   select(Station, dec_lat, dec_lon, year, month, date, Avg.chl.a..ug.L.,
-#          temp..degC., salinity, total_vol_sampled,
-#          Acantharea,Chaetognaths,Ostracods,Copepods,Decapods,Echinoderms,
-#          Jellies,Larvaceans,Polychaets,Pteropods) %>%
-#   filter(!is.na(total_vol_sampled))
-# 
-# # # Transform taxa_meta_concentration to long format
-# taxa_meta_long <- taxa_meta_concentration %>%
-#   pivot_longer(cols = c(Acantharea, Chaetognaths,Ostracods,Copepods,Decapods,
-#                         Echinoderms, Jellies, Larvaceans,Polychaets, Pteropods),
-#                names_to = "species", values_to = "species_concentration")
-
-# # For phytoplankton
 taxa_meta_concentration <- taxa_meta %>%
-  mutate(across(c(Centric,Ceratium,Chaetoceros,Chain2,Chain3,Guinardia,Neocalyptrella,
-                  Noctiluca,Tricho), ~ ./total_vol_sampled * 1e6)) %>%
+  mutate(across(c(Acantharea,Chaetognaths,Ostracods,Copepods,Decapods,Echinoderms,Jellies,
+    Larvaceans,Polychaets,Pteropods), ~ ./total_vol_sampled * 1e6)) %>%
   select(Station, dec_lat, dec_lon, year, month, date, Avg.chl.a..ug.L.,
-         temp..degC., salinity,total_vol_sampled,
-         Centric,Ceratium,Chaetoceros,Chain2,Chain3,Guinardia,Neocalyptrella,
-                  Noctiluca,Tricho) %>%
+         temp..degC., salinity, total_vol_sampled,
+         Acantharea,Chaetognaths,Ostracods,Copepods,Decapods,Echinoderms,
+         Jellies,Larvaceans,Polychaets,Pteropods) %>%
   filter(!is.na(total_vol_sampled))
 
 # # Transform taxa_meta_concentration to long format
 taxa_meta_long <- taxa_meta_concentration %>%
-  pivot_longer(cols = c(Centric,Ceratium,Chaetoceros,Chain2,Chain3,Guinardia,Neocalyptrella,
-                  Noctiluca,Tricho),
+  pivot_longer(cols = c(Acantharea, Chaetognaths,Ostracods,Copepods,Decapods,
+                        Echinoderms, Jellies, Larvaceans,Polychaets, Pteropods),
                names_to = "species", values_to = "species_concentration")
+
+# # For phytoplankton
+# taxa_meta_concentration <- taxa_meta %>%
+#   mutate(across(c(Centric,Ceratium,Chaetoceros,Chain2,Chain3,Guinardia,Neocalyptrella,
+#                   Noctiluca,Tricho), ~ ./total_vol_sampled * 1e6)) %>%
+#   select(Station, dec_lat, dec_lon, year, month, date, Avg.chl.a..ug.L.,
+#          temp..degC., salinity,total_vol_sampled,
+#          Centric,Ceratium,Chaetoceros,Chain2,Chain3,Guinardia,Neocalyptrella,
+#                   Noctiluca,Tricho) %>%
+#   filter(!is.na(total_vol_sampled))
+# 
+# # # Transform taxa_meta_concentration to long format
+# taxa_meta_long <- taxa_meta_concentration %>%
+#   pivot_longer(cols = c(Centric,Ceratium,Chaetoceros,Chain2,Chain3,Guinardia,Neocalyptrella,
+#                   Noctiluca,Tricho),
+#                names_to = "species", values_to = "species_concentration")
 
 # Filter the data for Stations
 station_list_fk <- c("WS","21/LK","MR","16","18","10","12","9.5","9","7","2")
@@ -219,7 +219,7 @@ all_stations_taxa <- unique(taxa_meta$Station)
 # Find stations in taxa_meta$Station not present in station_list_bathy 
 stations_not_in_taxa <- setdiff(all_stations_taxa, all_stations_bathy)
 
-# filter the data using station lists
+# filter the data using station lists and selected year
 filtered_taxa_meta_long <- taxa_meta_long %>%
   filter(Station %in% station_list_fk) %>%
   filter(year > 2023)
@@ -252,11 +252,12 @@ spp_colors_phyto <- c("#B4B87FFF", "#9C913FFF", "#585B33FF", "#6EA8ABFF", "#3978
 # Plot time series of mean+sd planton concentration per group of sites
 zz <- ggplot(summary_data, aes(x = month, y = mean_concentration, fill = species)) +
   geom_bar(stat = "identity", alpha = 0.7) +
-  scale_fill_manual(values = spp_colors_phyto) +
+  scale_fill_manual(values = spp_colors_zoopl) +
   # geom_errorbar(aes(ymin = 0, ymax = mean_concentration + sd_concentration),
   #               position = position_dodge(width = 0.9), width = 0.2) +
-  scale_x_discrete(labels = c("Jan", "Mar", "Jul", "Sep", "Nov")) +
   labs(x = "Date", y = expression("Mean density (org. m"^"-3"~")"), fill = "Species") +
+  scale_x_continuous(breaks = 1:12, labels = c("Jan", "Feb", "Mar", "Apr", "May", "Jun", 
+                                               "Jul", "Aug", "Sep", "Oct", "Nov", "Dec")) + 
   theme_minimal() +
     theme(axis.text.x = element_text(size = 18, color = "black"),
           axis.title = element_text(size = 18, color = "black"),
