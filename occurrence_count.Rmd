@@ -242,29 +242,27 @@ summary_data <- filtered_taxa_meta_long %>%
 # Combine year and month columns into a single date column
 summary_data$date <- as.Date(paste(summary_data$year, summary_data$month, summary_data$earliest_day, sep = "-")) 
 
-custom_pal_hex2 <- c('darkturquoise','#e41a1c','#377eb8','#4daf4a','#984ea3','#ff7f00','#ffff33','#a65628','#f781bf')
-# custom_pal_hex2 <- c('darkturquoise','red','#4daf4a','slategray4','orange','dodgerblue','purple', "yellow","pink","violet")
-
-# Acantharea = darkturquoise
-# Copepods = red
-# echinos = #4daf4a
-# Jellies = slategray4
-# Larvaceans = orange
-# Polychaetes = dodgerblue
-# Pteropods = purple
+spp_colors_zoopl <- c("#551F00FF", "#889D35FF", "#DF7700FF", "#F5B642FF","#FFF179FF","#C3F4F6FF", "#6AD5E8FF", "#32B2DAFF", "#7992A6FF", "#C0D1CEFF")
+spp_colors_phyto <- c("#B4B87FFF", "#9C913FFF", "#585B33FF", "#6EA8ABFF", "#397893FF", "#31333FFF", "#8F5715FF", "#BA9A44FF", "#CFBB83FF")
 
 # # Check dominance of groups by calculating the overall mean 
 # test <- summary_data %>% filter(species == "Polychaetes") %>% summarize(avg = mean(mean_concentration))
 # mean(test$avg)
 
 # Plot time series of mean+sd planton concentration per group of sites
-zz <- ggplot(summary_data, aes(x = date, y = mean_concentration, fill = species)) +
-  geom_bar(stat = "identity", alpha = 0.7, width = 1) +
-  scale_fill_manual(values = custom_pal_hex2) +
+zz <- ggplot(summary_data, aes(x = month, y = mean_concentration, fill = species)) +
+  geom_bar(stat = "identity", alpha = 0.7) +
+  scale_fill_manual(values = spp_colors_phyto) +
   # geom_errorbar(aes(ymin = 0, ymax = mean_concentration + sd_concentration),
   #               position = position_dodge(width = 0.9), width = 0.2) +
-  labs(x = "Date", y = "Mean Species Concentration", fill = "Species") +
-  theme_minimal()
+  scale_x_discrete(labels = c("Jan", "Mar", "Jul", "Sep", "Nov")) +
+  labs(x = "Date", y = expression("Mean density (org. m"^"-3"~")"), fill = "Species") +
+  theme_minimal() +
+    theme(axis.text.x = element_text(size = 18, color = "black"),
+          axis.title = element_text(size = 18, color = "black"),
+          axis.text.y = element_text(size = 18, color = "black")) +
+    theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+    theme(axis.line = element_line(color = "black")) 
 zz
 
 # Filter summary_data for selected only
@@ -340,9 +338,6 @@ summary_selected$season <- factor(summary_selected$season, levels = c("Winter", 
 
 # color order zooplankton: 1: Rhizaria spp, 2: Chaetognaths, 3: Copepods, 4: Decapods, 5: Echinoderms, 6: Gelatinous, 7: Larvaceans, 8: Ostracods, 9: Polychaetes, 10: Pteropods
 # color order phytoplankton: 1: Coscinodiscus, 2: Neoceratium, 3: Chaetoceros, 4: Chain diatoms, 5: Skeletonema , 6: Guinardia striata, 7: Neocalyptrella, 8: Hemidiscus, 9: Trichodesmium
-
-spp_colors_zoopl <- c("#551F00FF", "#889D35FF", "#DF7700FF", "#F5B642FF","#FFF179FF","#C3F4F6FF", "#6AD5E8FF", "#32B2DAFF", "#7992A6FF", "#C0D1CEFF")
-spp_colors_phyto <- c("#B4B87FFF", "#9C913FFF", "#585B33FF", "#6EA8ABFF", "#397893FF", "#31333FFF", "#8F5715FF", "#BA9A44FF", "#CFBB83FF")
 
 # Step 3: Create the box plot
   season_boxplot <- ggplot(summary_selected, aes(x = season, y = species_concentration)) +
