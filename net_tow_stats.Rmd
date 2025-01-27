@@ -4,6 +4,10 @@ output: html_document
 date: "2024-11-09"
 ---
 
+```{r}
+source(here::here("lib/sources.R"))
+```
+
 # Load data table
 ```{r setup, include=FALSE}
 library(dplyr)
@@ -45,5 +49,3 @@ stacked_plot <- ggplot(filtered_data, aes(x = as.Date(date), y = total_ind_m3, f
 stacked_plot
 
 ```
-
-

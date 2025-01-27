@@ -142,6 +142,8 @@ missing_filenames
 
 ## Merge roi IDs, cruise data, and roi metadata 
 ```{r, echo=FALSE}
+source(here::here("lib/sources.R"))
+
 # Extract object IDs from final_table_all
 object_ids <- final_table_all$img_file_name
 
@@ -287,5 +289,3 @@ for (species in names(species_data_frames)) {
 }
 
 ```
-
-

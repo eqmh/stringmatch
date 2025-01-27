@@ -1,5 +1,7 @@
 # # This script checks for possible double counting in CPICS ROIs.
 
+source(here::here("lib/sources.R"))
+
 library(dplyr)
 
 # specify the directory where the files are located
@@ -124,5 +126,3 @@ plot2 <- ggplot(aggregated_data, aes(x = class_total_count, y = percent_repeat))
 
 # Print the plot
 print(plot2)
-
-

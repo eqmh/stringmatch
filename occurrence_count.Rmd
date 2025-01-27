@@ -4,6 +4,9 @@ title: "R Notebook: Stringmatch"
 output: none
 ---
 
+```{r}
+source(here::here("lib/sources.R"))
+```
 
 # Load data files
 ```{r}
@@ -304,6 +307,7 @@ custom_date_labels <- as.character(unique_dates)
     scale_x_discrete(labels = custom_date_labels) +
     theme_minimal() +
     theme(axis.text.x = element_text(size = 18, color = "black"),  # Set X-axis label font size
+          axis.title = element_text(size = 18, color = "black"),
           axis.text.y = element_text(size = 18, color = "black")) +
     theme(axis.title.x = element_blank(),
           axis.title.y = element_text(size = 18, color = "black")) +
@@ -699,7 +703,7 @@ custom_colors <- c("3" = "#2A3F6E", "11" = "#3E92E0", "13" = "#B6E7E0FF", "15" =
 # Filter out seascape class as desired
 # df_filtered <- df_filtered[df_filtered$X8.day.seascapes != "5", ]
 
-# Plot
+# # Plot
 # See https://cran.r-project.org/web/packages/viridis/vignettes/intro-to-viridis.html for color palette options
 font_size = 36
 pp <- df_filtered %>%
@@ -869,8 +873,7 @@ shannon_df <- df_long %>%
 # create the bar plot of Shannon diversity
 ff <- ggplot(shannon_df, aes(x = X8.day.seascapes, y = shannon, fill = X8.day.seascapes)) +
   geom_bar(stat = "identity", width = 0.75) +
-  # scale_fill_viridis(option="plasma", discrete = TRUE, alpha=0.6) +
-  scale_x_discrete(labels = seascape_labels) +
+  # scale_fill_viridis(option = "plasma", discrete = TRUE, alpha=0.6) +
   scale_fill_manual(values = custom_colors) +
   xlab("Seascape Class") +
   ylab("Shannon Diversity") +
@@ -1125,7 +1128,7 @@ qq <- ggplot(filt_df_pca, aes(x = pc_scores2[,1], y = pc_scores2[,2], color = X8
   geom_text(aes(x = eigenvectors[1, 6], y = eigenvectors[2, 6], 
                 label = paste("PC6 (", pc_var_percent[6], "%: Temperature)", sep = "")),
             vjust = -0.5, hjust = 0.5, color = "black") +  # Add label for PC6
-  labs(x = "PC1", y = "PC2", color = "Seascape class") +
+  labs(x = "PC1", y = "PC2", color = "Seascape") +
   xlim(-1.5, 1.5) +
   ylim(-1.5, 1.5) +
   guides(colour = guide_legend(title = NULL, override.aes = list(size=7))) + 
@@ -1189,8 +1192,7 @@ qq
 #         axis.title.y = element_text(size = 32)) +
 #   theme(legend.text = element_text(size = 32)) 
 # qq2
-# 
-# 
+  
 # # # For zooplankton
 # qq3 <- ggplot(filt_df_pca, aes(x = pc_scores2[,1], y = pc_scores2[,2], color = X8.day.seascapes)) +
 #   geom_point(size = 4) +
@@ -1246,7 +1248,7 @@ qq
 #         axis.title.y = element_text(size = 32)) +
 #   theme(legend.text = element_text(size = 32)) 
 # qq3
-
+  
 ggsave("seascape_pca_hydro.jpeg", plot = qq, width = 14, height = 9, device = "jpeg")
 
 ```
@@ -1536,137 +1538,4 @@ ggplot(monthly_means, aes(x = year_month, y = mean_value)) +
   ggtitle("Monthly Means of Selected Variable") +
   theme_minimal()
 
-```
-
-
-
-
-
-
-# Match file name with string ID - DO NOT USE
-```{r}
-# library(tidyverse)
-# library(lubridate)
-# library(dplyr)
-# 
-# # extract relevant part of the strings
-# df <- rbind(class.Copepods,
-#             class.Eucampia,
-#             class.Noctiluca,
-#             class.Polychaets,
-#             class.Acantharea,
-#             class.Centric,
-#             class.Ceratium,
-#             class.Chaetoceros,
-#             class.Chain2,
-#             class.Chain3,
-#             class.Chain4,
-#             class.Ostracods,
-#             class.Jellies,
-#             class.Larvaceans,
-#             class.pellets)
-# sub_strings <- substr(df$V1, start = 10, stop = 22)
-# unique_all <- unique(sub_strings)
-# 
-# # select unique dates (this allows to search CTD records per date and time)
-# # To find unique dates and times to extract CDT data use: unique_all[grepl("20221209", unique_all)]
-# 
-# id_list <- unique_all
-# id_list2  <- as.POSIXct(id_list, format="%Y%m%d_%H%M", tz="UTC")
-# 
-# conc_occ_count <- data.frame(date = as.Date(character()), stringsAsFactors = FALSE)
-# 
-# for ( i in seq_along(id_list)){
-#   acantha <- as.data.frame(str_count(class.Acantharea$V1, id_list[i]))
-#   centric <- as.data.frame(str_count(class.Centric$V1, id_list[i]))
-#   ceratium <- as.data.frame(str_count(class.Ceratium$V1, id_list[i]))
-#   chaetoceros <- as.data.frame(str_count(class.Chaetoceros$V1, id_list[i]))
-#   chaetog <- as.data.frame(str_count(class.Chaetognaths$V1, id_list[i]))
-#   chain2 <- as.data.frame(str_count(class.Chain2$V1, id_list[i]))
-#   chain3 <- as.data.frame(str_count(class.Chain3$V1, id_list[i]))
-#   chain4 <- as.data.frame(str_count(class.Chain4$V1, id_list[i]))
-#   ostra <- as.data.frame(str_count(class.Ostracods$V1, id_list[i]))
-#   copepods <- as.data.frame(str_count(class.Copepods$V1, id_list[i]))
-#   decapod <- as.data.frame(str_count(class.Decapods$V1, id_list[i]))
-#   echino <- as.data.frame(str_count(class.Echinoderms$V1, id_list[i]))
-#   eucampia <- as.data.frame(str_count(class.Eucampia$V1, id_list[i]))
-#   jellies <- as.data.frame(str_count(class.Jellies$V1, id_list[i]))
-#   larvae <- as.data.frame(str_count(class.Larvaceans$V1, id_list[i]))
-#   nocti <- as.data.frame(str_count(class.Noctiluca$V1, id_list[i]))
-#   polychaetes <- as.data.frame(str_count(class.Polychaets$V1, id_list[i]))
-#   tricho <- as.data.frame(str_count(class.Tricho$V1, id_list[i]))
-# 
-#   Acantharea <- colSums(acantha != 0)
-#   Centric <- colSums(centric != 0)
-#   Ceratium_spp <- colSums(ceratium != 0)
-#   Chaetoceros <- colSums(chaetoceros != 0)
-#   Chaetognaths <- colSums(chaetog != 0)
-#   Diatom_chains_1 <- colSums(chain2 != 0)
-#   Diatom_chains_2 <- colSums(chain3 != 0)
-#   Diatom_chains_3 <- colSums(chain4 != 0)
-#   Ostracods <- colSums(ostra != 0)
-#   Copepods <- colSums(copepods != 0)
-#   Decapods <- colSums(decapod != 0)
-#   Echinoderms <- colSums(echino != 0)
-#   Eucampia_spp <- colSums(eucampia != 0)
-#   Jellies<- colSums(jellies != 0)
-#   Larvaceans <- colSums(larvae != 0)
-#   Noctiluca <- colSums(nocti != 0)
-#   Polychaetes <- colSums(polychaetes != 0)
-#   Trichodesmium_spp <- colSums(tricho != 0)
-# 
-#   # Parse the date-time string with ymd_hm()
-#   occ_datetime  <- as.POSIXct(id_list[i], format="%Y%m%d_%H%M", tz="UTC")
-#   occ_datetime_str <- substr(id_list[i], 1, 13)
-# 
-#   row_df <- data.frame(date = occ_datetime, occ_datetime_str,
-#                        Acantharea,
-#                        Centric,
-#                        Ceratium_spp,
-#                        Chaetoceros,
-#                        Chaetognaths,
-#                        Diatom_chains_1,
-#                        Diatom_chains_2,
-#                        Diatom_chains_3,
-#                        Ostracods,
-#                        Copepods,
-#                        Decapods,
-#                        Echinoderms,
-#                        Eucampia_spp,
-#                        Jellies,
-#                        Larvaceans,
-#                        Noctiluca,
-#                        Polychaetes,
-#                        Trichodesmium_spp
-#                        )
-#   rownames(row_df) <- i
-# 
-#   conc_occ_count <- rbind(conc_occ_count, row_df)
-# }
-# 
-# conc_occ_final <- arrange(conc_occ_count, date)
-
-```
-
-
-# Match image records with CTD metadata and seascapes (use with strings matching) - DO NOT USE
-```{r}
-# # Directory where the CTD metadata is located
-# dir_path2 <- "~/enriquemontes01@gmail.com - Google Drive/My Drive/GDrive/OCED_AOML/WS_cruises/plankton_imaging/CPICS/ws_cruise_ctd/"
-# file_name <- list.files(path = dir_path2, pattern = ".csv", full.names = TRUE)
-# ctd_meta <- read.csv(file_name, fill = TRUE)
-# 
-# dt_list <- ctd_meta$GMT.datetime
-# 
-# conc_event <- data.frame()
-# 
-# for ( t in seq_along(dt_list)){
-#   event <- str_count(conc_occ_final$occ_datetime_str, dt_list[t])
-#   idx_event <- which(event == 1, arr.ind = TRUE)
-#   occ_row <- conc_occ_final[idx_event, ]
-#   event_meta <- ctd_meta[idx_event, ]
-#   conc_event <- rbind(conc_event, occ_row)
-# }
-# 
-# taxa_meta <- cbind(ctd_meta, conc_event)
 ```
