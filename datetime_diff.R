@@ -1,4 +1,7 @@
 library(lubridate)
+library(here)
+
+source(here::here("lib/sources.R"))
 
 datetime_table <- read.csv('datetime_array.csv', fill = TRUE, stringsAsFactors = FALSE)
 colnames(datetime_table) <- c("year", "month", "day", "hour", "minute", "second")

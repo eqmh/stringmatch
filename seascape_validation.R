@@ -2,6 +2,8 @@ library(tidyverse)
 library(hrbrthemes)
 library(viridis)
 
+source(here::here("lib/sources.R"))
+
 # # Read data table
 dir_path <- "~/Library/CloudStorage/GoogleDrive-enriquemontes01@gmail.com/My Drive/GDrive/OCED_AOML/WS_cruises/plankton_imaging/CPICS/ws_cruise_ctd"
 file_name <- list.files(path = dir_path, pattern = "AOML_SFP_regional_WQ_surface_w_sscp.csv", full.names = TRUE)
@@ -42,7 +44,7 @@ custom_colors <- c("3" = custom_pal_hex[1], "5" = custom_pal_hex[2], "7" = custo
 
 # Filter out seascape class as desired
 seascapes_to_exclude <- c("5", "17", "18")
-df_filtered <- df_filtered[!(df_filtered$seascape_week %in% seascapes_to_exclude), ]
+df_filtered <- df_filtered[!(df_filtered$seascape_week %in% seascape_to_exclude), ]
 df_filtered <- df_filtered[complete.cases(df_filtered$seascape_week),]
 df_filtered <- df_filtered[grepl("^\\d+\\.?\\d*$", df_filtered$chla), , drop = FALSE]
 
@@ -253,4 +255,3 @@ ggplot(row_eigenvectors_df, aes(x = Dim1, y = Dim2, color = as.factor(filt_df_ca
        color = "Seascape Week",
        title = "Correspondence Analysis: Column Eigenvectors with Observations") +
   scale_color_discrete(name = "Seascape Week")
-

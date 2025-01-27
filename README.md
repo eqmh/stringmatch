@@ -10,3 +10,21 @@ Workflow:
 - Place ecotaxa_sfer-mbon.txt into 'selected' folder containing all annotated images and zip compress
 - Upload to Ecotaxa
 - If metadata will be updated the ecotaxa_import.tsv file must be zip compressed, otherwise Ecotaxa does not recognize it.
+
+## Data Paths
+- `cpics_img`: Directory on the office Mac Desktop for CPICS images.
+- `TS.Master_selection`: Directory for lists of annotation.
+- `selected`: Folder containing all annotated images and zip compress.
+- `ecotaxa_sfer-mbon.txt`: File to be placed in the `selected` folder.
+- `ecotaxa_import.tsv`: Metadata file that must be zip compressed if updated.
+
+## Execution Sequence
+1. `img_distributor.Rmd`: Copy annotated images into class folders and unclassified folder.
+2. `getmajorandminoraxis2024_4_PH.py`: Extract deep features (located in the nioz folder).
+3. `photometa_pycode.Rmd`: Merge image records with cruise data and deep feature tables.
+4. `occurrence_count.ipynb`: Analyze occurrence counts.
+5. `class_recount_stats.R`: Recount class statistics.
+6. `datetime_diff.R`: Calculate datetime differences.
+7. `loop_test.R`: Test loops for data processing.
+8. `seascape_validation.R`: Validate seascape data.
+9. `plankton_spp_obis.R`: Process plankton species data for OBIS.

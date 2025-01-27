@@ -34,6 +34,8 @@ data_frame_names <- ls(pattern = "^class\\.")  # Get all data frames starting wi
 
 # Set path to and create main directories (base directory where all images are and destination directory)
 ```{r}
+source(here::here("lib/sources.R"))
+
 path_to_files <- "~/Desktop/cpics_img/" # Base directory for all images
 selected_base_dir <- "~/Desktop/selected_per_class/"  # Base directory for selected files in separate folders
 selected_destination_dir_all <- "~/Desktop/selected/"  # Base directory for selected files in common folder
@@ -231,5 +233,3 @@ cat("Folders containing repeated files:\n")
 print(folders_with_repeats)
 
 ```
-
-

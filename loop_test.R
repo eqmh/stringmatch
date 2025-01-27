@@ -16,6 +16,8 @@ for (file in file_names) {
 library(tidyverse)
 library(lubridate)
 
+source(here::here("lib/sources.R"))
+
 # Directory where the CTD metadata is located
 dir_path2 <- "/Users/enrique.montes/Library/CloudStorage/GoogleDrive-enriquemontes01@gmail.com/My Drive/GDrive/OCED_AOML/WS_cruises/plankton_imaging/CPICS/ws_cruise_ctd"
 file_name <- list.files(path = dir_path2, pattern = "ctd_meta_v3.csv", full.names = TRUE)

@@ -147,6 +147,7 @@ if (length(duplicated_files) == 0) {
 
 # # In addition, it combines it with the data from a second script which performs an unsupervised clustering algorithm "imageclust_4_20240325.py", and adds predicted clusters to it, which can be used to sort the data in ecotaxa.
 ```{r cars}
+source(here::here("lib/sources.R"))
 ellipse_tbl  = "ellipse_datahighlights"
 whichfile = "export_00001_20240422_1200"
 df = read_csv(paste(ellipse_tbl, ".csv", sep = ""))
