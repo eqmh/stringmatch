@@ -5,6 +5,7 @@ Workflow:
 - Download data from CPICS into 'cpics_img' in the office Mac Desktop
 - Download lists of annotation into 'TS.Master_selection'
 - Run img_distributor.md to copy annotated images into class folders and unclassified folder
+- - Define date in lines 77 and 148 to exclude records previously processed
 - Run getmajorandminoraxis2024_4_PH.py to extract deep features:
 - - No need to change anything in the code
 - - Run code on terminal: python getmajorandminoraxis2024_4_PH.py
