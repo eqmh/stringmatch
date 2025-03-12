@@ -73,9 +73,22 @@ for (df_name in data_frame_names) {
   # Get the data frame name without the "class." prefix
   df_name_without_prefix <- sub("^class\\.", "", df_name)
   
+  # Filter out rows with 'date' values prior to 2025-01-01
+  current_df <- current_df %>% filter(date >= as.POSIXct("2025-01-01", tz="UTC"))
+  
+  # Skip the loop if no rows are left after filtering
+  if (nrow(current_df) == 0) {
+    next
+  }
+
   # Iterate through each row in the data frame
   for (row in 1:nrow(current_df)) {
     filename <- current_df[row, "img_file_name"]
+    
+    # Skip if filename is NA or empty
+    if (is.na(filename) || filename == "") {
+      next
+    }
     
     # Construct the full path to the image file in the main directory
     full_path <- file.path(path_to_files, filename)
@@ -131,6 +144,14 @@ for (df_name in data_frame_names) {
   # Get the data frame name without the "class." prefix
   df_name_without_prefix <- sub("^class\\.", "", df_name)
   
+  # Filter out rows with 'date' values prior to 2025-01-01
+  current_df <- current_df %>% filter(date >= as.POSIXct("2025-01-01", tz="UTC"))
+  
+  # Skip the loop if no rows are left after filtering
+  if (nrow(current_df) == 0) {
+    next
+  }
+
   # Create directory for the current taxa list under the base selected directory
   selected_destination_dir <- file.path(selected_base_dir, df_name_without_prefix)
   if (!dir.exists(selected_destination_dir)) {
@@ -140,6 +161,11 @@ for (df_name in data_frame_names) {
   # Iterate through each row in the data frame
   for (row in 1:nrow(current_df)) {
     filename <- current_df[row, "img_file_name"]
+    
+    # Skip if filename is NA or empty
+    if (is.na(filename) || filename == "") {
+      next
+    }
     
     # Construct the full path to the image file in the main directory
     full_path <- file.path(path_to_files, filename)
@@ -231,5 +257,6 @@ cat("Folders containing repeated files:\n")
 print(folders_with_repeats)
 
 ```
+`````
 
 
