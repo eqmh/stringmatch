@@ -1,0 +1,217 @@
+---
+title: "CPICS Metadata"
+# output: html_notebook
+output: none
+---
+
+
+# Load data files
+```{r}
+library(tidyverse)
+
+# specify the directory where the files are located
+dir_path <- "~/Library/CloudStorage/GoogleDrive-enriquemontes01@gmail.com/My Drive/GDrive/OCED_AOML/WS_cruises/plankton_imaging/CPICS/TS.Master_selection"
+
+# obtain a list of file names in the directory
+file_names <- list.files(path = dir_path, pattern = ".txt", full.names = TRUE)
+
+# loop over each file and import the tables (use this for DATES)
+for (file in file_names) {
+  table_name <- gsub(".txt", "", basename(file)) # get the name of the table from the file name
+  assign(table_name, read.table(file = file, header = FALSE, sep = "\t") %>%
+           mutate(date = as.POSIXct(substr(V1, start = 24, stop = 36), format="%Y%m%d_%H%M", tz="UTC")))
+}
+
+```
+
+
+# # This section detects short transit times between stations 
+```{r}
+library(lubridate)
+
+dir_path2 <- "~/Library/CloudStorage/GoogleDrive-enriquemontes01@gmail.com/My Drive/GDrive/OCED_AOML/WS_cruises/plankton_imaging/CPICS/ws_cruise_ctd"
+
+file_name <- list.files(path = dir_path2, pattern = "ctd_meta_v4.csv", full.names = TRUE)
+ctd_meta <- read.csv(file_name, fill = TRUE)
+
+# USE WITH ctd_meta_v4.csv
+dt_list <- as.POSIXct(paste(ctd_meta$year,
+                            sprintf("%02d", ctd_meta$month),
+                            sprintf("%02d", ctd_meta$day),
+                            ctd_meta$time_gmt),
+                      format = "%Y%m%d %I:%M:%S %p",
+                      tz = "UTC")
+
+# Calculate time differences in seconds between consecutive dt_list objects
+time_differences <- as.numeric(difftime(dt_list[-1], dt_list[-length(dt_list)], units = "secs"))
+
+# Convert time differences from seconds to minutes
+time_differences_mins <- time_differences / 60
+
+# Create a data frame showing the original times and their differences in minutes
+time_diff_df <- data.frame(
+  start_time = dt_list[-length(dt_list)],
+  end_time = dt_list[-1],
+  time_difference_mins = time_differences_mins
+)
+
+# find CTD time stamps of consecutive stations within less than 20 min. This will identify CTD casts that are close to each other
+short_t_idx <- which(time_diff_df$time_difference_mins < 20)
+short_timestamps <- dt_list[short_t_idx]
+```
+
+# # Match file name using DATE values
+```{r}
+# Create empty data frame to store results
+conc_occ_final <- data.frame(date = character(), count = numeric())
+
+# List of class objects to be processed
+class_names <- c("Acantharea", "Centric", "Ceratium", "Chaetoceros", "Chaetognaths", 
+                 "Chain2", "Chain3", "Ostracods", "Copepods", "Decapods", "Echinoderms", 
+                 "Guinardia", "Jellies", "Larvaceans", "Neocalyptrella", "Noctiluca", 
+                 "pellets", "Polychaets", "Pteropods", "Tricho")
+
+# time buffer before and after CTD time in seconds so that CPICS records are matched to CTD times.
+start <- 10 * 60 
+stop <- 10 * 60 
+
+# Define the date limit
+date_limit <- as.POSIXct("2024-11-30", tz = "UTC")
+
+# Iterate over dt_list intervals
+for (i in 1:length(dt_list)) {
+  
+  # Initialize a list to store counts for the current interval
+  counts_list <- list(date = dt_list[i])
+  
+  # Iterate over each class object and perform subsetting
+  for (class_name in class_names) {
+    class_data <- get(paste0("class.", class_name))  # Dynamically get the class data frame
+    
+    # Filter out rows with dates after the date limit
+    class_data <- subset(class_data, date <= date_limit)
+    
+    if (i < length(dt_list)) {
+      # Subsetting for all intervals except the last one
+      subset_data <- subset(class_data, date >= dt_list[i]-start & date < dt_list[i+1]-stop)
+    } else {
+      # Subsetting for the last interval: capture all data greater than or equal to the last dt_list
+      subset_data <- subset(class_data, date >= dt_list[i]-start)
+    }
+    
+    counts_list[[class_name]] <- nrow(subset_data)
+  }
+  
+  # Convert counts_list to a data frame and bind it to the result
+  result <- as.data.frame(counts_list)
+  conc_occ_final <- rbind(conc_occ_final, result)
+} 
+
+# Combine with ctd_meta
+taxa_meta <- cbind(ctd_meta, conc_occ_final)
+```
+
+
+# # Check for unaccounted CPICS records 
+```{r}
+# Initialize a list to store unaccounted dates for each class
+unaccounted_dates_list <- list()
+
+# Iterate over each class object
+for (class_name in class_names) {
+  # Get the date-time objects from the current class
+  sel_class_dates <- get(paste0("class.", class_name))$date
+  
+  # Initialize a logical vector to track whether each class date is accounted for
+  is_accounted_for <- rep(FALSE, length(sel_class_dates))
+  
+  # Check each class date against the intervals in dt_list
+  for (i in 1:length(dt_list)) {
+    if (i < length(dt_list)) {
+      # Check all intervals except the last one
+      interval_start <- dt_list[i] - start
+      interval_end <- dt_list[i + 1] - stop
+    } else {
+      # Last interval captures all data greater than or equal to the last dt_list
+      interval_start <- dt_list[i] - start
+      interval_end <- date_limit  # Use date limit above
+    }
+    
+    # Mark class dates that fall within the current interval as accounted for
+    is_accounted_for <- is_accounted_for | (sel_class_dates >= interval_start & sel_class_dates < interval_end)
+  }
+  
+  # Subset the class dates that were not accounted for
+  unaccounted_sel_class_dates <- sel_class_dates[!is_accounted_for]
+  
+  # Store the unaccounted dates in the list
+  unaccounted_dates_list[[class_name]] <- unaccounted_sel_class_dates
+}
+
+# Print or view the unaccounted dates for each class
+for (class_name in class_names) {
+  cat("Unaccounted dates for class:", class_name, "\n")
+  print(unaccounted_dates_list[[class_name]])
+  cat("\n")
+}
+```
+
+# # Calculate plankton concentration time series per station
+```{r}
+# Calculate species concentration (counts/ml) for each species
+taxa_concentration <- taxa_meta %>%
+  mutate(across(c(Acantharea,
+                  Centric,
+                  Ceratium,
+                  Chaetoceros,
+                  Chaetognaths,
+                  Chain2,
+                  Chain3,
+                  Ostracods,
+                  Copepods,
+                  Decapods,
+                  Echinoderms,
+                  Guinardia,
+                  Jellies,
+                  Larvaceans,
+                  Neocalyptrella,
+                  Noctiluca,
+                  pellets,
+                  Polychaets,
+                  Pteropods, 
+                  Tricho), ~ ./total_vol_sampled * 1e6)) %>%
+  select(Station, 
+         dec_lat, 
+         dec_lon, 
+         year, 
+         month, 
+         date, 
+         temp..degC., 
+         salinity,
+         X8.day.seascapes,
+         monthly.seascapes,
+         total_vol_sampled,
+         Acantharea,
+         Centric,
+         Ceratium,
+         Chaetoceros,
+         Chaetognaths,
+         Chain2,
+         Chain3,
+         Ostracods,
+         Copepods,
+         Decapods,
+         Echinoderms,
+         Guinardia,
+         Jellies,
+         Larvaceans,
+         Neocalyptrella,
+         Noctiluca,
+         pellets,
+         Polychaets,
+         Pteropods, 
+         Tricho) %>%
+  filter(!is.na(total_vol_sampled))
+
+write.csv(taxa_concentration, file = "sfer_taxa_concentration.csv", row.names = FALSE)
+```

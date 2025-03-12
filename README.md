@@ -11,7 +11,7 @@ Workflow:
 - - Run code on terminal: python getmajorandminoraxis2024_4_PH.py
 - - A prompt will appear for selecting the folder where images are
 - - A .csv table with deep features will be saved in the Desktop as ellipse_datatest_ecotaxa.csv
-- Run photometa_pycode.Rmd to merge image records with cruise data and deep feature tables
+- Run photometa_pycode.Rmd for images in 'selected' or photometa_pycode_per_taxa.Rmd in 'selected_per_class' to merge image records with cruise data and deep feature tables
 - Place ecotaxa_sfer-mbon.txt into 'selected' folder containing all annotated images and zip compress
 - Upload to Ecotaxa
 - If metadata will be updated the ecotaxa_import.tsv file must be zip compressed, otherwise Ecotaxa does not recognize it.
