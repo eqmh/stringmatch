@@ -5,9 +5,11 @@ Workflow:
 - Download data from CPICS into 'cpics_img' in the office Mac Desktop
 - Download lists of annotation into 'TS.Master_selection'
 - Run img_distributor.md to copy annotated images into class folders and unclassified folder
-- Run getmajorandminoraxis2024_4_PH.py (nioz folder) to extract deep features:
-- - Path is ‘image_folder’ (line 118) must point to where the images are 
-- - The .csv table with deep features will be saved in the Desktop as ellipse_datatest_ecotaxa.csv
+- Run getmajorandminoraxis2024_4_PH.py to extract deep features:
+- - No need to change anything in the code
+- - Run code on terminal: python getmajorandminoraxis2024_4_PH.py
+- - A prompt will appear for selecting the folder where images are
+- - A .csv table with deep features will be saved in the Desktop as ellipse_datatest_ecotaxa.csv
 - Run photometa_pycode.Rmd to merge image records with cruise data and deep feature tables
 - Place ecotaxa_sfer-mbon.txt into 'selected' folder containing all annotated images and zip compress
 - Upload to Ecotaxa
