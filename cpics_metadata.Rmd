@@ -58,6 +58,10 @@ time_diff_df <- data.frame(
 # find CTD time stamps of consecutive stations within less than 20 min. This will identify CTD casts that are close to each other
 short_t_idx <- which(time_diff_df$time_difference_mins < 20)
 short_timestamps <- dt_list[short_t_idx]
+
+# Print or return the list of missing filenames
+print("Time stamps of stations occupied within less that 20 min apart:")
+short_timestamps
 ```
 
 # # Match file name using DATE values
@@ -180,7 +184,8 @@ taxa_concentration <- taxa_meta %>%
                   Polychaets,
                   Pteropods, 
                   Tricho), ~ ./total_vol_sampled * 1e6)) %>%
-  select(Station, 
+  select(cruiseID,
+         Station, 
          dec_lat, 
          dec_lon, 
          year, 
@@ -212,6 +217,42 @@ taxa_concentration <- taxa_meta %>%
          Pteropods, 
          Tricho) %>%
   filter(!is.na(total_vol_sampled))
+
+# # Rename column headers to fix taxonomy or variable naming
+taxa_concentration <- taxa_concentration %>%
+  rename(
+    cruise_id = cruiseID,
+    station = Station,
+    decimalLatitude = dec_lat,
+    decimalLongitude = dec_lon,
+    year = year,
+    month = month,
+    collection_date = date,
+    temp = temp..degC., 
+    salinity = salinity,
+    seascape_8day = X8.day.seascapes,
+    seascape_monthly = monthly.seascapes,
+    rhizaria = Acantharea,
+    centric_diatoms = Centric,
+    ceratium_spp = Ceratium,
+    chaetoceros_spp = Chaetoceros,
+    chaetognaths = Chaetognaths,
+    mixed_chain_diatoms = Chain2,
+    skeletonema_spp = Chain3,
+    ostracoda = Ostracods,
+    copepoda = Copepods,
+    decapoda = Decapods,
+    echinoderma = Echinoderms,
+    g_striata = Guinardia,
+    gelatinous = Jellies,
+    appendicularia = Larvaceans,
+    neocalyptrella_spp = Neocalyptrella,
+    coscinodiscus_spp = Noctiluca,
+    fecal_pellets = pellets,
+    polychaete = Polychaets,
+    pteropoda = Pteropods, 
+    trichodesmium_spp = Tricho 
+  )
 
 write.csv(taxa_concentration, file = "sfer_taxa_concentration.csv", row.names = FALSE)
 ```
