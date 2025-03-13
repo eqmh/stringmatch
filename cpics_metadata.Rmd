@@ -247,7 +247,7 @@ taxa_concentration <- taxa_concentration %>%
     gelatinous = Jellies,
     appendicularia = Larvaceans,
     neocalyptrella_spp = Neocalyptrella,
-    coscinodiscus_spp = Noctiluca,
+    hemidiscus_spp = Noctiluca,
     fecal_pellets = pellets,
     polychaete = Polychaets,
     pteropoda = Pteropods, 
