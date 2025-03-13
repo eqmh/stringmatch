@@ -74,7 +74,7 @@ for (df_name in data_frame_names) {
   df_name_without_prefix <- sub("^class\\.", "", df_name)
   
   # Filter out rows with 'date' values prior to 2025-01-01
-  current_df <- current_df %>% filter(date >= as.POSIXct("2025-01-01", tz="UTC"))
+  current_df <- current_df %>% filter(date >= as.POSIXct("2024-11-01", tz="UTC") & date <= as.POSIXct("2024-11-30", tz="UTC"))
   
   # Skip the loop if no rows are left after filtering
   if (nrow(current_df) == 0) {
@@ -144,8 +144,8 @@ for (df_name in data_frame_names) {
   # Get the data frame name without the "class." prefix
   df_name_without_prefix <- sub("^class\\.", "", df_name)
   
-  # Filter out rows with 'date' values prior to 2025-01-01
-  current_df <- current_df %>% filter(date >= as.POSIXct("2025-01-01", tz="UTC"))
+  # Filter out rows with 'date' values outside selected time period (e.g. from 2024-11-01 to 2024-11-30)
+  current_df <- current_df %>% filter(date >= as.POSIXct("2024-11-01", tz="UTC") & date <= as.POSIXct("2024-11-30", tz="UTC"))
   
   # Skip the loop if no rows are left after filtering
   if (nrow(current_df) == 0) {
