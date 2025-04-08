@@ -12,6 +12,10 @@ dir_path <- "/Users/enrique.montes/Desktop/test"
 # Get a list of all `.zip` files in the directory
 zip_files <- list.files(path = dir_path, pattern = "\\.zip$", full.names = TRUE)
 
+# Create a temporary directory to store extracted .tsv files
+extracted_tsv_dir <- tempfile()
+dir.create(extracted_tsv_dir)
+
 # Loop through each `.zip` file
 for (zip_file in zip_files) {
   
@@ -27,6 +31,9 @@ for (zip_file in zip_files) {
   tsv_file <- list.files(temp_dir, pattern = "\\.tsv$", full.names = TRUE, recursive = TRUE, ignore.case = TRUE)
   tsv_file <- tsv_file[!grepl("__MACOSX", tsv_file)]  # Exclude macOS metadata
   
+  # Debug: Print the found .tsv files
+  print(".tsv file found")
+  
   if (length(tsv_file) == 1) {
     # Read the `.tsv` file
     df <- readr::read_tsv(tsv_file, show_col_types = FALSE)
@@ -37,8 +44,22 @@ for (zip_file in zip_files) {
     # Write the modified `.tsv` file back
     write.table(df, file = tsv_file, sep = "\t", row.names = FALSE)
     
+    # Generate a new file name for the extracted .tsv file
+    zip_file_name <- tools::file_path_sans_ext(basename(zip_file))  # Get the zip file name without extension
+    new_tsv_name <- file.path(extracted_tsv_dir, paste0("ecotaxa_export_", zip_file_name, ".tsv"))
+    
+    # Copy the modified .tsv file to the extracted_tsv_dir with the new name
+    success <- file.copy(tsv_file, new_tsv_name)
+    
+    # Debug: Check if the file was successfully copied
+    if (success) {
+      print("Copied .tsv file to directory")
+    } else {
+      print("Failed to copy .tsv file")
+    }
+    
   } else {
-    warning(paste("No .tsv file found in", zip_file))
+    warning("No .tsv file found in zip file")
   }
   
   # Compress the folder back into a `.zip` file
@@ -61,7 +82,40 @@ for (zip_file in zip_files) {
   unlink(temp_dir, recursive = TRUE)
 }
 
+# Debug: Check the contents of the extracted_tsv_dir
+files_in_dir <- list.files(extracted_tsv_dir, full.names = TRUE)
+print("Contents of extracted_tsv_dir:")
+print(paste("Number of files in extracted_tsv_dir:", length(files_in_dir)))
+
+# Create a new zip file containing all the extracted .tsv files
+output_zip <- file.path(dir_path, "extracted_tsv_files.zip")
+old_wd <- getwd()
+setwd(extracted_tsv_dir)
+
+# Get the list of files (relative paths) in the extracted_tsv_dir
+files_to_zip <- list.files()
+
+# Debug: Check the files to be zipped
+print("Files to be zipped:")
+print(files_to_zip)
+
+# Use the zip command to create the zip file
+if (length(files_to_zip) > 0) {
+  zip(output_zip, files = files_to_zip)
+  print(paste("Created zip file with extracted .tsv files:", output_zip))
+} else {
+  print("No .tsv files found to zip.")
+}
+
+setwd(old_wd)
+
+# Clean up the temporary directory for extracted .tsv files
+unlink(extracted_tsv_dir, recursive = TRUE)
+
 print("Processing complete!")
+
+# # #########################################################################################
+# # #########################################################################################
 
 # Use this section for making changes to the tsv table of a selected folder.
 # read table
