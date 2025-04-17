@@ -1,0 +1,18 @@
+---
+title: "Bathymetry Extractor"
+output: github_document
+---
+
+## GitHub Documents
+
+You can include R code in the document as follows:
+
+```{r}
+library(terra)
+
+# Load the raster file
+gebco_raster <- rast("gebco_2024_n28.5_s24.0_w-86.0_e-79.5.tif")
+
+# Plot the raster (optional)
+plot(gebco_raster)
+```
