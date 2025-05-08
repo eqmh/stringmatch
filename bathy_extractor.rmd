@@ -44,5 +44,5 @@ stations$tot_depth_water_col <- extracted_values[, 2]
 head(stations)
 
 # write table with bathymetry values
-stations_bathy <- write.csv(stations, "stations_bathy.csv", row.names = FALSE)
+# stations_bathy <- write.csv(stations, "stations_bathy.csv", row.names = FALSE)
 ```
