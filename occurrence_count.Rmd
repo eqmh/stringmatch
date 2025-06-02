@@ -265,7 +265,7 @@ zz
 # Acantharea, Copepods, Echinoderms, Jellies, Larvaceans, Chaetognaths, Polychaets, Pteropods
 # Centric,Ceratium,Chaetoceros,Chain2,Chain3,Guinardia,Neocalyptrella,Noctiluca,Tricho
 
-selected_group <- "Chain2"
+selected_group <- "Noctiluca"
 
 summary_selected <- filtered_taxa_meta_long %>%
   filter(species == selected_group) %>%
