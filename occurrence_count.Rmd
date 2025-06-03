@@ -161,36 +161,36 @@ for (class_name in class_names) {
 # Calculate species concentration (counts/ml) for each species
 
 # # For zooplankton
-# taxa_meta_concentration <- taxa_meta %>%
-#   mutate(across(c(Acantharea,Chaetognaths,Ostracods,Copepods,Decapods,Echinoderms,Jellies,
-#     Larvaceans,Polychaets,Pteropods), ~ ./total_vol_sampled * 1e6)) %>%
-#   select(Station, dec_lat, dec_lon, year, month, date, Avg.chl.a..ug.L.,
-#          temp..degC., salinity, total_vol_sampled,
-#          Acantharea,Chaetognaths,Ostracods,Copepods,Decapods,Echinoderms,
-#          Jellies,Larvaceans,Polychaets,Pteropods) %>%
-#   filter(!is.na(total_vol_sampled))
-# 
-# # # Transform taxa_meta_concentration to long format
-# taxa_meta_long <- taxa_meta_concentration %>%
-#   pivot_longer(cols = c(Acantharea, Chaetognaths,Ostracods,Copepods,Decapods,
-#                         Echinoderms, Jellies, Larvaceans,Polychaets, Pteropods),
-#                names_to = "species", values_to = "species_concentration")
-
-# # For phytoplankton
 taxa_meta_concentration <- taxa_meta %>%
-  mutate(across(c(Centric,Ceratium,Chaetoceros,Chain2,Chain3,Guinardia,Neocalyptrella,
-                  Noctiluca,Tricho), ~ ./total_vol_sampled * 1e6)) %>%
+  mutate(across(c(Acantharea,Chaetognaths,Ostracods,Copepods,Decapods,Echinoderms,Jellies,
+    Larvaceans,Polychaets,Pteropods), ~ ./total_vol_sampled * 1e6)) %>%
   select(Station, dec_lat, dec_lon, year, month, date, Avg.chl.a..ug.L.,
-         temp..degC., salinity,total_vol_sampled,
-         Centric,Ceratium,Chaetoceros,Chain2,Chain3,Guinardia,Neocalyptrella,
-                  Noctiluca,Tricho) %>%
+         temp..degC., salinity, total_vol_sampled,
+         Acantharea,Chaetognaths,Ostracods,Copepods,Decapods,Echinoderms,
+         Jellies,Larvaceans,Polychaets,Pteropods) %>%
   filter(!is.na(total_vol_sampled))
 
 # # Transform taxa_meta_concentration to long format
 taxa_meta_long <- taxa_meta_concentration %>%
-  pivot_longer(cols = c(Centric,Ceratium,Chaetoceros,Chain2,Chain3,Guinardia,Neocalyptrella,
-                  Noctiluca,Tricho),
+  pivot_longer(cols = c(Acantharea, Chaetognaths,Ostracods,Copepods,Decapods,
+                        Echinoderms, Jellies, Larvaceans,Polychaets, Pteropods),
                names_to = "species", values_to = "species_concentration")
+
+# # For phytoplankton
+# taxa_meta_concentration <- taxa_meta %>%
+#   mutate(across(c(Centric,Ceratium,Chaetoceros,Chain2,Chain3,Guinardia,Neocalyptrella,
+#                   Noctiluca,Tricho), ~ ./total_vol_sampled * 1e6)) %>%
+#   select(Station, dec_lat, dec_lon, year, month, date, Avg.chl.a..ug.L.,
+#          temp..degC., salinity,total_vol_sampled,
+#          Centric,Ceratium,Chaetoceros,Chain2,Chain3,Guinardia,Neocalyptrella,
+#                   Noctiluca,Tricho) %>%
+#   filter(!is.na(total_vol_sampled))
+# 
+# # # Transform taxa_meta_concentration to long format
+# taxa_meta_long <- taxa_meta_concentration %>%
+#   pivot_longer(cols = c(Centric,Ceratium,Chaetoceros,Chain2,Chain3,Guinardia,Neocalyptrella,
+#                   Noctiluca,Tricho),
+#                names_to = "species", values_to = "species_concentration")
 
 # Filter the data for Stations
 station_list_fk <- c("WS","21/LK","MR","16","18","10","12","9.5","9","7","2")
@@ -247,7 +247,7 @@ spp_colors_phyto <- c("#B4B87FFF", "#9C913FFF", "#585B33FF", "#6EA8ABFF", "#3978
 # Plot time series of mean+sd planton concentration per group of sites
 zz <- ggplot(summary_data, aes(x = date, y = mean_concentration, fill = species)) +
   geom_bar(stat = "identity", alpha = 0.7) +
-  scale_fill_manual(values = spp_colors_phyto) +
+  scale_fill_manual(values = spp_colors_zoopl) +
   # geom_errorbar(aes(ymin = 0, ymax = mean_concentration + sd_concentration),
   #               position = position_dodge(width = 0.9), width = 0.2) +
   labs(x = "Date", y = expression("Mean density (org. m"^"-3"~")"), fill = "Species") +
@@ -262,10 +262,10 @@ zz <- ggplot(summary_data, aes(x = date, y = mean_concentration, fill = species)
 zz
 
 # Filter summary_data for selected only
-# Acantharea, Copepods, Echinoderms, Jellies, Larvaceans, Chaetognaths, Polychaets, Pteropods
+# Acantharea, Copepods, Echinoderms, Jellies, Larvaceans, Chaetognaths, Polychaets, Pteropods, Ostracods
 # Centric,Ceratium,Chaetoceros,Chain2,Chain3,Guinardia,Neocalyptrella,Noctiluca,Tricho
 
-selected_group <- "Tricho"
+selected_group <- "Ostracods"
 
 summary_selected <- filtered_taxa_meta_long %>%
   filter(species == selected_group) %>%
@@ -290,7 +290,7 @@ custom_date_labels <- as.character(unique_dates)
     geom_jitter(width = 0.25, aes(color = temp..degC.), size = 3, alpha = 0.6) +
     labs(x = "Date", y = expression("Density (org. m"^"-3"~")")) +
     scale_color_viridis_c(name = "Temperature (°C)", option = "inferno", limits = c(18, 32)) +
-    scale_y_log10(labels = scales::trans_format("log10", scales::math_format(10^.x)), limits = c(1e2, 1e6)) +
+    scale_y_log10(labels = scales::trans_format("log10", scales::math_format(10^.x)), limits = c(1e2, 1e5)) +
     # scale_size_continuous(name = "Salinity", # with salinity included
     #                       limits = c(30, 38),
     #                       breaks = c(30, 32, 34, 36, 38),
