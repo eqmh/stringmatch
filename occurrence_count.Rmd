@@ -265,7 +265,7 @@ zz
 # Acantharea, Copepods, Echinoderms, Jellies, Larvaceans, Chaetognaths, Polychaets, Pteropods
 # Centric,Ceratium,Chaetoceros,Chain2,Chain3,Guinardia,Neocalyptrella,Noctiluca,Tricho
 
-selected_group <- "Noctiluca"
+selected_group <- "Tricho"
 
 summary_selected <- filtered_taxa_meta_long %>%
   filter(species == selected_group) %>%
@@ -289,7 +289,7 @@ custom_date_labels <- as.character(unique_dates)
     # geom_jitter(width = 0.25, aes(color = temp..degC., size = salinity), alpha = 0.6) + # with salinity included
     geom_jitter(width = 0.25, aes(color = temp..degC.), size = 3, alpha = 0.6) +
     labs(x = "Date", y = expression("Density (org. m"^"-3"~")")) +
-    scale_color_viridis_c(name = "Temperature (°C)", option = "inferno") +
+    scale_color_viridis_c(name = "Temperature (°C)", option = "inferno", limits = c(18, 32)) +
     scale_y_log10(labels = scales::trans_format("log10", scales::math_format(10^.x)), limits = c(1e2, 1e6)) +
     # scale_size_continuous(name = "Salinity", # with salinity included
     #                       limits = c(30, 38),
