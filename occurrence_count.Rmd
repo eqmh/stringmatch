@@ -1256,27 +1256,17 @@ library(leaflet)
 # List of class names
 # Acantharea, Chaetognaths, Ostracods, Copepods, Decapods, Echinoderms, Jellies, Larvaceans, Polychaets, Pteropods
 # Centric, Ceratium, Chaetoceros, Chain2, Chain3, Guinardia, Neocalyptrella, Noctiluca, Tricho
-selected_class <- "Tricho"
+selected_class <- "Chain2"
 
-# For zooplankton
+# Create df for selected group
 taxa_meta_concentration <- taxa_meta %>%
   mutate(across(all_of(selected_class), ~ . / total_vol_sampled * 1e6)) %>%
   select(Station, dec_lat, dec_lon, year, month, date, total_vol_sampled, all_of(selected_class)) %>%
   filter(!is.na(total_vol_sampled))
 
-# # For phytoplankton
-# taxa_meta_concentration <- taxa_meta %>%
-#   mutate(across(c(Centric,Ceratium,Chaetoceros,Chain2,Chain3,Guinardia,Neocalyptrella,
-#                   Noctiluca,Tricho), ~ ./total_vol_sampled * 1e6)) %>%
-#   select(Station, dec_lat, dec_lon, year, month, date, Avg.chl.a..ug.L.,
-#          temp..degC., salinity,total_vol_sampled,
-#          Centric,Ceratium,Chaetoceros,Chain2,Chain3,Guinardia,Neocalyptrella,
-#                   Noctiluca,Tricho) %>%
-#   filter(!is.na(total_vol_sampled))
-
 # Get station coordinates
-path_sfer_list <- "~/Library/CloudStorage/GoogleDrive-enriquemontes01@gmail.com/My Drive/GDrive/proposals/2022_02_MultiStressor_NOAA/module_1"
-sfer_curated <- list.files(path_sfer_list, pattern = "sfer_stations_curated.csv", full.names = TRUE)
+path_sfer_list <- "~/Library/CloudStorage/GoogleDrive-enriquemontes01@gmail.com/My Drive/GDrive/manuscripts/montes_etal_cpics/"
+sfer_curated <- list.files(path_sfer_list, pattern = "sfer_stations_curated_w_fwc_stations.csv", full.names = TRUE)
 sfer_sta_list <- read.csv(sfer_curated, header = TRUE)
 
     # # Merges curated station list with the concentration df
@@ -1305,7 +1295,7 @@ sfer_sta_list <- read.csv(sfer_curated, header = TRUE)
     station_markers <- sfer_sta_list %>% filter(station_class %in% "C")
     
     # Create the map
-    concentration_map <- basemap(limits = c(-86, -79.5, 24, 28.5), bathymetry = TRUE) +
+    concentration_map <- basemap(limits = c(-86, -79.5, 24, 29), bathymetry = TRUE) +
       # geom_point(data = dt, aes(x = lon, y = lat, size = log10(mean_param+1), color = log10(sd_param+1))) +
       geom_point(data = dt, aes(x = lon, y = lat, size = mean_param, color = sd_param)) +
       scale_color_gradient(low = "yellow", high = "red", na.value = NA, name = "Standard Deviation") +
@@ -1318,8 +1308,8 @@ sfer_sta_list <- read.csv(sfer_curated, header = TRUE)
     ggtitle(paste(selected_class))
       
     # Optionally, save each map as an image
-    ggsave(paste0("conc_map_weighted_", selected_class, ".png"), plot = concentration_map, width = 8, height = 6)
-    ggsave(paste0("conc_map_weighted_", selected_class, ".svg"), plot = concentration_map, width = 8, height = 6, device = "svg")
+    # ggsave(paste0("conc_map_weighted_", selected_class, ".png"), plot = concentration_map, width = 8, height = 6)
+    # ggsave(paste0("conc_map_weighted_", selected_class, ".svg"), plot = concentration_map, width = 8, height = 6, device = "svg")
     
     print(concentration_map)
 ```
@@ -1355,8 +1345,8 @@ taxa_concentration_avg_station <- taxa_meta_concentration %>%
             sel_taxa_sd_station = sd(get(selected_class), na.rm = TRUE))
 
 # Get station coordinates
-path_sfer_list <- "~/Library/CloudStorage/GoogleDrive-enriquemontes01@gmail.com/My Drive/GDrive/proposals/2022_02_MultiStressor_NOAA/module_1"
-sfer_curated <- list.files(path_sfer_list, pattern = "sfer_stations_curated.csv", full.names = TRUE)
+path_sfer_list <- "~/Library/CloudStorage/GoogleDrive-enriquemontes01@gmail.com/My Drive/GDrive/manuscripts/montes_etal_cpics/"
+sfer_curated <- list.files(path_sfer_list, pattern = "sfer_stations_curated_w_fwc_stations.csv", full.names = TRUE)
 sfer_sta_list <- read.csv(sfer_curated, header = TRUE)
 
 # # Map with bathymetry
@@ -1374,7 +1364,7 @@ dt_station <- dt_station %>%
 # Add station markers
 station_markers <- sfer_sta_list %>% filter(station_class %in% "C")
     
-concentration_map_station <- basemap(limits = c(-86, -79.5, 24, 28.5), bathymetry = TRUE) +
+concentration_map_station <- basemap(limits = c(-86, -79.5, 24, 29), bathymetry = TRUE) +
   geom_point(data = dt_station, aes(x = lon_station, 
                                     y = lat_station, 
                                     size = mean_param_station, 
