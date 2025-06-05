@@ -1573,8 +1573,6 @@ for (sp in species_vec) {
     max_nox = max(sub_df$NO3.NO2..uM., na.rm = TRUE),
     min_po4 = min(sub_df$PO4...uM., na.rm = TRUE),
     max_po4 = max(sub_df$PO4...uM., na.rm = TRUE),
-    min_po4 = min(sub_df$PO4...uM., na.rm = TRUE),
-    max_po4 = max(sub_df$PO4...uM., na.rm = TRUE),
     min_si = min(sub_df$Si.....uM., na.rm = TRUE),
     max_si = max(sub_df$Si.....uM., na.rm = TRUE)
   )
