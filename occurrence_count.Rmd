@@ -156,7 +156,7 @@ for (class_name in class_names) {
 }
 ```
 
-# # Calculate plankton concentration time series per station
+# # Calculate plankton concentration time series per station or over the entire region
 ```{r}
 # Calculate species concentration (counts/ml) for each species
 
@@ -245,27 +245,27 @@ spp_colors_phyto <- c("#B4B87FFF", "#9C913FFF", "#585B33FF", "#6EA8ABFF", "#3978
 # mean(test$avg)
 
 # Plot time series of mean+sd planton concentration per group of sites
-zz <- ggplot(summary_data, aes(x = date, y = mean_concentration, fill = species)) +
-  geom_bar(stat = "identity", alpha = 0.7) +
-  scale_fill_manual(values = spp_colors_zoopl) +
-  # geom_errorbar(aes(ymin = 0, ymax = mean_concentration + sd_concentration),
-  #               position = position_dodge(width = 0.9), width = 0.2) +
-  labs(x = "Date", y = expression("Mean density (org. m"^"-3"~")"), fill = "Species") +
-  # scale_x_continuous(breaks = 1:12, labels = c("Jan", "Feb", "Mar", "Apr", "May", "Jun", 
-  #                                              "Jul", "Aug", "Sep", "Oct", "Nov", "Dec")) + 
-  theme_minimal() +
-    theme(axis.text.x = element_text(size = 18, color = "black"),
-          axis.title = element_text(size = 18, color = "black"),
-          axis.text.y = element_text(size = 18, color = "black")) +
-    theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
-    theme(axis.line = element_line(color = "black")) 
-zz
+# zz <- ggplot(summary_data, aes(x = date, y = mean_concentration, fill = species)) +
+#   geom_bar(stat = "identity", alpha = 0.7) +
+#   scale_fill_manual(values = spp_colors_phyto) +
+#   # geom_errorbar(aes(ymin = 0, ymax = mean_concentration + sd_concentration),
+#   #               position = position_dodge(width = 0.9), width = 0.2) +
+#   labs(x = "Date", y = expression("Mean density (org. m"^"-3"~")"), fill = "Species") +
+#   # scale_x_continuous(breaks = 1:12, labels = c("Jan", "Feb", "Mar", "Apr", "May", "Jun", 
+#   #                                              "Jul", "Aug", "Sep", "Oct", "Nov", "Dec")) + 
+#   theme_minimal() +
+#     theme(axis.text.x = element_text(size = 18, color = "black"),
+#           axis.title = element_text(size = 18, color = "black"),
+#           axis.text.y = element_text(size = 18, color = "black")) +
+#     theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+#     theme(axis.line = element_line(color = "black")) 
+# zz
 
 # Filter summary_data for selected only
 # Acantharea, Copepods, Echinoderms, Jellies, Larvaceans, Chaetognaths, Polychaets, Pteropods, Ostracods
 # Centric,Ceratium,Chaetoceros,Chain2,Chain3,Guinardia,Neocalyptrella,Noctiluca,Tricho
 
-selected_group <- "Ostracods"
+selected_group <- "Acantharea"
 
 summary_selected <- filtered_taxa_meta_long %>%
   filter(species == selected_group) %>%
@@ -275,6 +275,9 @@ summary_selected <- filtered_taxa_meta_long %>%
   ungroup() %>%
   mutate(date = as.Date(paste(year, month, earliest_day, sep = "-"))) %>%
   select(-earliest_day)  # Optionally, remove the 'earliest_day' column if not needed
+print(paste0('Maximum concentration value:', max(summary_selected$species_concentration)))
+print(paste0('Maximum seawater temperature:', max(summary_selected$temp..degC.)))
+print(paste0('Minimum seawater temperature:', min(summary_selected$temp..degC.)))
 
 # Create a vector of date labels
 unique_dates <- sort(unique(summary_selected$date))  # Get unique dates
@@ -289,8 +292,8 @@ custom_date_labels <- as.character(unique_dates)
     # geom_jitter(width = 0.25, aes(color = temp..degC., size = salinity), alpha = 0.6) + # with salinity included
     geom_jitter(width = 0.25, aes(color = temp..degC.), size = 3, alpha = 0.6) +
     labs(x = "Date", y = expression("Density (org. m"^"-3"~")")) +
-    scale_color_viridis_c(name = "Temperature (°C)", option = "inferno", limits = c(18, 32)) +
-    scale_y_log10(labels = scales::trans_format("log10", scales::math_format(10^.x)), limits = c(1e2, 1e5)) +
+    scale_color_viridis_c(name = "Temperature (°C)", option = "inferno", limits = c(14, 34)) +
+    scale_y_log10(labels = scales::trans_format("log10", scales::math_format(10^.x)), limits = c(1e2, 1e6)) +
     # scale_size_continuous(name = "Salinity", # with salinity included
     #                       limits = c(30, 38),
     #                       breaks = c(30, 32, 34, 36, 38),
@@ -317,7 +320,7 @@ sel_bar <- ggplot(summary_selected, aes(x = as.factor(date), y = species_concent
   
   
 # Save figure as a svg file  
-# ggsave(paste0("conc_time-series_1-50m_", selected_group, ".svg"), plot = sel_box, width = 10, height = 8, device = "svg")
+ggsave(paste0("conc_time-series_1-50m_", selected_group, ".svg"), plot = sel_box, width = 10, height = 8, device = "svg")
 
 # # Create seasonal boxplots
 # Step 1: Define seasons based on the month column
@@ -1522,135 +1525,70 @@ ggplot(monthly_means, aes(x = year_month, y = mean_value)) +
 
 ```
 
-
-
-
-
-
-# Match file name with string ID - DO NOT USE
+# Create a table with min/max values for selected params per group
 ```{r}
-# library(tidyverse)
-# library(lubridate)
-# library(dplyr)
-# 
-# # extract relevant part of the strings
-# df <- rbind(class.Copepods,
-#             class.Eucampia,
-#             class.Noctiluca,
-#             class.Polychaets,
-#             class.Acantharea,
-#             class.Centric,
-#             class.Ceratium,
-#             class.Chaetoceros,
-#             class.Chain2,
-#             class.Chain3,
-#             class.Chain4,
-#             class.Ostracods,
-#             class.Jellies,
-#             class.Larvaceans,
-#             class.pellets)
-# sub_strings <- substr(df$V1, start = 10, stop = 22)
-# unique_all <- unique(sub_strings)
-# 
-# # select unique dates (this allows to search CTD records per date and time)
-# # To find unique dates and times to extract CDT data use: unique_all[grepl("20221209", unique_all)]
-# 
-# id_list <- unique_all
-# id_list2  <- as.POSIXct(id_list, format="%Y%m%d_%H%M", tz="UTC")
-# 
-# conc_occ_count <- data.frame(date = as.Date(character()), stringsAsFactors = FALSE)
-# 
-# for ( i in seq_along(id_list)){
-#   acantha <- as.data.frame(str_count(class.Acantharea$V1, id_list[i]))
-#   centric <- as.data.frame(str_count(class.Centric$V1, id_list[i]))
-#   ceratium <- as.data.frame(str_count(class.Ceratium$V1, id_list[i]))
-#   chaetoceros <- as.data.frame(str_count(class.Chaetoceros$V1, id_list[i]))
-#   chaetog <- as.data.frame(str_count(class.Chaetognaths$V1, id_list[i]))
-#   chain2 <- as.data.frame(str_count(class.Chain2$V1, id_list[i]))
-#   chain3 <- as.data.frame(str_count(class.Chain3$V1, id_list[i]))
-#   chain4 <- as.data.frame(str_count(class.Chain4$V1, id_list[i]))
-#   ostra <- as.data.frame(str_count(class.Ostracods$V1, id_list[i]))
-#   copepods <- as.data.frame(str_count(class.Copepods$V1, id_list[i]))
-#   decapod <- as.data.frame(str_count(class.Decapods$V1, id_list[i]))
-#   echino <- as.data.frame(str_count(class.Echinoderms$V1, id_list[i]))
-#   eucampia <- as.data.frame(str_count(class.Eucampia$V1, id_list[i]))
-#   jellies <- as.data.frame(str_count(class.Jellies$V1, id_list[i]))
-#   larvae <- as.data.frame(str_count(class.Larvaceans$V1, id_list[i]))
-#   nocti <- as.data.frame(str_count(class.Noctiluca$V1, id_list[i]))
-#   polychaetes <- as.data.frame(str_count(class.Polychaets$V1, id_list[i]))
-#   tricho <- as.data.frame(str_count(class.Tricho$V1, id_list[i]))
-# 
-#   Acantharea <- colSums(acantha != 0)
-#   Centric <- colSums(centric != 0)
-#   Ceratium_spp <- colSums(ceratium != 0)
-#   Chaetoceros <- colSums(chaetoceros != 0)
-#   Chaetognaths <- colSums(chaetog != 0)
-#   Diatom_chains_1 <- colSums(chain2 != 0)
-#   Diatom_chains_2 <- colSums(chain3 != 0)
-#   Diatom_chains_3 <- colSums(chain4 != 0)
-#   Ostracods <- colSums(ostra != 0)
-#   Copepods <- colSums(copepods != 0)
-#   Decapods <- colSums(decapod != 0)
-#   Echinoderms <- colSums(echino != 0)
-#   Eucampia_spp <- colSums(eucampia != 0)
-#   Jellies<- colSums(jellies != 0)
-#   Larvaceans <- colSums(larvae != 0)
-#   Noctiluca <- colSums(nocti != 0)
-#   Polychaetes <- colSums(polychaetes != 0)
-#   Trichodesmium_spp <- colSums(tricho != 0)
-# 
-#   # Parse the date-time string with ymd_hm()
-#   occ_datetime  <- as.POSIXct(id_list[i], format="%Y%m%d_%H%M", tz="UTC")
-#   occ_datetime_str <- substr(id_list[i], 1, 13)
-# 
-#   row_df <- data.frame(date = occ_datetime, occ_datetime_str,
-#                        Acantharea,
-#                        Centric,
-#                        Ceratium_spp,
-#                        Chaetoceros,
-#                        Chaetognaths,
-#                        Diatom_chains_1,
-#                        Diatom_chains_2,
-#                        Diatom_chains_3,
-#                        Ostracods,
-#                        Copepods,
-#                        Decapods,
-#                        Echinoderms,
-#                        Eucampia_spp,
-#                        Jellies,
-#                        Larvaceans,
-#                        Noctiluca,
-#                        Polychaetes,
-#                        Trichodesmium_spp
-#                        )
-#   rownames(row_df) <- i
-# 
-#   conc_occ_count <- rbind(conc_occ_count, row_df)
-# }
-# 
-# conc_occ_final <- arrange(conc_occ_count, date)
+taxa_meta_concentration_all <- taxa_meta %>%
+  mutate(across(c(Centric,Ceratium,Chaetoceros,Chain2,Chain3,Guinardia,Neocalyptrella,
+                   Noctiluca,Tricho,Acantharea,Chaetognaths,Ostracods,Copepods,Decapods,Echinoderms,Jellies,
+    Larvaceans,Polychaets,Pteropods), ~ ./total_vol_sampled * 1e6)) %>%
+  select(Station, dec_lat, dec_lon, year, month, date, total_vol_sampled,Avg.chl.a..ug.L.,
+         temp..degC., salinity, DO..mg.L.,NH4...uM.,PO4...uM.,NO3.NO2..uM., Si.....uM.,
+         Centric,Ceratium,Chaetoceros,Chain2,Chain3,Guinardia,Neocalyptrella,
+                   Noctiluca,Tricho,Acantharea,Chaetognaths,Ostracods,Copepods,Decapods,Echinoderms,
+         Jellies,Larvaceans,Polychaets,Pteropods) %>%
+  filter(!is.na(total_vol_sampled)) 
 
+# # Transform taxa_meta_concentration to long format
+taxa_meta_long_all <- taxa_meta_concentration_all %>%
+  pivot_longer(cols = c(Centric,Ceratium,Chaetoceros,Chain2,Chain3,Guinardia,Neocalyptrella,
+                   Noctiluca,Tricho,Acantharea, Chaetognaths,Ostracods,Copepods,Decapods,
+                        Echinoderms, Jellies, Larvaceans,Polychaets, Pteropods),
+               names_to = "species", values_to = "species_concentration")
+
+# List to store each species' summary row
+summary_list <- list()
+
+# Get unique species
+species_vec <- unique(taxa_meta_long_all$species)
+
+# Loop over species
+for (sp in species_vec) {
+  sub_df <- taxa_meta_long_all[taxa_meta_long_all$species == sp, ] %>%
+    filter(species_concentration > 0)
+  summary_row <- data.frame(
+    species = sp,
+    min_sp_concentration = min(sub_df$species_concentration, na.rm = TRUE),
+    max_sp_concentration = max(sub_df$species_concentration, na.rm = TRUE),
+    min_temp = min(sub_df$temp..degC., na.rm = TRUE),
+    max_temp = max(sub_df$temp..degC., na.rm = TRUE),
+    min_salinity = min(sub_df$salinity, na.rm = TRUE),
+    max_salinity = max(sub_df$salinity, na.rm = TRUE),
+    min_do = min(sub_df$DO..mg.L., na.rm = TRUE),
+    max_do = max(sub_df$DO..mg.L., na.rm = TRUE),
+    min_chl = min(sub_df$Avg.chl.a..ug.L., na.rm = TRUE),
+    max_chl = max(sub_df$Avg.chl.a..ug.L., na.rm = TRUE),
+    min_nh4 = min(sub_df$NH4...uM., na.rm = TRUE),
+    max_nh4 = max(sub_df$NH4...uM., na.rm = TRUE),
+    min_nox = min(sub_df$NO3.NO2..uM., na.rm = TRUE),
+    max_nox = max(sub_df$NO3.NO2..uM., na.rm = TRUE),
+    min_po4 = min(sub_df$PO4...uM., na.rm = TRUE),
+    max_po4 = max(sub_df$PO4...uM., na.rm = TRUE),
+    min_po4 = min(sub_df$PO4...uM., na.rm = TRUE),
+    max_po4 = max(sub_df$PO4...uM., na.rm = TRUE),
+    min_si = min(sub_df$Si.....uM., na.rm = TRUE),
+    max_si = max(sub_df$Si.....uM., na.rm = TRUE)
+  )
+  summary_list[[length(summary_list)+1]] <- summary_row
+}
+
+# Combine all rows into a single data frame
+summary_table <- do.call(rbind, summary_list)
+
+# Print the table
+print(summary_table)
+
+write.csv(summary_table, file = 'table1.csv', row.names = FALSE)
 ```
 
 
-# Match image records with CTD metadata and seascapes (use with strings matching) - DO NOT USE
-```{r}
-# # Directory where the CTD metadata is located
-# dir_path2 <- "~/enriquemontes01@gmail.com - Google Drive/My Drive/GDrive/OCED_AOML/WS_cruises/plankton_imaging/CPICS/ws_cruise_ctd/"
-# file_name <- list.files(path = dir_path2, pattern = ".csv", full.names = TRUE)
-# ctd_meta <- read.csv(file_name, fill = TRUE)
-# 
-# dt_list <- ctd_meta$GMT.datetime
-# 
-# conc_event <- data.frame()
-# 
-# for ( t in seq_along(dt_list)){
-#   event <- str_count(conc_occ_final$occ_datetime_str, dt_list[t])
-#   idx_event <- which(event == 1, arr.ind = TRUE)
-#   occ_row <- conc_occ_final[idx_event, ]
-#   event_meta <- ctd_meta[idx_event, ]
-#   conc_event <- rbind(conc_event, occ_row)
-# }
-# 
-# taxa_meta <- cbind(ctd_meta, conc_event)
-```
+
