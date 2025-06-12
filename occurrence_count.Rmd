@@ -320,7 +320,7 @@ sel_bar <- ggplot(summary_selected, aes(x = as.factor(date), y = species_concent
   
   
 # Save figure as a svg file  
-ggsave(paste0("conc_time-series_1-50m_", selected_group, ".svg"), plot = sel_box, width = 10, height = 8, device = "svg")
+# ggsave(paste0("conc_time-series_1-50m_", selected_group, ".svg"), plot = sel_box, width = 10, height = 8, device = "svg")
 
 # # Create seasonal boxplots
 # Step 1: Define seasons based on the month column
@@ -1404,7 +1404,7 @@ library(leaflet)
 # For personal machine
 path_sfer_list <- "~/Library/CloudStorage/GoogleDrive-enriquemontes01@gmail.com/My Drive/GDrive/proposals/2022_02_MultiStressor_NOAA/module_1"
 
-sfer_curated <- list.files(path_sfer_list, pattern = "sfer_stations_curated.csv", full.names = TRUE)
+sfer_curated <- list.files(path_sfer_list, pattern = "sfer_stations_curated_w_fwc_stations.csv", full.names = TRUE)
 
 sfer_sta_list <- read.csv(sfer_curated, header = TRUE)
 
