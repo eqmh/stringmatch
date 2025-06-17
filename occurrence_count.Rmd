@@ -1611,7 +1611,7 @@ taxa_meta_long_all_seascapes <- taxa_meta_concentration_all_seascapes %>%
 summary_tbl_concentrations_seascapes <- taxa_meta_long_all_seascapes %>%
   group_by(X8.day.seascapes, species) %>%
   summarise(
-    mean_species_concentration = mean(species_concentration[species_concentration != 0], na.rm = TRUE)/1000, 
+    mean_species_concentration = mean(species_concentration[species_concentration != 0], na.rm = TRUE), 
     sd_species_concentration = sd(species_concentration[species_concentration != 0], na.rm = TRUE)
   ) %>%
   ungroup()
@@ -1620,16 +1620,17 @@ print(summary_tbl_concentrations_seascapes)
 
 # filter table by group of species
 summary_tbl_filtered <- summary_tbl_concentrations_seascapes %>%
-  filter(species %in% c("Centric","Ceratium","Chaetoceros","Chain2","Chain3","Guinardia","Neocalyptrella", "Noctiluca","Tricho")) %>%
+  # filter(species %in% c("Centric","Ceratium","Chaetoceros","Chain2","Chain3","Guinardia","Neocalyptrella", "Noctiluca","Tricho")) %>%
+    filter(species %in% c("Acantharea","Chaetognaths","Ostracods","Copepods","Decapods","Echinoderms","Jellies","Larvaceans","Polychaets","Pteropods")) %>%
   filter(!is.na(X8.day.seascapes)) %>%
   filter(!is.nan(mean_species_concentration))
 
 avg_stackplot2 <- ggplot(summary_tbl_filtered, aes(x = X8.day.seascapes, y = mean_species_concentration, fill = species)) +
   geom_bar(stat = "identity", width = 0.75) +
-  # scale_fill_manual(values = spp_colors_zoopl,
-  # labels = spp_labels_zoopl) +
-  scale_fill_manual(values = spp_colors_phyto,
-    labels = spp_labels_phyto) +
+  scale_fill_manual(values = spp_colors_zoopl,
+  labels = spp_labels_zoopl) +
+  # scale_fill_manual(values = spp_colors_phyto,
+  #   labels = spp_labels_phyto) +
   # ylim(0, 50) +
   scale_x_discrete(labels = seascape_labels) +
   labs(x = "Seascape class", y = expression("Density (org. m"^"-3"~") × 10"^3)) +
