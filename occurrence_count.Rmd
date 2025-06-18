@@ -1585,7 +1585,7 @@ summary_table <- do.call(rbind, summary_list)
 # Print the table
 print(summary_table)
 
-write.csv(summary_table, file = 'table1.csv', row.names = FALSE)
+# write.csv(summary_table, file = 'table1.csv', row.names = FALSE)
 ```
 
 # # Mean plankton densities per seascape using station data (same results as above)
@@ -1620,17 +1620,17 @@ print(summary_tbl_concentrations_seascapes)
 
 # filter table by group of species
 summary_tbl_filtered <- summary_tbl_concentrations_seascapes %>%
-  # filter(species %in% c("Centric","Ceratium","Chaetoceros","Chain2","Chain3","Guinardia","Neocalyptrella", "Noctiluca","Tricho")) %>%
-    filter(species %in% c("Acantharea","Chaetognaths","Ostracods","Copepods","Decapods","Echinoderms","Jellies","Larvaceans","Polychaets","Pteropods")) %>%
+  filter(species %in% c("Centric","Ceratium","Chaetoceros","Chain2","Chain3","Guinardia","Neocalyptrella", "Noctiluca","Tricho")) %>%
+    # filter(species %in% c("Acantharea","Chaetognaths","Ostracods","Copepods","Decapods","Echinoderms","Jellies","Larvaceans","Polychaets","Pteropods")) %>%
   filter(!is.na(X8.day.seascapes)) %>%
   filter(!is.nan(mean_species_concentration))
 
 avg_stackplot2 <- ggplot(summary_tbl_filtered, aes(x = X8.day.seascapes, y = mean_species_concentration, fill = species)) +
   geom_bar(stat = "identity", width = 0.75) +
-  scale_fill_manual(values = spp_colors_zoopl,
-  labels = spp_labels_zoopl) +
-  # scale_fill_manual(values = spp_colors_phyto,
-  #   labels = spp_labels_phyto) +
+  # scale_fill_manual(values = spp_colors_zoopl,
+  # labels = spp_labels_zoopl) +
+  scale_fill_manual(values = spp_colors_phyto,
+    labels = spp_labels_phyto) +
   # ylim(0, 50) +
   scale_x_discrete(labels = seascape_labels) +
   labs(x = "Seascape class", y = expression("Density (org. m"^"-3"~") × 10"^3)) +
@@ -1644,5 +1644,20 @@ avg_stackplot2 <- ggplot(summary_tbl_filtered, aes(x = X8.day.seascapes, y = mea
 avg_stackplot2
 ```
 
+# # Create plots showing coefficient of variation of plankton abundances per seascape
+```{r}
+coeff_var <- summary_tbl_filtered %>%
+  mutate(coef_var = sd_species_concentration / mean_species_concentration)
 
+summary_cv_table <- coeff_var %>%
+  group_by(X8.day.seascapes) %>%
+  summarise(
+    mean_coef_var = mean(coef_var, na.rm = TRUE),
+    sd_coef_var = sd(coef_var, na.rm = TRUE)
+  ) %>%
+  ungroup()
+
+print(summary_cv_table)
+
+```
 
