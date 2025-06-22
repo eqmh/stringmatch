@@ -1621,17 +1621,17 @@ print(summary_tbl_concentrations_seascapes)
 
 # filter table by group of species
 summary_tbl_filtered <- summary_tbl_concentrations_seascapes %>%
-  # filter(species %in% c("Centric","Ceratium","Chaetoceros","Chain2","Chain3","Guinardia","Neocalyptrella", "Noctiluca","Tricho")) %>%
-    filter(species %in% c("Acantharea","Chaetognaths","Ostracods","Copepods","Decapods","Echinoderms","Jellies","Larvaceans","Polychaets","Pteropods")) %>%
+  filter(species %in% c("Centric","Ceratium","Chaetoceros","Chain2","Chain3","Guinardia","Neocalyptrella", "Noctiluca","Tricho")) %>%
+    # filter(species %in% c("Acantharea","Chaetognaths","Ostracods","Copepods","Decapods","Echinoderms","Jellies","Larvaceans","Polychaets","Pteropods")) %>%
   filter(!is.na(X8.day.seascapes)) %>%
   filter(!is.nan(mean_species_concentration))
 
 avg_stackplot2 <- ggplot(summary_tbl_filtered, aes(x = X8.day.seascapes, y = mean_species_concentration, fill = species)) +
   geom_bar(stat = "identity", width = 0.75) +
-  scale_fill_manual(values = spp_colors_zoopl,
-  labels = spp_labels_zoopl) +
-  # scale_fill_manual(values = spp_colors_phyto,
-  #   labels = spp_labels_phyto) +
+  # scale_fill_manual(values = spp_colors_zoopl,
+  # labels = spp_labels_zoopl) +
+  scale_fill_manual(values = spp_colors_phyto,
+    labels = spp_labels_phyto) +
   # ylim(0, 50) +
   scale_x_discrete(labels = seascape_labels) +
   labs(x = "Seascape class", y = expression("Density (org. m"^"-3"~") × 10"^3)) +
@@ -1668,58 +1668,58 @@ summary_cv_table$seascape_class <- factor(summary_cv_table$X8.day.seascapes,
 
 print(summary_cv_table)
 
-# species_labels <- c(
-#   "Centric" = "Cos",
-#   "Ceratium" = "Cer",
-#   "Chaetoceros" = "Cha",
-#   "Chain2" = "Dia",
-#   "Chain3" = "Ske",
-#   "Guinardia" = "Gui",
-#   "Neocalyptrella" = "Neo",
-#   "Noctiluca" = "Hem",
-#   "Tricho" = "Tri"
-# )
-
 species_labels <- c(
-  "Acantharea" = "Rhi",
-  "Chaetognaths" = "Cha",
-  "Copepods" = "Cop",
-  "Decapods" = "Dec",
-  "Echinoderms" = "Ech",
-  "Jellies" = "Gel",
-  "Larvaceans" = "Lar",
-  "Ostracods" = "Ost",
-  "Polychaets" = "Pol",
-  "Pteropods" = "Pte"
+  "Centric" = "Cos",
+  "Ceratium" = "Cer",
+  "Chaetoceros" = "Cha",
+  "Chain2" = "Dia",
+  "Chain3" = "Ske",
+  "Guinardia" = "Gui",
+  "Neocalyptrella" = "Neo",
+  "Noctiluca" = "Hem",
+  "Tricho" = "Tri"
 )
+
+# species_labels <- c(
+#   "Acantharea" = "Rhi",
+#   "Chaetognaths" = "Cha",
+#   "Copepods" = "Cop",
+#   "Decapods" = "Dec",
+#   "Echinoderms" = "Ech",
+#   "Jellies" = "Gel",
+#   "Larvaceans" = "Lar",
+#   "Ostracods" = "Ost",
+#   "Polychaets" = "Pol",
+#   "Pteropods" = "Pte"
+# )
 
 coeff_var <- coeff_var %>%
   mutate(species = recode(species, !!!species_labels))
 
-# species_order <- c(
-#   "Cos",
-#   "Cer",
-#   "Cha",
-#   "Dia",
-#   "Ske",
-#   "Gui",
-#   "Neo",
-#   "Hem",
-#   "Tri",
-# )
-
 species_order <- c(
-  "Rhi",
+  "Cos",
+  "Cer",
   "Cha",
-  "Cop",
-  "Dec",
-  "Ech",
-  "Gel",
-  "Lar",
-  "Ost",
-  "Pol",
-  "Pte"
+  "Dia",
+  "Ske",
+  "Gui",
+  "Neo",
+  "Hem",
+  "Tri"
 )
+
+# species_order <- c(
+#   "Rhi",
+#   "Cha",
+#   "Cop",
+#   "Dec",
+#   "Ech",
+#   "Gel",
+#   "Lar",
+#   "Ost",
+#   "Pol",
+#   "Pte"
+# )
 
 coeff_var$species <- factor(coeff_var$species, levels = rev(species_order))
 
@@ -1738,6 +1738,6 @@ heatmap <- ggplot(coeff_var, aes(x = seascape_class, y = species, fill = coef_va
 heatmap
 
 # ggsave("phyto_cv.svg", plot = heatmap, width = 16, height = 7.25, device = "svg")
-ggsave("zoopl_cv.svg", plot = heatmap, width = 16, height = 8, device = "svg")
+# ggsave("zoopl_cv.svg", plot = heatmap, width = 16, height = 8, device = "svg")
 ```
 
