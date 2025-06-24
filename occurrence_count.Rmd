@@ -1741,3 +1741,22 @@ heatmap
 # ggsave("zoopl_cv.svg", plot = heatmap, width = 16, height = 8, device = "svg")
 ```
 
+
+# # Create plots showing coefficient of variation of plankton relative proportion per seascape
+```{r}
+# Calculate total abundance per class
+df_summary_relab <- taxa_meta_long_all_seascapes %>%
+  group_by(year, month, X8.day.seascapes) %>%
+  mutate(class_total = sum(`species_concentration`, na.rm = TRUE)) %>%
+  group_by(year, month, X8.day.seascapes, species) %>%
+  summarise(
+    abundance = sum(`species_concentration`, na.rm = TRUE),
+    class_total = first(class_total),
+    rel_abundance = abundance / class_total
+  ) %>%
+  select(year, month, X8.day.seascapes, species, rel_abundance) %>%
+  ungroup()
+
+print(df_summary_relab)
+
+```
