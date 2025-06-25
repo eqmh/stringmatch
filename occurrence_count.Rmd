@@ -1826,6 +1826,6 @@ heatmap <- ggplot(cv_summary_relabund, aes(x = seascape_class, y = species, fill
   theme(legend.title = element_text(size = 22))
 heatmap
 
-ggsave("phyto_cv_relabund.svg", plot = heatmap, width = 16, height = 7.25, device = "svg")
+# ggsave("phyto_cv_relabund.svg", plot = heatmap, width = 16, height = 7.25, device = "svg")
 # ggsave("zoopl_cv_relabund.svg", plot = heatmap, width = 16, height = 8, device = "svg")
 ```
