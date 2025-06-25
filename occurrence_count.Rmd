@@ -1744,8 +1744,9 @@ heatmap
 
 # # Create plots showing coefficient of variation of plankton relative proportion per seascape
 ```{r}
-# Calculate total abundance per class
-df_summary_relab <- taxa_meta_long_all_seascapes %>%
+# Calculate relative abundances per class for each cruise using year and month
+df_summary_relabund <- taxa_meta_long_all_seascapes %>%
+    filter(species %in% c("Centric","Ceratium","Chaetoceros","Chain2","Chain3","Guinardia","Neocalyptrella", "Noctiluca","Tricho")) %>%
   group_by(year, month, X8.day.seascapes) %>%
   mutate(class_total = sum(`species_concentration`, na.rm = TRUE)) %>%
   group_by(year, month, X8.day.seascapes, species) %>%
@@ -1757,6 +1758,93 @@ df_summary_relab <- taxa_meta_long_all_seascapes %>%
   select(year, month, X8.day.seascapes, species, rel_abundance) %>%
   ungroup()
 
-print(df_summary_relab)
+# Calculate relative abundance CV per seascape
+cv_summary_relabund <- df_summary_relabund %>%
+  group_by(X8.day.seascapes, species) %>%
+  summarise(
+    mean_relabund = mean(rel_abundance[rel_abundance != 0], na.rm = TRUE),
+    sd_relabund = sd(rel_abundance[rel_abundance != 0], na.rm = TRUE),
+    coef_var_relabund = sd_relabund / mean_relabund
+  ) %>%
+  ungroup() %>%
+  filter(!is.na(X8.day.seascapes)) %>%
+  filter(!is.nan(mean_relabund))
 
+cv_summary_relabund$seascape_class <- factor(cv_summary_relabund$X8.day.seascapes,
+                                   levels = c(3, 11, 13, 15, 21, 27),
+                                   labels = c("TST", "TSU", "SGMI", "TS", "WBHN", "HE"))
+
+print(cv_summary_relabund) 
+
+species_labels <- c(
+  "Centric" = "Cos",
+  "Ceratium" = "Cer",
+  "Chaetoceros" = "Cha",
+  "Chain2" = "Dia",
+  "Chain3" = "Ske",
+  "Guinardia" = "Gui",
+  "Neocalyptrella" = "Neo",
+  "Noctiluca" = "Hem",
+  "Tricho" = "Tri"
+)
+
+# species_labels <- c(
+#   "Acantharea" = "Rhi",
+#   "Chaetognaths" = "Cha",
+#   "Copepods" = "Cop",
+#   "Decapods" = "Dec",
+#   "Echinoderms" = "Ech",
+#   "Jellies" = "Gel",
+#   "Larvaceans" = "Lar",
+#   "Ostracods" = "Ost",
+#   "Polychaets" = "Pol",
+#   "Pteropods" = "Pte"
+# )
+
+cv_summary_relabund <- cv_summary_relabund %>%
+  mutate(species = recode(species, !!!species_labels))
+
+species_order <- c(
+  "Cos",
+  "Cer",
+  "Cha",
+  "Dia",
+  "Ske",
+  "Gui",
+  "Neo",
+  "Hem",
+  "Tri"
+)
+
+# species_order <- c(
+#   "Rhi",
+#   "Cha",
+#   "Cop",
+#   "Dec",
+#   "Ech",
+#   "Gel",
+#   "Lar",
+#   "Ost",
+#   "Pol",
+#   "Pte"
+# )
+
+cv_summary_relabund$species <- factor(cv_summary_relabund$species, levels = rev(species_order))
+
+heatmap <- ggplot(cv_summary_relabund, aes(x = seascape_class, y = species, fill = coef_var_relabund)) +
+  geom_tile(color = "white") +
+  scale_fill_gradient(low = "white", high = "darkred", limits = c(0.02,4.5), name = "CV") + 
+  theme_minimal() +
+  labs(x = NULL, y = NULL) +
+  theme(
+    axis.text.x  = element_text(size = 32, angle = 0, color = "black"),
+    # axis.text.y  = element_text(size = 22, color = "black"),
+    panel.grid = element_blank()
+  ) +
+  theme(legend.text = element_text(size = 18)) +
+  theme(legend.title = element_text(size = 22)) 
+heatmap
+
+# ggsave("phyto_cv.svg", plot = heatmap, width = 16, height = 7.25, device = "svg")
+# ggsave("zoopl_cv.svg", plot = heatmap, width = 16, height = 8, device = "svg")
 ```
