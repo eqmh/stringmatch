@@ -154,6 +154,25 @@ for (class_name in class_names) {
   print(unaccounted_dates_list[[class_name]])
   cat("\n")
 }
+
+# # Percent of sampling events without a seascape class match
+sampling_events_img <- sum(!is.na(taxa_meta$total_vol_sampled))
+sampling_events_no_img <- sum(is.na(taxa_meta$total_vol_sampled))
+seascape_no_match_img <- sum(is.na(taxa_meta$X8.day.seascapes) & !is.na(taxa_meta$total_vol_sampled))
+seascape_total <- sum(!is.na(taxa_meta$X8.day.seascapes))
+no_seascape <- sum(is.na(taxa_meta$X8.day.seascapes))
+seascape_match <- sum(!is.na(taxa_meta$X8.day.seascapes) & !is.na(taxa_meta$total_vol_sampled))
+percent_match <- round(seascape_match/sampling_events*100, digits = 0)
+
+sampling_events_total <- paste("Total number of sampling events (CTD casts):", nrow(taxa_meta))
+matched_casts <- paste("Percent of sampling events with seascape match:", round(seascape_total/nrow(taxa_meta)*100, digits=0), "%")
+sampling_success <- paste("Percent of sampling events with images:", round(sampling_events/nrow(taxa_meta)*100, digits=0), "%")
+match_stat <- paste("Percent of sampling events with a seascape match:", percent_match, "%")
+print(sampling_events_total)
+print(matched_casts)
+print(sampling_success)
+print(match_stat)
+
 ```
 
 # # Calculate plankton concentration time series per station or over the entire region
