@@ -502,28 +502,28 @@ concentration_ts
 ```{r}
 library(paletteer)
 
-spp_df <- taxa_meta[ , c("X8.day.seascapes", "total_vol_sampled", "date",
-                         "Acantharea",
-                         "Chaetognaths",
-                         "Copepods",
-                         "Decapods",
-                         "Echinoderms",
-                         "Jellies",
-                         "Larvaceans",
-                         "Ostracods",
-                         "Polychaets",
-                         "Pteropods")]
-
 # spp_df <- taxa_meta[ , c("X8.day.seascapes", "total_vol_sampled", "date",
-#                          "Centric",
-#                          "Ceratium",
-#                          "Chaetoceros",
-#                          "Chain2",
-#                          "Chain3",
-#                          "Guinardia",
-#                          "Neocalyptrella",
-#                          "Noctiluca",
-#                          "Tricho")]
+#                          "Acantharea",
+#                          "Chaetognaths",
+#                          "Copepods",
+#                          "Decapods",
+#                          "Echinoderms",
+#                          "Jellies",
+#                          "Larvaceans",
+#                          "Ostracods",
+#                          "Polychaets",
+#                          "Pteropods")]
+
+spp_df <- taxa_meta[ , c("X8.day.seascapes", "total_vol_sampled", "date",
+                         "Centric",
+                         "Ceratium",
+                         "Chaetoceros",
+                         "Chain2",
+                         "Chain3",
+                         "Guinardia",
+                         "Neocalyptrella",
+                         "Noctiluca",
+                         "Tricho")]
 
 # Remove rows with NaN values in X8.day.seascapes and total_vol_sampled
 spp_df <- subset(spp_df, !is.na(X8.day.seascapes) & !is.na(total_vol_sampled))
@@ -601,33 +601,59 @@ seascape_labels = c("TST", "TSU", "SGMI", "TS", "WBHN", "HE")
 # seascape classes: 
 # 3:Tropical/Subtrop. Trans.| 5: Subtrop. Gyre Trans | 7: Temperate Trans | 11: Tropical/Subtrop. Upwelling | 13: Subtrop. Gyre Mesos. Influenced | 15: Tropical Seas | 21: Warm Bloom High Nutrients | 27: Hypersal. Eutrophic
 
-font_size = 32
-spp_labels_zoopl <- c("Rhizaria spp", "Chaetognaths", "Copepods", "Decapods", "Echinoderms", "Gelatinous", "Larvaceans", "Ostracods", "Polychaetes", "Pteropods")
-spp_labels_phyto = c("Coscinodiscus spp", "Neoceratium spp", "Chaetoceros spp", "Chain diatoms", "Skeletonema spp", "Guinardia striata", "Neocalyptrella spp", "Hemidiscus spp", "Trichodesmium spp")
+# Reorder factor levels based on mean_concentration values
+species_order <- avg_concentration_per_class %>%
+  group_by(species) %>%
+  summarise(mean_conc = mean(mean_concentration, na.rm = TRUE)) %>%
+  arrange(mean_conc) %>%
+  pull(species)
+
+# Apply the new ordering to the species column
+avg_concentration_per_class$species <- factor(avg_concentration_per_class$species, levels = species_order)
+
+# rename species as needed
+# species_order <- recode(species_order,
+#                         "Polychaets" = "Polychaetes",
+#                         "Acantharea" = "Acantharea spp",
+#                         "Jellies" = "Gelatinous")
+
+species_order <- recode(species_order,
+                        "Noctiluca" = "Hemidiscus spp",
+                        "Ceratium" = "Neoceratium spp",
+                        "Tricho" = "Trichodesmium spp",
+                        "Neocalyptrella" = "Neocalyptrella spp",
+                        "Chaetoceros" = "Chaetoceros spp",
+                        "Centric" = "Coscinodiscus spp",
+                        "Guinardia" = "Guinardia striata",
+                        "Chain2" = "Mixed Chain Diatoms",
+                        "Chain3" = "Skeletonema spp")
+
+spp_labels <- species_order
 spp_colors_zoopl <- c("#551F00FF", "#889D35FF", "#DF7700FF", "#F5B642FF","#FFF179FF","#C3F4F6FF", "#6AD5E8FF", "#32B2DAFF", "#7992A6FF", "#C0D1CEFF")
 spp_colors_phyto <- c("#B4B87FFF", "#9C913FFF", "#585B33FF", "#6EA8ABFF", "#397893FF", "#31333FFF", "#8F5715FF", "#BA9A44FF", "#CFBB83FF")
 # spp_colors_phyto <- c("#C969A1FF", "#CE4441FF", "#EE8577FF", "#EB7926FF", "#FFBB44FF", "#859B6CFF", "#62929AFF", "#004F63FF", "#122451FF")
 
+font_size = 32
 avg_stackplot <- ggplot(avg_concentration_per_class, aes(x = X8.day.seascapes, y = mean_concentration, fill = species)) +
   geom_bar(stat = "identity", width = 0.75) +
-  scale_fill_manual(values = spp_colors_zoopl,
-  labels = spp_labels_zoopl) +
-  # scale_fill_manual(values = spp_colors_phyto,
-  #   labels = spp_labels_phyto) +
-  ylim(0, 50) +
+  scale_fill_manual(
+    # values = spp_colors_zoopl,
+    values = spp_colors_phyto,
+    labels = spp_labels) +
+  ylim(0, 600) + 
   scale_x_discrete(labels = seascape_labels) +
   labs(x = "Seascape class", y = expression("Density (org. m"^"-3"~") × 10"^3)) +
   theme_minimal() +
   theme(axis.text.x = element_text(size = font_size, color = "black"),
         axis.title.x = element_text(size = font_size, color = "black"),
         axis.text.y = element_text(size = font_size, color = "black"),
-        axis.title.y = element_text(size = font_size, color = "black", margin = margin(r = 21))) + # margin(r = 21) used to separate the title from the axis for the zooplankton plot only
+        axis.title.y = element_text(size = font_size, color = "black")) + #, margin = margin(r = 21))) + # margin(r = 21) used to separate the title from the axis for the zooplankton plot only
   theme(axis.line = element_line(color = "black")) +
   theme(legend.text = element_text(size = font_size)) +
   theme(legend.position = "none")
 avg_stackplot
 
-# ggsave("abund_zooplankton.svg", plot = avg_stackplot, width = 14, height = 8, device = "svg")
+# ggsave("abund_phyto_v2.svg", plot = avg_stackplot, width = 14, height = 8, device = "svg")
 
 # Calculate percentages
 avg_concentration_percent <- avg_concentration_per_class %>%
@@ -636,10 +662,10 @@ avg_concentration_percent <- avg_concentration_per_class %>%
 
 avg_percent_stackplot <- ggplot(avg_concentration_percent, aes(x = X8.day.seascapes, y = mean_concentration_percent, fill = species)) +
   geom_bar(stat = "identity", width = 0.75) +
-  scale_fill_manual(values = spp_colors_zoopl,
-  labels = spp_labels_zoopl) +
-  # scale_fill_manual(values = spp_colors_phyto,
-  #   labels = spp_labels_phyto) +
+  scale_fill_manual(
+    # values = spp_colors_zoopl,
+    values = spp_colors_phyto,
+    labels = spp_labels) +
   scale_x_discrete(labels = seascape_labels) +
   labs(x = "Seascape class", y = "Relative concentration (%)") +
   theme_minimal() +
@@ -651,7 +677,7 @@ avg_percent_stackplot <- ggplot(avg_concentration_percent, aes(x = X8.day.seasca
   theme(legend.position = "none")
 avg_percent_stackplot
 
-# ggsave("abund_zooplankton_percent.svg", plot = avg_percent_stackplot, width = 14, height = 8, device = "svg")
+# ggsave("abund_phyto_percent_v2.svg", plot = avg_percent_stackplot, width = 14, height = 8, device = "svg")
 
 # Palettes (https://r-graph-gallery.com/color-palette-finder):
 # use for zooplankton (8 categories):
@@ -1636,8 +1662,6 @@ summary_tbl_concentrations_seascapes <- taxa_meta_long_all_seascapes %>%
   ) %>%
   ungroup()
 
-print(summary_tbl_concentrations_seascapes)
-
 # filter table by group of species
 summary_tbl_filtered <- summary_tbl_concentrations_seascapes %>%
   filter(species %in% c("Centric","Ceratium","Chaetoceros","Chain2","Chain3","Guinardia","Neocalyptrella", "Noctiluca","Tricho")) %>%
@@ -1645,23 +1669,7 @@ summary_tbl_filtered <- summary_tbl_concentrations_seascapes %>%
   filter(!is.na(X8.day.seascapes)) %>%
   filter(!is.nan(mean_species_concentration))
 
-avg_stackplot2 <- ggplot(summary_tbl_filtered, aes(x = X8.day.seascapes, y = mean_species_concentration, fill = species)) +
-  geom_bar(stat = "identity", width = 0.75) +
-  # scale_fill_manual(values = spp_colors_zoopl,
-  # labels = spp_labels_zoopl) +
-  scale_fill_manual(values = spp_colors_phyto,
-    labels = spp_labels_phyto) +
-  # ylim(0, 50) +
-  scale_x_discrete(labels = seascape_labels) +
-  labs(x = "Seascape class", y = expression("Density (org. m"^"-3"~") × 10"^3)) +
-  theme_minimal() +
-  theme(axis.text.x = element_text(size = font_size, color = "black"),
-    axis.title = element_text(size = font_size, color = "black"),
-    axis.text.y = element_text(size = font_size, color = "black")) +
-  theme(axis.line = element_line(color = "black")) +
-  theme(legend.text = element_text(size = font_size)) +
-  theme(legend.position = "none")
-avg_stackplot2
+print(summary_tbl_filtered)
 ```
 
 # # Create plots showing coefficient of variation of plankton abundances per seascape
@@ -1686,7 +1694,7 @@ species_labels <- c(
 )
 
 # species_labels <- c(
-#   "Acantharea" = "Rhi",
+#   "Acantharea" = "Aca",
 #   "Chaetognaths" = "Cha",
 #   "Copepods" = "Cop",
 #   "Decapods" = "Dec",
@@ -1702,28 +1710,28 @@ coeff_var <- coeff_var %>%
   mutate(species = recode(species, !!!species_labels))
 
 species_order <- c(
-  "Cos",
-  "Cer",
-  "Cha",
-  "Dia",
-  "Ske",
-  "Gui",
-  "Neo",
   "Hem",
-  "Tri"
+  "Cer",
+  "Tri",
+  "Neo",
+  "Cha",
+  "Cos",
+  "Gui",
+  "Dia",
+  "Ske"
 )
 
 # species_order <- c(
-#   "Rhi",
-#   "Cha",
-#   "Cop",
 #   "Dec",
-#   "Ech",
-#   "Gel",
-#   "Lar",
 #   "Ost",
 #   "Pol",
-#   "Pte"
+#   "Aca",
+#   "Cha",
+#   "Gel",
+#   "Pte",
+#   "Ech",
+#   "Lar",
+#   "Cop"
 # )
 
 coeff_var$species <- factor(coeff_var$species, levels = rev(species_order))
@@ -1742,8 +1750,8 @@ heatmap <- ggplot(coeff_var, aes(x = seascape_class, y = species, fill = coef_va
   theme(legend.title = element_text(size = 22)) 
 heatmap
 
-# ggsave("phyto_cv.svg", plot = heatmap, width = 16, height = 7.25, device = "svg")
-# ggsave("zoopl_cv.svg", plot = heatmap, width = 16, height = 8, device = "svg")
+ggsave("phyto_cv_v2.svg", plot = heatmap, width = 16, height = 7.25, device = "svg")
+# ggsave("zoopl_cv_v2.svg", plot = heatmap, width = 16, height = 8, device = "svg")
 ```
 
 
@@ -1789,7 +1797,7 @@ species_labels <- c(
 )
 
 # species_labels <- c(
-#   "Acantharea" = "Rhi",
+#   "Acantharea" = "Aca",
 #   "Chaetognaths" = "Cha",
 #   "Copepods" = "Cop",
 #   "Decapods" = "Dec",
@@ -1805,28 +1813,28 @@ cv_summary_relabund <- cv_summary_relabund %>%
   mutate(species = recode(species, !!!species_labels))
 
 species_order <- c(
-  "Cos",
-  "Cer",
-  "Cha",
-  "Dia",
-  "Ske",
-  "Gui",
-  "Neo",
   "Hem",
-  "Tri"
+  "Cer",
+  "Tri",
+  "Neo",
+  "Cha",
+  "Cos",
+  "Gui",
+  "Dia",
+  "Ske"
 )
 
 # species_order <- c(
-#   "Rhi",
-#   "Cha",
-#   "Cop",
 #   "Dec",
-#   "Ech",
-#   "Gel",
-#   "Lar",
 #   "Ost",
 #   "Pol",
-#   "Pte"
+#   "Aca",
+#   "Cha",
+#   "Gel",
+#   "Pte",
+#   "Ech",
+#   "Lar",
+#   "Cop"
 # )
 
 cv_summary_relabund$species <- factor(cv_summary_relabund$species, levels = rev(species_order))
@@ -1845,6 +1853,6 @@ heatmap <- ggplot(cv_summary_relabund, aes(x = seascape_class, y = species, fill
   theme(legend.title = element_text(size = 22))
 heatmap
 
-# ggsave("phyto_cv_relabund.svg", plot = heatmap, width = 16, height = 7.25, device = "svg")
-# ggsave("zoopl_cv_relabund.svg", plot = heatmap, width = 16, height = 8, device = "svg")
+ggsave("phyto_cv_relabund_v2.svg", plot = heatmap, width = 16, height = 7.25, device = "svg")
+# ggsave("zoopl_cv_relabund_v2.svg", plot = heatmap, width = 16, height = 8, device = "svg")
 ```
