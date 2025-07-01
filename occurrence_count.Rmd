@@ -591,7 +591,8 @@ avg_concentration_per_class <- spp_concentration_long %>%
   filter(concentration > 0) %>%
   group_by(species, `X8.day.seascapes`) %>%
   summarize(
-    mean_concentration = mean(concentration, na.rm = TRUE)/1000  # the 1000 term is for plotting simplicity
+    mean_concentration = mean(concentration, na.rm = TRUE)/1000, # the 1000 term is for plotting simplicity
+    sd_conconcentration = sd(concentration, na.rm = TRUE)
   )
 
 avg_concentration_per_class$X8.day.seascapes <- factor(avg_concentration_per_class$X8.day.seascapes, levels = c("3", "11", "13", "15","21","27"))
