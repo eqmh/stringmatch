@@ -111,6 +111,12 @@ for (i in 1:length(dt_list)) {
 # Combine with ctd_meta
 taxa_meta <- cbind(ctd_meta, conc_occ_final)
 
+# Set sample_vol_per_min to a single value
+taxa_meta$sampled_vol_per_min <- max(taxa_meta$sampled_vol_per_min, na.rm = TRUE)
+# Set total_vol_sampled to common sample_vol_per_min 
+taxa_meta <- taxa_meta %>%
+  mutate(total_vol_sampled = sampled_vol_per_min * conc_deployDurMin)
+
 ################################################################################
 # Check for unaccounted CPICS records 
 
@@ -178,12 +184,6 @@ print(match_stat)
 # # Calculate plankton concentration time series per station or over the entire region
 ```{r}
 # Calculate species concentration (counts/ml) for each species
-
-# Set sample_vol_per_min to a single value
-taxa_meta$sampled_vol_per_min <- max(taxa_meta$sampled_vol_per_min, na.rm = TRUE)
-# Set total_vol_sampled to common sample_vol_per_min 
-taxa_meta <- taxa_meta %>%
-  mutate(total_vol_sampled = sampled_vol_per_min * conc_deployDurMin)
 
 # # For zooplankton
 taxa_meta_concentration <- taxa_meta %>%
@@ -1375,7 +1375,7 @@ library(ggOceanMaps)
 # List of class names
 # Acantharea, Chaetognaths, Ostracods, Copepods, Decapods, Echinoderms, Jellies, Larvaceans, Polychaets, Pteropods, pellets
 # Centric, Ceratium, Chaetoceros, Chain2, Chain3, Guinardia, Neocalyptrella, Noctiluca, Tricho
-selected_class <- "pellets"
+selected_class <- "Tricho"
 
 taxa_meta_concentration <- taxa_meta %>%
   mutate(across(all_of(selected_class), ~ . / total_vol_sampled * 1e6)) %>%
