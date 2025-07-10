@@ -1,0 +1,67 @@
+---
+title: "morisita_horn_simm"
+output: none
+date: "2025-07-10"
+---
+
+# # Calculate Morisita-Horn similarity (C-MH; Chao et al 2006) for each seascape using plankton groups
+
+# Create data frame: Run the first two chunks '1 and 2 of occurrence_counts.Rmd' to create 'taxa_meta'
+```{r}
+# Create data frame
+c_mh <- taxa_meta %>%
+  #   mutate(across(c(Centric,Ceratium,Chaetoceros,Chain2,Chain3,Guinardia,Neocalyptrella,
+#                   Noctiluca,Tricho), ~ ./total_vol_sampled * 1e6)) %>%
+  mutate(across(c(Acantharea,Chaetognaths,Ostracods,Copepods,Decapods,Echinoderms,Jellies,
+    Larvaceans,Polychaets,Pteropods), ~ ./total_vol_sampled * 1e6)) %>%
+  select(Station, 
+         year, 
+         month,  
+         X8.day.seascapes,
+         focus_threshold,
+         sampled_vol_per_min,
+         total_vol_sampled,
+         # Centric,
+         # Ceratium,
+         # Chaetoceros,
+         # Chain2,
+         # Chain3,
+         # Guinardia,
+         # Neocalyptrella,
+         # Noctiluca,
+         # Tricho,
+         Acantharea,
+         Chaetognaths,
+         Ostracods,
+         Copepods,
+         Decapods,
+         Echinoderms,
+         Jellies,
+         Larvaceans,
+         Polychaets,
+         Pteropods) %>%
+  filter(!is.na(total_vol_sampled)) %>%
+  filter(!is.na(X8.day.seascapes))
+
+# # Transform taxa_meta_concentration to long format
+c_mh_long <- c_mh %>%
+  # pivot_longer(cols = c(Centric,Ceratium,Chaetoceros,Chain2,Chain3,Guinardia,Neocalyptrella,
+#                   Noctiluca,Tricho),
+  pivot_longer(cols = c(Acantharea, Chaetognaths,Ostracods,Copepods,Decapods,
+                        Echinoderms, Jellies, Larvaceans,Polychaets, Pteropods),
+               names_to = "species", values_to = "species_concentration")
+
+```
+
+# # Step 1: Create a Meta-Community for Each Seascape. Aggregate all data for each seascape category into a single, representative community.
+```{r}
+seascape_meta_communities <- c_mh_long %>%
+  # Group by seascape and species to pool all data
+  group_by(X8.day.seascapes, species) %>%
+  # Sum all concentrations to get a total abundance for each species
+  summarise(abundance = sum(`species_concentration`, na.rm = TRUE), .groups = 'drop') %>%
+  # Remove any records with zero abundance
+  filter(abundance > 0)
+
+```
+
