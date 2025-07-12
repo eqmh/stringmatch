@@ -1,0 +1,276 @@
+---
+title: "seascape_similarity_coefficients"
+output: none
+date: "2025-07-10"
+---
+
+# # Calculate Morisita-Horn similarity (C-MH; Chao et al 2006)  and other indices for each seascape using plankton groups
+
+# Create data frame: Run the first two chunks '1 and 2 of occurrence_counts.Rmd' to create 'taxa_meta'
+```{r}
+# Create data frame using count data (not concentration!)
+
+rm(list = ls()[ls() != "taxa_meta"])
+
+c_mh <- taxa_meta %>%
+  # mutate(across(c(Centric,Ceratium,Chaetoceros,Chain2,Chain3,Guinardia,Neocalyptrella,
+  #                 Noctiluca,Tricho))) %>%
+  mutate(across(c(Acantharea,Chaetognaths,Ostracods,Copepods,Decapods,Echinoderms,Jellies,
+    Larvaceans,Polychaets,Pteropods))) %>%
+  select(Station, 
+         year, 
+         month,  
+         X8.day.seascapes,
+         focus_threshold,
+         sampled_vol_per_min,
+         total_vol_sampled,
+         # Centric,
+         # Ceratium,
+         # Chaetoceros,
+         # Chain2,
+         # Chain3,
+         # Guinardia,
+         # Neocalyptrella,
+         # Noctiluca,
+         # Tricho) %>%
+         Acantharea,
+         Chaetognaths,
+         Ostracods,
+         Copepods,
+         Decapods,
+         Echinoderms,
+         Jellies,
+         Larvaceans,
+         Polychaets,
+         Pteropods) %>%
+  filter(!is.na(total_vol_sampled)) %>%
+  filter(!is.na(X8.day.seascapes))
+
+# # Transform taxa_meta_concentration to long format
+c_mh_long <- c_mh %>%
+# pivot_longer(cols = c(Centric,Ceratium,Chaetoceros,Chain2,Chain3,Guinardia,Neocalyptrella,
+#                   Noctiluca,Tricho),
+  pivot_longer(cols = c(Acantharea, Chaetognaths,Ostracods,Copepods,Decapods,
+                        Echinoderms, Jellies, Larvaceans,Polychaets, Pteropods),
+               names_to = "species", values_to = "species_concentration")
+
+```
+
+# # Step 1: Create a meta-community for each seascape: aggregate all data for each seascape category into a single, representative community.
+```{r}
+seascape_meta_communities <- c_mh_long %>%
+  # Group by seascape and species to pool all data
+  group_by(X8.day.seascapes, species) %>%
+  # Sum all concentrations to get a total abundance for each species
+  summarise(abundance = sum(`species_concentration`, na.rm = TRUE), .groups = 'drop') %>%
+  # Remove any records with zero abundance
+  filter(abundance > 0)
+
+```
+
+# # Step 2: Prepare for pairwise comparisons: nest the data so each seascape's community can be treated as a single object, then create all unique pairs of seascapes to compare.
+```{r}
+# Nest the community data
+nested_seascapes <- seascape_meta_communities %>%
+  group_by(X8.day.seascapes) %>%
+  nest(community_data = -X8.day.seascapes)
+
+# Create a dataframe with all pairs of seascapes
+seascape_pairs <- nested_seascapes %>%
+  select(seascape_1 = X8.day.seascapes, data_1 = community_data) %>%
+  crossing(
+    nested_seascapes %>%
+      select(seascape_2 = X8.day.seascapes, data_2 = community_data)
+  )
+```
+
+# # Step 3: Calculate C_MH for all pairs using the same robust calculation function applied it to every pair.
+```{r}
+# The Morisita-Horn calculation function
+calculate_morisita_horn <- function(df1, df2) {
+  combined <- full_join(df1, df2, by = "species", suffix = c("_1", "_2")) %>%
+    mutate(
+      abundance_1 = replace_na(abundance_1, 0),
+      abundance_2 = replace_na(abundance_2, 0)
+    )
+  n <- sum(combined$abundance_1)
+  m <- sum(combined$abundance_2)
+  if (n == 0 || m == 0) return(NA_real_)
+  p_i <- combined$abundance_1 / n
+  q_i <- combined$abundance_2 / m
+  numerator <- 2 * sum(p_i * q_i)
+  denominator <- sum(p_i^2) + sum(q_i^2)
+  return(numerator / denominator)
+}
+
+# Apply the function to every pair
+pairwise_similarity <- seascape_pairs %>%
+  rowwise() %>%
+  mutate(C_MH = calculate_morisita_horn(data_1, data_2)) %>%
+  select(seascape_1, seascape_2, C_MH)
+```
+
+# # Step 4: Create a C_MH Heatmap
+```{r}
+ggplot(pairwise_similarity, aes(x = factor(seascape_1), y = factor(seascape_2), fill = C_MH)) +
+  geom_tile(color = "white") +
+  # Add the similarity values as text on the tiles
+  geom_text(aes(label = round(C_MH, 2)), color = "black", size = 4) +
+  # Use a color scale that shows high similarity as "hot"
+  scale_fill_gradient(low = "lightblue", high = "darkblue", name = "C_MH\nSimilarity") +
+  labs(
+    title = "Pairwise Morisita-Horn Similarity Between Seascapes",
+    x = "Seascape",
+    y = "Seascape"
+  ) +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+```
+
+
+# # Step 5: The Chao-Jaccard calculation function: calculate the abundance-based Jaccard similarity index, which gives stronger weight to rare species.
+```{r}
+# # # Use this for Chao-Jaccard abundance based index
+calculate_chao_jaccard <- function(df1, df2) {
+  # Join data to get a complete species list
+  combined <- full_join(df1, df2, by = "species", suffix = c("_1", "_2")) %>%
+    mutate(
+      abundance_1 = replace_na(abundance_1, 0),
+      abundance_2 = replace_na(abundance_2, 0)
+    )
+
+  # Calculate total abundances
+  n <- sum(combined$abundance_1)
+  m <- sum(combined$abundance_2)
+  if (n == 0 || m == 0) return(NA_real_)
+
+  # Calculate relative abundances
+  p_i <- combined$abundance_1 / n
+  q_i <- combined$abundance_2 / m
+
+  # Calculate the sum of minimums and maximums
+  sum_of_mins <- sum(pmin(p_i, q_i))
+  sum_of_maxs <- sum(pmax(p_i, q_i))
+
+  # The Chao-Jaccard (abundance-based) similarity is sum(min) / sum(max)
+  similarity <- sum_of_mins / sum_of_maxs
+
+  return(similarity)
+}
+
+################################################################################
+################################################################################
+
+# # # Use this for Jaccard abundance based index
+# calculate_abundance_jaccard <- function(df1, df2) {
+#   # 1. Calculate the total abundance (or concentration) for each community
+#   n <- sum(df1$abundance)
+#   m <- sum(df2$abundance)
+#   
+#   # Return NA if either community is empty
+#   if (n == 0 || m == 0) return(NA_real_)
+# 
+#   # 2. Identify only the species shared between both communities
+#   shared_species <- inner_join(df1, df2, by = "species", suffix = c("_1", "_2"))
+# 
+#   # 3. Calculate U and V as defined
+#   # U = Sum of relative abundances of shared species in community 1
+#   U <- sum(shared_species$abundance_1) / n
+#   
+#   # V = Sum of relative abundances of shared species in community 2
+#   V <- sum(shared_species$abundance_2) / m
+# 
+#   # 4. Apply the final Jaccard equation
+#   numerator <- U * V
+#   denominator <- U + V - (U * V)
+#   
+#   # Handle the case of no shared species (U and V are 0)
+#   if (denominator == 0) {
+#     return(0)
+#   }
+#   
+#   similarity <- numerator / denominator
+#   return(similarity)
+# }
+
+```
+
+# # Step 6: Calculate pairwise similarity: create all seascape pairs and apply the new function.
+```{r}
+# Nest the community data
+nested_seascapes <- seascape_meta_communities %>%
+  group_by(X8.day.seascapes) %>%
+  nest(community_data = -X8.day.seascapes)
+
+# Create a dataframe with all pairs of seascapes
+seascape_pairs <- nested_seascapes %>%
+  select(seascape_1 = X8.day.seascapes, data_1 = community_data) %>%
+  crossing(
+    nested_seascapes %>%
+      select(seascape_2 = X8.day.seascapes, data_2 = community_data)
+  )
+
+# Apply the function to every pair
+pairwise_similarity <- seascape_pairs %>%
+  rowwise() %>%
+  mutate(C_J = calculate_chao_jaccard(data_1, data_2)) %>%
+  # mutate(C_J = calculate_abundance_jaccard(data_1, data_2)) %>%
+  select(seascape_1, seascape_2, C_J)
+```
+
+# # Step 7: Create the Chao-Jaccard Heatmap
+```{r}
+ggplot(pairwise_similarity, aes(x = factor(seascape_1), y = factor(seascape_2), fill = C_J)) +
+  geom_tile(color = "white") +
+  geom_text(aes(label = round(C_J, 2)), color = "black", size = 4) +
+  scale_fill_gradient(low = "#fee8c8", high = "#b30000", name = "Chao-Jaccard\nSimilarity") +
+  labs(
+    title = "Pairwise Chao-Jaccard Similarity Between Seascapes",
+    x = "Seascape",
+    y = "Seascape"
+  ) +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+# Replace C_J with NA where seascape_2 < seascape_1
+pairwise_similarity_updated <- pairwise_similarity %>%
+  mutate(
+    C_J = if_else(
+      # Condition: is the numeric value of seascape_2 less than seascape_1?
+      as.numeric(as.character(seascape_2)) < as.numeric(as.character(seascape_1)),
+      # If TRUE, replace with NA
+      NA_real_,
+      # If FALSE, keep the original C_J value
+      C_J
+    )
+  )
+
+pairwise_similarity_updated$seascape_1 <- factor(pairwise_similarity_updated$seascape_1,
+                                   levels = c(3, 11, 13, 15, 21, 27),
+                                   labels = c("TST", "TSU", "SGMI", "TS", "WBHN", "HE"))
+pairwise_similarity_updated$seascape_2 <- factor(pairwise_similarity_updated$seascape_2,
+                                   levels = c(3, 11, 13, 15, 21, 27),
+                                   labels = c("TST", "TSU", "SGMI", "TS", "WBHN", "HE"))
+# View the updated data frame
+similarity_hm <- ggplot(pairwise_similarity_updated, aes(x = factor(seascape_1), y = factor(seascape_2), fill = C_J)) +
+  geom_tile(color = "white") +
+  geom_text(aes(label = round(C_J, 2)), color = "black", size = 8) +
+  scale_fill_gradient(
+    low = "#fee8c8", 
+    high = "#b30000", # b30000 for zooplankton / 006400 for phyto
+    name = "Similarity", 
+    limit = c(0.21,1),
+    breaks = seq(0.2, 1.0, by = 0.2)) +  
+  labs(x = NULL, y = NULL) +
+  theme_minimal() +
+  theme(
+    axis.text.x  = element_text(size = 32, angle = 0, color = "black"),
+    axis.text.y  = element_text(size = 32, angle = 0, color = "black"),
+    panel.grid = element_blank(),
+    legend.text = element_text(size = 18),
+    legend.title = element_text(size = 22, margin = margin(b = 15)))
+similarity_hm
+
+ggsave("seascape_similarity_zoopl.svg", plot = similarity_hm, width = 16, height = 8, device = "svg")
+```
+
