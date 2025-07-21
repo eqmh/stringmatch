@@ -162,6 +162,12 @@ for (class_name in class_names) {
 
 # # Calculate plankton concentration time series per station
 ```{r}
+# Set sample_vol_per_min to a single value
+taxa_meta$sampled_vol_per_min <- max(taxa_meta$sampled_vol_per_min, na.rm = TRUE)
+# Set total_vol_sampled to common sample_vol_per_min 
+taxa_meta <- taxa_meta %>%
+  mutate(total_vol_sampled = sampled_vol_per_min * conc_deployDurMin)
+
 # Calculate species concentration (counts/ml) for each species
 taxa_concentration <- taxa_meta %>%
   mutate(across(c(Acantharea,
@@ -253,6 +259,148 @@ taxa_concentration <- taxa_concentration %>%
     pteropoda = Pteropods, 
     trichodesmium_spp = Tricho 
   )
+```
 
-write.csv(taxa_concentration, file = "sfer_taxa_concentration.csv", row.names = FALSE)
+# # Add 'keyfield' term to 'taxa_concentration' using 'SFER_data'
+```{r}
+# --- Load SFER_data ---
+# tryCatch is used to handle potential errors, like a missing file.
+tryCatch({
+  sfer_data <- read.csv("SFER_data.csv", stringsAsFactors = FALSE)
+}, error = function(e) {
+  stop("Error loading CSV files. Please ensure 'SFER_data.csv' and 'taxa_concentration.csv' are in your R working directory. Original error: ", e$message)
+})
+
+# --- Clean Inconsistent Data ---
+# Standardize 'cruise_id' and 'station' values in both data frames
+# to resolve known discrepancies before merging.
+
+# Standardize 'cruise_id': H23138 -> HG23138
+taxa_concentration$cruise_id[taxa_concentration$cruise_id == "H23138"] <- "HG23138"
+# Standardize 'station' ID's
+taxa_concentration$station[taxa_concentration$station == "21/LK"] <- "21LK"
+taxa_concentration$station[taxa_concentration$station == "BG7B"] <- "BG7"
+taxa_concentration$station[taxa_concentration$station == "BG15B"] <- "BG15"
+taxa_concentration$station[taxa_concentration$station == "BG17B"] <- "BG17"
+
+# Rename 'collection_date' column to 'datetime' in taxa_concentration
+if ("collection_date" %in% names(taxa_concentration)) {
+  names(taxa_concentration)[names(taxa_concentration) == "collection_date"] <- "datetime"
+}
+
+# Ensure 'datetime' columns are of the same type (character) for accurate merging
+if ("datetime" %in% names(taxa_concentration) && "datetime" %in% names(sfer_data)) {
+  taxa_concentration$datetime <- as.character(taxa_concentration$datetime)
+  sfer_data$datetime <- as.character(sfer_data$datetime)
+}
+
+# Check if the 'depth_order' column (or other column as needed) exists in the sfer_data dataframe.
+if (!"depth_class" %in% names(sfer_data)) {
+  stop("The 'depth_class' column was not found in SFER_data.csv. The script cannot filter for 'Surface' values.")
+}
+
+# Use grepl() to find rows containing 'Surface' and subset the data frame.
+sfer_data <- sfer_data[grepl("Surface", sfer_data$depth_class, ignore.case = TRUE), ]
+
+# --- Prepare Data for Merging ---
+# Create a subset of the SFER_data data frame.
+# This new data frame contains only the columns needed for the join (the matching keys)
+# and the 'keyfield' column to append.
+
+key_columns <- c("cruise_id", "year", "month", "station", "datetime", "keyfield")
+
+# Check if all necessary columns exist in SFER_data
+if (!all(key_columns %in% names(sfer_data))) {
+  stop("One or more required columns are missing from SFER_data.csv. Required columns are: ", paste(key_columns, collapse=", "))
+}
+
+sfer_subset <- sfer_data[, key_columns]
+
+# --- Merge the Data Frames ---
+# The merge() function performs a left join.
+# - 'x = taxa_concentration': This is the left data frame. We want to keep all its rows.
+# - 'y = sfer_subset': This is the right data frame, from which we'll pull 'keyfield'.
+# - 'by = ...': A vector of column names to match rows on.
+# - 'all.x = TRUE': This specifies the left join, ensuring all rows from taxa_concentration are kept.
+#   If a row in taxa_concentration has no match in sfer_subset, the new 'keyfield' will be NA.
+# - 'sort = FALSE': This preserves the original order of the taxa_concentration data frame as much as possible.
+
+matching_keys <- c("cruise_id", "year", "month", "datetime", "station")
+merged_data <- merge(taxa_concentration, sfer_subset, by = matching_keys, all.x = TRUE, sort = FALSE)
+
+# --- Check for Unmatched Rows (NA in keyfield) ---
+# Identify rows from 'taxa_concentration' that did not find a match in 'sfer_subset'.
+# These rows will have an NA value in the 'keyfield' column.
+
+unmatched_rows <- merged_data[is.na(merged_data$keyfield), ]
+
+if (nrow(unmatched_rows) > 0) {
+  cat("------------------------------------------------------------\n")
+  cat("Found", nrow(unmatched_rows), "rows from 'taxa_concentration' that did not have a matching 'keyfield' in 'sfer_data'.\n\n")
+  cat("The unmatched rows are:\n")
+  print(unmatched_rows)
+  cat("------------------------------------------------------------\n\n")
+} else {
+  cat("------------------------------------------------------------\n")
+  cat("All rows in 'taxa_concentration' were successfully matched with a 'keyfield'.\n")
+  cat("------------------------------------------------------------\n\n")
+}
+
+# --- Find and Report Duplicate Rows ---
+# Identify rows in 'merged_data' that are duplicates based on the matching keys.
+# This indicates that a single entry in 'taxa_concentration' matched multiple
+# entries in 'sfer_data'.
+
+is_duplicated <- duplicated(merged_data[, matching_keys]) | duplicated(merged_data[, matching_keys], fromLast = TRUE)
+duplicate_rows <- merged_data[is_duplicated, ]
+
+if (nrow(duplicate_rows) > 0) {
+  cat("------------------------------------------------------------\n")
+  cat("Found", nrow(duplicate_rows), "rows in 'merged_data' that are duplicates based on the keys:", paste(matching_keys, collapse=", "), ".\n")
+  cat("This is caused by rows in 'taxa_concentration' matching multiple entries in 'sfer_data'.\n\n")
+  cat("The duplicated rows are:\n")
+  # Sort the duplicates so they appear next to each other for easy comparison
+  sorted_duplicates <- duplicate_rows[order(duplicate_rows$cruise_id, duplicate_rows$year, duplicate_rows$month, duplicate_rows$station), ]
+  print(sorted_duplicates)
+  cat("------------------------------------------------------------\n\n")
+}else {
+  cat("------------------------------------------------------------\n")
+  cat("No duplicate rows were found in 'merged_data'.\n")
+  cat("------------------------------------------------------------\n\n")
+}
+
+# --- 8. Reorder Columns ---
+# The user requested that 'keyfield' be the first column in the final table.
+# We will create a new vector of column names in the desired order and
+# use it to re-index the data frame.
+
+# Get the name of all columns in the merged data frame
+current_columns <- names(merged_data)
+
+# Isolate the columns that are NOT 'keyfield'
+other_columns <- current_columns[current_columns != "keyfield"]
+
+# Create the new column order with 'keyfield' at the front
+new_column_order <- c("keyfield", other_columns)
+
+# Apply the new order to the data frame
+final_taxa_data <- merged_data[, new_column_order]
+
+
+# --- 9. Save the Result ---
+# Save the newly created data frame to a new CSV file.
+# Using a new file name prevents overwriting the original data.
+# 'row.names = FALSE' prevents R from writing row numbers into the CSV.
+
+output_filename <- "sfer_taxa_concentration.tsv"
+write.table(final_taxa_data, output_filename, row.names = FALSE, sep = "\t")
+
+
+# --- 10. Final Confirmation ---
+# Print a message to the console confirming the script has finished
+# and showing the first few rows of the new data.
+cat("Script finished successfully!\n")
+cat("The merged data has been saved to '", output_filename, "'\n\n")
+cat("Preview of the final data:\n")
+print(head(final_taxa_data))
 ```
