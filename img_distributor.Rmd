@@ -36,7 +36,7 @@ data_frame_names <- ls(pattern = "^class\\.")  # Get all data frames starting wi
 ```{r}
 path_to_files <- "~/Desktop/cpics_img/" # Base directory for all images
 # selected_base_dir <- "~/Desktop/selected_per_class/"  # Base directory for selected files in separate folders
-# selected_destination_dir_all <- "~/Desktop/selected/"  # Base directory for selected files in common folder
+selected_destination_dir_all <- "~/Desktop/selected/"  # Base directory for selected files in common folder
 
 # Use this path for creating a training dataset for the UW classifies
 selected_base_dir <- "~/Desktop/uw_classifier/training_dataset/"  # Base directory for selected files in separate folders
@@ -50,8 +50,8 @@ if (!dir.exists(selected_destination_dir_all)) {
   dir.create(selected_destination_dir_all)
 }
 
-# List all image files in all folders within the main directory
-image_files <- list.files(path = path_to_files, pattern = "\\.(png|jpg|jpeg|tif|tiff)$", recursive = TRUE, full.names = TRUE)
+# List all PNG image files in all folders within the main directory
+image_files <- list.files(path = path_to_files, pattern = "\\.(png)$", recursive = TRUE, full.names = TRUE)
 
 # Count the number of image files
 num_image_files <- length(image_files)
@@ -266,6 +266,89 @@ cat("Folders containing repeated files:\n")
 print(folders_with_repeats)
 
 ```
-`````
 
+# # Aggregate all or selected unclassified PNG files in a single folder to classify using the UW classifier
+```{r}
+# R Script to Copy and Filter PNG Files by Datetime
+#
+# This script recursively finds all PNG files in 'cpics_img',
+# extracts the datetime from each filename, filters them based on a
+# specified date range, and copies the matching files to a
+# destination folder.
+
+library(dplyr)
+library(fs)
+
+# The main folder containing all your date-stamped subfolders
+source_directory <- "~/Desktop/cpics_img/"
+
+# The single folder where you want to copy the filtered PNG files
+destination_directory <-"~/Desktop/uw_classifier/unclassified/"
+
+# Define the date range for filtering (inclusive)
+# The script will keep files with dates ON or BETWEEN these two dates.
+start_date <- as.POSIXct("2025-01-01 00:00:00", tz = "UTC")
+end_date <- as.POSIXct("2025-05-16 15:00:00", tz = "UTC")
+
+# Step 1: Find all PNG files recursively in the source directory
+cat("Finding all PNG files in '", source_directory, "'...\n", sep = "")
+all_files <- dir_ls(
+  path = source_directory,
+  recurse = TRUE,
+  type = "file",
+  regexp = "\\.png$" # Use a regular expression to match files ending in .png
+)
+
+if (length(all_files) == 0) {
+  stop("No PNG files were found in the source directory. Please check the path.")
+}
+
+cat("Found", length(all_files), "total PNG files.\n")
+
+# Step 2: Create a data frame with file paths and extracted datetimes
+# The filename format is assumed to be 'YYYYMMDD_hhmmss.sss.n.png'
+# We extract the 'YYYYMMDD_hhmmss' part to create a datetime object.
+files_df <- tibble(
+  file_path = all_files
+) %>%
+  mutate(
+    # Extract the first 15 characters from the filename (e.g., "20250516_011837")
+    datetime_str = substr(path_file(file_path), 1, 15),
+    # Convert the string to a proper POSIXct datetime object
+    date = as.POSIXct(datetime_str, format = "%Y%m%d_%H%M%S", tz = "UTC")
+  )
+
+cat("Successfully extracted datetimes from filenames.\n")
+
+# Step 3: Filter the data frame to keep only files within the desired date range
+cat("Filtering files between", format(start_date, "%Y-%m-%d"), "and", format(end_date, "%Y-%m-%d"), "...\n")
+
+filtered_files_df <- files_df %>%
+  filter(
+    date >= start_date & date <= end_date
+  )
+
+if (nrow(filtered_files_df) == 0) {
+  cat("No files matched the specified date range. No files will be copied.\n")
+} else {
+  cat("Found", nrow(filtered_files_df), "files within the date range.\n")
+  
+  # Step 4: Copy the filtered files to the destination directory
+  cat("Copying files to '", destination_directory, "'...\n", sep = "")
+  
+  # The `file_copy` function from 'fs' can handle vectors of files easily.
+  # It copies the files from the 'file_path' column into the destination folder.
+  file_copy(
+    path = filtered_files_df$file_path,
+    new_path = destination_directory,
+    overwrite = TRUE # Set to FALSE if you don't want to overwrite existing files
+  )
+  
+  cat("\n--- All Done! ---\n")
+  cat(nrow(filtered_files_df), "files have been successfully copied to:\n")
+  cat(path_real(destination_directory), "\n")
+}
+
+
+```
 
