@@ -3,9 +3,8 @@ title: "Image Distributor"
 output: null
 ---
 
-This script copies annotated images from the main data folder (cpics_img) into corresponding folders in another directoty: diatoms, acantharea, copedos, etc. Use Section 1 for this function.
-
-For copying annotated images into a single folder (not aggregated by class), use Section 2.
+This script copies annotated images from the main data folder (cpics_img) into corresponding folders in another directory: diatoms, acantharea, copepods, etc. 
+The code also allows to copy all annotated images into a single folder (not aggregated by class).
 
 Created: June 18th 2024
 By: Enrique Montes
@@ -16,7 +15,8 @@ library(tidyverse)
 library(lubridate)
 
 # specify the directory where the files are located
-dir_path <- "~/Library/CloudStorage/GoogleDrive-enriquemontes01@gmail.com/My Drive/GDrive/OCED_AOML/WS_cruises/plankton_imaging/CPICS/TS.Master_selection"
+# dir_path <- "~/Library/CloudStorage/GoogleDrive-enriquemontes01@gmail.com/My Drive/GDrive/OCED_AOML/WS_cruises/plankton_imaging/CPICS/TS.Master_selection"
+dir_path <- "/Users/enrique.montes/Desktop/cpics_img/TS.Master"
 
 # obtain a list of file names in the directory
 file_names <- list.files(path = dir_path, pattern = ".txt", full.names = TRUE)
@@ -35,8 +35,11 @@ data_frame_names <- ls(pattern = "^class\\.")  # Get all data frames starting wi
 # Set path to and create main directories (base directory where all images are and destination directory)
 ```{r}
 path_to_files <- "~/Desktop/cpics_img/" # Base directory for all images
-selected_base_dir <- "~/Desktop/selected_per_class/"  # Base directory for selected files in separate folders
-selected_destination_dir_all <- "~/Desktop/selected/"  # Base directory for selected files in common folder
+# selected_base_dir <- "~/Desktop/selected_per_class/"  # Base directory for selected files in separate folders
+# selected_destination_dir_all <- "~/Desktop/selected/"  # Base directory for selected files in common folder
+
+# Use this path for creating a training dataset for the UW classifies
+selected_base_dir <- "~/Desktop/uw_classifier/training_dataset/"  # Base directory for selected files in separate folders
 
 # Create the base directory for selected files if it doesn't exist
 if (!dir.exists(selected_base_dir)) {
@@ -116,7 +119,10 @@ if (length(missing_files) > 0) {
 }
 
 # Set path to main directory
-path_to_dest_files <- "~/Desktop/selected/"
+  # path_to_dest_files <- "~/Desktop/selected/"
+
+  # Use this path for creating a training dataset for the UW classifier
+  path_to_dest_files <- "~/Desktop/uw_classifier/training_dataset_all/"
 
 # List all image files in all folders within the main directory
 image_dest_files <- list.files(path = path_to_dest_files, pattern = "\\.(png|jpg|jpeg|tif|tiff)$", recursive = TRUE, full.names = TRUE)
@@ -145,7 +151,7 @@ for (df_name in data_frame_names) {
   df_name_without_prefix <- sub("^class\\.", "", df_name)
   
   # Filter out rows with 'date' values outside selected time period (e.g. from 2024-11-01 to 2024-11-30)
-  current_df <- current_df %>% filter(date >= as.POSIXct("2024-11-01", tz="UTC") & date <= as.POSIXct("2024-11-30", tz="UTC"))
+  # current_df <- current_df %>% filter(date >= as.POSIXct("2024-11-01", tz="UTC") & date <= as.POSIXct("2024-11-30", tz="UTC"))
   
   # Skip the loop if no rows are left after filtering
   if (nrow(current_df) == 0) {
@@ -193,7 +199,10 @@ if (length(missing_files) > 0) {
 }
 
 # Set path to main directory
-path_to_sel_files <- "~/Desktop/selected_per_class/"
+  # path_to_sel_files <- "~/Desktop/selected_per_class/"
+  
+  # Use this path for creating a training dataset for the UW classifier
+  path_to_sel_files <- "~/Desktop/uw_classifier/training_dataset/"
 
 # List all image files in all folders within the main directory
 image_sel_files <- list.files(path = path_to_sel_files, pattern = "\\.(png|jpg|jpeg|tif|tiff)$", recursive = TRUE, full.names = TRUE)
