@@ -283,7 +283,7 @@ library(fs)
 source_directory <- "~/Desktop/cpics_img/"
 
 # The single folder where you want to copy the filtered PNG files
-destination_directory <-"~/Desktop/uw_classifier/unclassified/"
+destination_directory <-"~/Desktop/uw_classifier/unclassified_dataset/unclassified/"
 
 # Define the date range for filtering (inclusive)
 # The script will keep files with dates ON or BETWEEN these two dates.
