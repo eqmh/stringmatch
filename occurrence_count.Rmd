@@ -161,7 +161,7 @@ for (class_name in class_names) {
   cat("\n")
 }
 
-# # Percent of sampling events without a seascape class match
+# # Percent of sampling events with a seascape class match and other stats
 sampling_events_img <- sum(!is.na(taxa_meta$total_vol_sampled))
 sampling_events_no_img <- sum(is.na(taxa_meta$total_vol_sampled))
 seascape_no_match_img <- sum(is.na(taxa_meta$X8.day.seascapes) & !is.na(taxa_meta$total_vol_sampled))
@@ -169,6 +169,8 @@ seascape_total <- sum(!is.na(taxa_meta$X8.day.seascapes))
 no_seascape <- sum(is.na(taxa_meta$X8.day.seascapes))
 seascape_match <- sum(!is.na(taxa_meta$X8.day.seascapes) & !is.na(taxa_meta$total_vol_sampled))
 percent_match <- round(seascape_match/sampling_events_img*100, digits = 0)
+# Calculates number of stations occupied during each cruise
+station_num_per_cruise <- tapply(taxa_meta$Station, taxa_meta$cruiseID, function(x) length(unique(x)))
 
 sampling_events_total <- paste("Total number CTD casts:", nrow(taxa_meta))
 matched_casts <- paste("Percent of CTD casts with seascape match:", round(seascape_total/nrow(taxa_meta)*100, digits=0), "%")
@@ -178,6 +180,7 @@ print(sampling_events_total)
 print(matched_casts)
 print(sampling_success)
 print(match_stat)
+print(as.table(station_num_per_cruise))
 
 ```
 
