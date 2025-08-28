@@ -288,7 +288,7 @@ destination_directory <-"~/Desktop/uw_classifier/unclassified_dataset/unclassifi
 # Define the date range for filtering (inclusive)
 # The script will keep files with dates ON or BETWEEN these two dates.
 start_date <- as.POSIXct("2025-01-01 00:00:00", tz = "UTC")
-end_date <- as.POSIXct("2025-05-16 15:00:00", tz = "UTC")
+end_date <- as.POSIXct("2025-08-17 00:00:00", tz = "UTC")
 
 # Step 1: Find all PNG files recursively in the source directory
 cat("Finding all PNG files in '", source_directory, "'...\n", sep = "")
@@ -348,6 +348,8 @@ if (nrow(filtered_files_df) == 0) {
   cat(nrow(filtered_files_df), "files have been successfully copied to:\n")
   cat(path_real(destination_directory), "\n")
 }
+
+# # NOTE: use this command in terminal to upload 'unclassified_dataset' to Holocron: rsync -avz /Users/enrique.montes/Desktop/uw_classifier/unclassified_dataset enrique.montes@holocron.aoml.noaa.gov:/home/enrique.montes@CNS.local/plankton_imaging
 
 
 ```
