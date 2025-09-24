@@ -1,3 +1,4 @@
+# R Script to batch process zipped plankton data folders.
 # Use this script to edit metadata in Ecotaxa .tsv files
 # August 19th 2024
 # E. Montes (enrique.montes@noaa.gov)

@@ -1,0 +1,476 @@
+---
+title: "planktoscope_metadata_editor"
+author: "E. Montes"
+date: "2025-09-23"
+output: mull
+---
+
+# R Script to batch process zipped plankton data folders.
+# Use this script to edit metadata in Ecotaxa .tsv files
+# Original code from 'ecotaxa_metadata_editor' from August 19th 2024
+# Modified on September 23 of 2025 for updating the 'sample_total_volume' in each 'ecotaxa_export.tsv'
+# E. Montes (enrique.montes@noaa.gov)
+```{r setup, include=FALSE}
+# --- Load Required Libraries ---
+library(readr)
+library(dplyr)
+
+# --- Setup File Paths ---
+# Directory containing the compressed folders (e.g., sample_1.zip, sample_2.zip)
+dir_path <-  path.expand("~/Desktop/test/") 
+# Full path to the master log file
+log_file_path <- path.expand("~/Documents/stringmatch/sfer_sembon_plankton_log.csv")
+
+```
+
+
+## Load plankton log, format matching params, and create list of zip files
+```{r}
+# --- Load the Master Log File ---
+# This file contains the net tow metadata (e.g. 'filt_volume').
+log_data <- read.csv(log_file_path, stringsAsFactors = FALSE)
+  
+# Ensure cruise_id is a character to prevent type mismatches
+log_data$cruise_id <- as.character(log_data$cruise_id)
+
+# Extract date and time from the 'date_time' column.
+# The format string "%Y-%m-%dT%H:%M:%SZ" is used to parse ISO 8601 datetime format.
+# The 'tz = "UTC"' is important to correctly interpret the 'Z' (Zulu time).
+datetime_obj <- as.POSIXct(log_data$date_time, format = "%Y-%m-%dT%H:%M:%SZ", tz = "UTC")
+log_data$collection_date <- format(datetime_obj, "%Y-%m-%d")
+log_data$collection_time <- format(datetime_obj, "%H:%M:%S")
+
+# Print the first 3 rows of 'log_data' to verify
+cat("First 3 rows of 'log_data':\n")
+print(head(log_data, 3))
+
+# Get a list of all `.zip` files in the target directory
+zip_files <- list.files(path = dir_path, pattern = "\\.zip$", full.names = TRUE) 
+
+# Print the first 3 zip files to verify
+cat("First 3 zip files found:\n")
+print(head(zip_files, 3))
+```
+
+
+## Match plankton log and .tsv metadata, and change 'total_sample_volume'   
+```{r}
+# Initialize a vector to store the names of unmatched files ---
+unmatched_files <- c()
+
+# --- Main Loop to Process Each Zip File ---
+for (zip_file in zip_files) {
+  
+  cat("\nProcessing:", basename(zip_file), "...\n")
+  
+  # Create a temporary directory to unzip the contents
+  temp_dir <- tempfile()
+  dir.create(temp_dir)
+  unzip(zip_file, exdir = temp_dir)
+  
+  # Find the 'ecotaxa_export.tsv' file within the unzipped folder
+  tsv_file <- list.files(temp_dir, pattern = "ecotaxa_export\\.tsv$", full.names = TRUE, recursive = TRUE, ignore.case = TRUE)
+  tsv_file <- tsv_file[!grepl("__MACOSX", tsv_file)] # Exclude macOS metadata
+  
+  if (length(tsv_file) == 1) {
+    
+    # Read the .tsv correctly
+    col_names <- names(readr::read_tsv(tsv_file, n_max = 0, show_col_types = FALSE))
+    skipped_line_df <- readr::read_tsv(tsv_file, skip = 1, n_max = 1, col_names = FALSE, show_col_types = FALSE)
+    df <- readr::read_tsv(tsv_file, skip = 2, col_names = col_names, show_col_types = FALSE)
+    
+    # Extract key metadata from the first data row of the TSV
+    required_cols <- c("object_date", "object_time", "object_lat", "object_lon")
+    if (!all(required_cols %in% names(df))) {
+      stop("One or more required columns are missing from the TSV file: ", paste(required_cols, collapse=", "))
+    }
+    
+    # Get the keys for matching and convert them to the correct format
+    key_date_raw <- as.character(df$object_date[1])
+    key_time_raw <- as.character(df$object_time[1])
+    key_lat <- as.numeric(df$object_lat[1])
+    key_lon <- as.numeric(df$object_lon[1])
+    
+    # Reformat date from YYYYMMDD to YYYY-MM-DD
+    key_date <- format(as.Date(key_date_raw, format = "%Y%m%d"), "%Y-%m-%d")
+
+    # The 'object_time' column can be inferred as numeric, dropping leading zeros (e.g., '022300' becomes 22300).
+    # We must pad the string with leading zeros to ensure it is always 6 digits before parsing.
+    key_time_padded <- sprintf("%06d", as.numeric(key_time_raw))
+    key_time <- format(strptime(key_time_padded, format = "%H%M%S"), "%H:%M:%S")
+
+    cat("  - Found keys: Date=", key_date, ", Time=", key_time, ", Lat=", key_lat, ", Lon=", key_lon, "\n")
+    
+    # Find the matching row in the log file using all keys
+    match_row <- log_data %>%
+      filter(collection_date == key_date,
+             collection_time == key_time,
+             round(decimalLatitude, 2) == round(key_lat, 2),
+             round(decimalLongitude, 2) == round(key_lon, 2))
+    
+    # Proceed based on the number of matches found
+    if (nrow(match_row) == 1) {
+      # --- Case 1: Perfect, unique match found ---
+      cat("  - Exact match found in log.\n")
+      
+      filt_volume <- match_row$filt_volume[1]
+      new_total_volume <- filt_volume * 1000
+      
+      cat("  - New sample_total_volume:", new_total_volume, "\n")
+      
+      if ("sample_total_volume" %in% names(df)) {
+        df$sample_total_volume <- new_total_volume
+        
+        # --- MODIFIED WRITING LOGIC TO PRESERVE QUOTES ---
+        # Convert all columns to character type to ensure write.table quotes them
+        df[] <- lapply(df, as.character)
+        skipped_line_df[] <- lapply(skipped_line_df, as.character)
+        
+        # Write the file back piece-by-piece to preserve the exact format
+        # 1. Write the header, manually adding double quotes
+        write(paste0('"', names(df), '"', collapse="\t"), file = tsv_file)
+        
+        # 2. Append the skipped line, using quote=TRUE
+        write.table(skipped_line_df, tsv_file, sep = "\t", row.names = FALSE, col.names = FALSE, quote = TRUE, append = TRUE)
+        
+        # 3. Append the main data frame, using quote=TRUE
+        write.table(df, tsv_file, sep = "\t", row.names = FALSE, col.names = FALSE, quote = TRUE, append = TRUE)
+        
+        cat("  - Successfully updated and saved", basename(tsv_file), "\n")
+        
+      } else {
+        warning("Column 'sample_total_volume' not found in ", basename(tsv_file), ". Skipping update.")
+      }
+      
+    } else if (nrow(match_row) == 0) {
+      # --- Case 2: No exact match found, find the specific reason ---
+      mismatch_reason <- ""
+      
+      date_matches <- log_data %>% filter(collection_date == key_date)
+      if (nrow(date_matches) == 0) {
+        mismatch_reason <- "Date"
+      } else {
+        time_matches <- date_matches %>% filter(collection_time == key_time)
+        if (nrow(time_matches) == 0) {
+          mismatch_reason <- "Time (Date was found)"
+        } else {
+          lat_matches <- time_matches %>% filter(near(decimalLatitude, key_lat))
+          if (nrow(lat_matches) == 0) {
+            mismatch_reason <- "Latitude (Date & Time were found)"
+          } else {
+            mismatch_reason <- "Longitude (Date, Time & Lat were found)"
+          }
+        }
+      }
+      
+      warning(paste0("No match found in log file. Mismatch on: ", mismatch_reason, 
+                     ". Searched for: Date=", key_date, ", Time=", key_time, 
+                     ", Lat=", key_lat, ", Lon=", key_lon))
+      
+      unmatched_files <- c(unmatched_files, basename(zip_file))
+      
+    } else {
+      # --- Case 3: Multiple exact matches found ---
+      warning("Multiple (", nrow(match_row), ") exact matches found in log file for keys: Date=", key_date, ", Time=", key_time, ", Lat=", key_lat, ", Lon=", key_lon)
+    }
+    
+  } else {
+    warning("Expected 1 'ecotaxa_export.tsv' file in zip, but found ", length(tsv_file), ".")
+  }
+  
+  # Re-zip the folder's contents, overwriting the original file
+  new_zip_file <- file.path(dir_path, basename(zip_file))
+  old_wd <- getwd()
+  setwd(temp_dir)
+  
+  system(paste("zip -r", shQuote(new_zip_file), "."), ignore.stdout = TRUE, ignore.stderr = TRUE)
+  
+  setwd(old_wd)
+  cat("  - Re-compressed", basename(zip_file), "\n")
+  
+  # Clean up the temporary directory
+  unlink(temp_dir, recursive = TRUE)
+}
+
+```
+
+# Report All Unmatched Files ---
+```{r}
+# --- 6. Report All Unmatched Files ---
+if (length(unmatched_files) > 0) {
+  cat("\n------------------------------------------------------------\n")
+  cat("Processing complete. The following files did not find a match and may need manual correction:\n\n")
+  for (file in unmatched_files) {
+    cat(" -", file, "\n")
+  }
+  cat("\n------------------------------------------------------------\n")
+} else {
+  cat("\nProcessing complete! All files were successfully matched and updated.\n")
+}
+
+```
+
+
+## Batch-correct params of unmatched .tsv files and then re-run the third code chunk. 
+```{r}
+# --- Check if there are any unmatched files to process ---
+if (!exists("unmatched_files") || length(unmatched_files) == 0) {
+  cat("No unmatched files to correct. Please run the main script first.\n")
+} else {
+  
+  # Define the new time value to be assigned
+  new_time_value <- "022300" # As specified in the request
+  
+  # --- Loop Through Each Unmatched Zip File ---
+  # The 'unmatched_files' variable is generated by the previous script chunk.
+  for (unmatched_zip_basename in unmatched_files) {
+    
+    # Reconstruct the full path to the zip file
+    correction_zip_path <- file.path(dir_path, unmatched_zip_basename)
+    
+    cat("\nCorrecting:", basename(correction_zip_path), "...\n")
+    
+    # Create a temporary directory for this specific correction task
+    correction_temp_dir <- tempfile()
+    dir.create(correction_temp_dir)
+    unzip(correction_zip_path, exdir = correction_temp_dir)
+    
+    # Find the 'ecotaxa_export.tsv' file within the unzipped folder
+    correction_tsv_file <- list.files(correction_temp_dir, pattern = "ecotaxa_export\\.tsv$", full.names = TRUE, recursive = TRUE, ignore.case = TRUE)
+    correction_tsv_file <- correction_tsv_file[!grepl("__MACOSX", correction_tsv_file)]
+    
+    if (length(correction_tsv_file) == 1) {
+      
+      # Read the .tsv file using the same robust method as the main script
+      corr_col_names <- names(readr::read_tsv(correction_tsv_file, n_max = 0, show_col_types = FALSE))
+      corr_skipped_line <- readr::read_tsv(correction_tsv_file, skip = 1, n_max = 1, col_names = FALSE, show_col_types = FALSE)
+      df_for_correction <- readr::read_tsv(correction_tsv_file, skip = 2, col_names = corr_col_names, show_col_types = FALSE)
+      
+      # Modify the 'object_time' column with the new value
+      if ("object_time" %in% names(df_for_correction)) {
+        df_for_correction$object_time <- new_time_value
+        cat("  - Set 'object_time' to '", new_time_value, "' for all rows.\n", sep="")
+        
+        # --- PRESERVE ORIGINAL FILE FORMAT WHEN WRITING ---
+        df_for_correction[] <- lapply(df_for_correction, as.character)
+        corr_skipped_line[] <- lapply(corr_skipped_line, as.character)
+        
+        write(paste0('"', names(df_for_correction), '"', collapse="\t"), file = correction_tsv_file)
+        write.table(corr_skipped_line, correction_tsv_file, sep = "\t", row.names = FALSE, col.names = FALSE, quote = TRUE, append = TRUE)
+        write.table(df_for_correction, correction_tsv_file, sep = "\t", row.names = FALSE, col.names = FALSE, quote = TRUE, append = TRUE)
+        
+        cat("  - Successfully saved changes to", basename(correction_tsv_file), "\n")
+        
+      } else {
+        warning("Column 'object_time' not found in ", basename(correction_tsv_file), ". Skipping correction.")
+      }
+      
+    } else {
+      warning("Expected 1 'ecotaxa_export.tsv' file in ", basename(correction_zip_path), ", but found ", length(correction_tsv_file), ".")
+    }
+    
+    # Re-zip the folder's contents, overwriting the original file
+    rezipped_correction_file <- file.path(dir_path, basename(correction_zip_path))
+    original_wd <- getwd()
+    setwd(correction_temp_dir)
+    
+    system(paste("zip -r", shQuote(rezipped_correction_file), "."), ignore.stdout = TRUE, ignore.stderr = TRUE)
+    
+    setwd(original_wd)
+    cat("  - Re-compressed", basename(rezipped_correction_file), "\n")
+    
+    # Clean up the temporary directory
+    unlink(correction_temp_dir, recursive = TRUE)
+  }
+  
+  cat("\nCorrection process complete for all unmatched files!\n")
+}
+```
+
+# # Correct specific params in individual files 
+```{r}
+# --- Define the File and Parameters ---
+# The base directory where the zip file is located
+base_dir <- path.expand("~/Desktop/test/") 
+# The name of the specific zip file to process
+sample_zip_name <- "ecotaxa_h24062_2023-10-04T02_41_49.517181_h24062_LK_64um.zip"
+# The new time value to be assigned to the 'object_time' column
+# new_time_value <- "031500"
+# new_date_value <- "20240307"
+new_lon_value <- -81.413
+
+# Construct the full path to the zip file
+full_zip_path <- file.path(base_dir, sample_zip_name)
+
+# --- Unzip, Modify, and Re-zip ---
+if (file.exists(full_zip_path)) {
+  
+  cat("Processing:", basename(full_zip_path), "...\n")
+  
+  # Create a temporary directory to unzip the contents
+  temp_dir <- tempfile()
+  dir.create(temp_dir)
+  unzip(full_zip_path, exdir = temp_dir)
+  cat("  - Unzipped to temporary directory.\n")
+  
+  # Find the 'ecotaxa_export.tsv' file within the unzipped folder
+  tsv_file <- list.files(temp_dir, pattern = "ecotaxa_export\\.tsv$", full.names = TRUE, recursive = TRUE, ignore.case = TRUE)
+  tsv_file <- tsv_file[!grepl("__MACOSX", tsv_file)] # Exclude macOS metadata
+  
+  if (length(tsv_file) == 1) {
+    
+    # Read the .tsv file correctly, preserving header and skipping the second line
+    col_names <- names(readr::read_tsv(tsv_file, n_max = 0, show_col_types = FALSE))
+    skipped_line_df <- readr::read_tsv(tsv_file, skip = 1, n_max = 1, col_names = FALSE, show_col_types = FALSE)
+    df <- readr::read_tsv(tsv_file, skip = 2, col_names = col_names, show_col_types = FALSE)
+    
+    # Modify the 'object_time' column with the new value
+    if ("object_time" %in% names(df)) {
+      
+      # Use for 'object_time'
+      # df$object_time <- new_time_value
+      # cat("  - Set 'object_time' to '", new_time_value, "' for all rows.\n", sep="")
+      
+      # df$object_date <- new_date_value
+      # cat("  - Set 'object_date' to '", new_date_value, "' for all rows.\n", sep="")
+      
+      df$object_lon <- new_lon_value
+      cat("  - Set 'object_lon' to '", new_lon_value, "' for all rows.\n", sep="")
+      
+      # --- PRESERVE ORIGINAL FILE FORMAT WHEN WRITING ---
+      df[] <- lapply(df, as.character)
+      skipped_line_df[] <- lapply(skipped_line_df, as.character)
+      
+      # Write the file back piece-by-piece to preserve the exact format
+      write(paste0('"', names(df), '"', collapse="\t"), file = tsv_file)
+      write.table(skipped_line_df, tsv_file, sep = "\t", row.names = FALSE, col.names = FALSE, quote = TRUE, append = TRUE)
+      write.table(df, tsv_file, sep = "\t", row.names = FALSE, col.names = FALSE, quote = TRUE, append = TRUE)
+      
+      cat("  - Successfully saved changes to", basename(tsv_file), "\n")
+      
+    } else {
+      warning("Column 'object_time' not found in ", basename(tsv_file), ". Skipping correction.")
+    }
+    
+  } else {
+    warning("Expected 1 'ecotaxa_export.tsv' file in zip, but found ", length(tsv_file), ".")
+  }
+  
+  # Re-zip the folder's contents, overwriting the original file
+  old_wd <- getwd()
+  setwd(temp_dir)
+  
+  system(paste("zip -r", shQuote(full_zip_path), "."), ignore.stdout = TRUE, ignore.stderr = TRUE)
+  
+  setwd(old_wd)
+  cat("  - Re-compressed", basename(full_zip_path), "\n")
+  
+  # Clean up the temporary directory
+  unlink(temp_dir, recursive = TRUE)
+  
+  cat("Correction complete!\n")
+  
+} else {
+  cat("Error: File not found at path:", full_zip_path, "\n")
+}
+
+```
+
+
+# # Create a zip file containing all modified .tsv files to upload to Ecotaxa
+```{r}
+# R Script to iteratively unzip folders, copy the .tsv table from each,
+# and then compile all copied .tsv tables into a single new zip file.
+
+# --- 1. Setup Paths ---
+# The source directory containing all the .zip files to be processed.
+dir_path <- path.expand("~/Desktop/test/") 
+
+# The path for a new folder that will temporarily store all the extracted .tsv files.
+# This folder will be created on your Desktop.
+tsv_collection_dir <- path.expand("~/Desktop/all_tsv_files/")
+
+# The name and location for the final, single .zip file containing all the .tsv tables.
+final_output_zip <- path.expand("~/Desktop/compiled_tsv_archive.zip")
+
+# --- 2. Create the Directory to Store TSV Copies ---
+# The 'showWarnings = FALSE' argument prevents an error if the directory already exists.
+dir.create(tsv_collection_dir, showWarnings = FALSE)
+cat("Created directory to store .tsv copies at:", tsv_collection_dir, "\n")
+
+# --- 3. Get a List of All Zip Files to Process ---
+zip_files <- list.files(path = dir_path, pattern = "\\.zip$", full.names = TRUE)
+cat("Found", length(zip_files), "zip files to process.\n\n")
+
+# --- 4. Iteratively Unzip, Copy TSV, and Clean Up ---
+for (zip_file in zip_files) {
+  
+  cat("Processing:", basename(zip_file), "...\n")
+  
+  # Create a temporary directory for each zip file's contents
+  temp_unzip_dir <- tempfile()
+  dir.create(temp_unzip_dir)
+  
+  # Unzip the file into the temporary directory
+  unzip(zip_file, exdir = temp_unzip_dir)
+  
+  # Find the .tsv file within the unzipped contents
+  tsv_file_path <- list.files(temp_unzip_dir, pattern = "\\.tsv$", full.names = TRUE, recursive = TRUE, ignore.case = TRUE)
+  tsv_file_path <- tsv_file_path[!grepl("__MACOSX", tsv_file_path)] # Exclude macOS metadata
+  
+  if (length(tsv_file_path) == 1) {
+    
+    # Create a new, unique name for the copied .tsv file based on the original zip name
+    zip_file_basename <- tools::file_path_sans_ext(basename(zip_file))
+    new_tsv_name <- paste0(zip_file_basename, ".tsv")
+    destination_path <- file.path(tsv_collection_dir, new_tsv_name)
+    
+    # Copy the found .tsv file to the collection directory
+    file.copy(tsv_file_path, destination_path)
+    cat("  - Copied .tsv to collection folder.\n")
+    
+  } else {
+    warning("Expected 1 .tsv file in ", basename(zip_file), ", but found ", length(tsv_file_path), ". Skipping copy.")
+  }
+  
+  # Clean up the temporary directory used for unzipping this file
+  unlink(temp_unzip_dir, recursive = TRUE)
+}
+
+# --- 5. Zip the Folder with All Copied TSV Files ---
+cat("\n------------------------------------------------------------\n")
+cat("Starting final compression...\n")
+
+# Get the list of file paths inside the collection directory
+files_to_zip <- list.files(tsv_collection_dir, full.names = TRUE)
+
+if (length(files_to_zip) > 0) {
+  # The 'zip' command requires us to be in the directory to avoid including the full path in the archive
+  old_wd <- getwd()
+  setwd(tsv_collection_dir)
+  
+  # Create the final zip file. We use 'basename' to only include the file names.
+  zip(zipfile = final_output_zip, files = basename(files_to_zip))
+  
+  # Return to the original working directory
+  setwd(old_wd)
+  
+  cat("Successfully created final archive at:", final_output_zip, "\n")
+  
+} else {
+  cat("No .tsv files were copied, so no final archive was created.\n")
+}
+
+# --- 6. Clean Up ---
+# Remove the intermediate folder that stored all the .tsv copies
+unlink(tsv_collection_dir, recursive = TRUE)
+cat("Cleaned up temporary collection directory.\n")
+
+cat("Processing complete!\n")
+cat("------------------------------------------------------------\n")
+
+
+```
+
+
+
