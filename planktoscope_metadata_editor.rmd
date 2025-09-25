@@ -391,7 +391,7 @@ dir_path <- path.expand("~/Desktop/test/")
 tsv_collection_dir <- path.expand("~/Desktop/all_tsv_files/")
 
 # The name and location for the final, single .zip file containing all the .tsv tables.
-final_output_zip <- path.expand("~/Desktop/compiled_tsv_archive.zip")
+final_output_zip <- path.expand("~/Desktop/ecotaxa_tsv_archive.zip")
 
 # --- 2. Create the Directory to Store TSV Copies ---
 # The 'showWarnings = FALSE' argument prevents an error if the directory already exists.
@@ -473,4 +473,110 @@ cat("------------------------------------------------------------\n")
 ```
 
 
+# # STANDALONE SECTION: Check if 'concentrated_sample_volume' values in .tsv tables match 'conc_volume' in 'sfer_sembon_plankton_log'
+```{r}
+# --- Load Required Libraries ---
+library(readr)
+library(dplyr)
+
+# Directory containing the compressed folders (e.g., sample_1.zip, sample_2.zip)
+dir_path <-  path.expand("~/Desktop/planktoscope/") 
+# Full path to the master log file
+log_file_path <- path.expand("~/Documents/stringmatch/sfer_sembon_plankton_log.csv")
+
+# --- Load the Master Log File ---
+# This file contains the net tow metadata (e.g. 'conc_volume').
+log_data <- read.csv(log_file_path, stringsAsFactors = FALSE)
+  
+# Ensure cruise_id is a character to prevent type mismatches
+log_data$cruise_id <- as.character(log_data$cruise_id)
+
+# Extract date and time from the 'date_time' column.
+# The format string "%Y-%m-%dT%H:%M:%SZ" is used to parse ISO 8601 datetime format.
+# The 'tz = "UTC"' is important to correctly interpret the 'Z' (Zulu time).
+datetime_obj <- as.POSIXct(log_data$date_time, format = "%Y-%m-%dT%H:%M:%SZ", tz = "UTC")
+log_data$collection_date <- format(datetime_obj, "%Y-%m-%d")
+log_data$collection_time <- format(datetime_obj, "%H:%M:%S")
+
+# Get a list of all `.zip` files in the target directory
+zip_files <- list.files(path = dir_path, pattern = "\\.zip$", full.names = TRUE) 
+
+# --- Main Loop to Validate Each Zip File ---
+for (zip_file in zip_files) {
+  
+  cat("\n------------------------------------------------------------\n")
+  cat("Validating:", basename(zip_file), "\n")
+  
+  # Create a temporary directory for unzipping
+  temp_dir <- tempfile()
+  dir.create(temp_dir)
+  unzip(zip_file, exdir = temp_dir)
+  
+  # Find the .tsv file
+  tsv_file <- list.files(temp_dir, pattern = "ecotaxa_export\\.tsv$", full.names = TRUE, recursive = TRUE, ignore.case = TRUE)
+  tsv_file <- tsv_file[!grepl("__MACOSX", tsv_file)]
+
+  if (length(tsv_file) == 1) {
+    
+    # Read the .tsv correctly
+    col_names <- names(readr::read_tsv(tsv_file, n_max = 0, show_col_types = FALSE))
+    df <- readr::read_tsv(tsv_file, skip = 2, col_names = col_names, show_col_types = FALSE)
+    
+    # Check for required columns in the TSV
+    required_cols_tsv <- c("object_date", "object_time", "object_lat", "object_lon", "sample_concentrated_sample_volume")
+    if (!all(required_cols_tsv %in% names(df))) {
+      warning("One or more required columns are missing from ", basename(tsv_file), ". Skipping.")
+      unlink(temp_dir, recursive = TRUE)
+      next # Skip to the next file
+    }
+    
+    # Extract keys from the TSV and format them for matching
+    key_date <- format(as.Date(as.character(df$object_date[1]), format = "%Y%m%d"), "%Y-%m-%d")
+    key_time_padded <- sprintf("%06d", as.numeric(df$object_time[1]))
+    key_time <- format(strptime(key_time_padded, format = "%H%M%S"), "%H:%M:%S")
+    key_lat <- as.numeric(df$object_lat[1])
+    key_lon <- as.numeric(df$object_lon[1])
+    
+    # Find the matching row in the log file, rounding coordinates
+    match_row <- log_data %>%
+      filter(collection_date == key_date,
+             collection_time == key_time,
+             round(decimalLatitude, 2) == round(key_lat, 2),
+             round(decimalLongitude, 2) == round(key_lon, 2))
+             
+    if (nrow(match_row) == 1) {
+      
+      # Extract volumes for comparison
+      tsv_volume <- as.numeric(df$sample_concentrated_sample_volume[1])
+      log_volume <- match_row$conc_volume[1]
+      
+      # Compare the two values
+      if (!is.na(tsv_volume) && !is.na(log_volume) && tsv_volume == log_volume) {
+        cat("  - SUCCESS: Volumes match.\n")
+        cat("    > TSV 'concentrated_sample_volume':", tsv_volume, "\n")
+        cat("    > Log 'conc_volume':               ", log_volume, "\n")
+      } else {
+        cat("  - MISMATCH: Volumes do not match.\n")
+        cat("    > TSV 'concentrated_sample_volume':", tsv_volume, "\n")
+        cat("    > Log 'conc_volume':               ", log_volume, "\n")
+      }
+      
+    } else if (nrow(match_row) == 0) {
+      warning("No match found in log file for this TSV's keys.")
+    } else {
+      warning("Multiple (", nrow(match_row), ") matches found in log file.")
+    }
+    
+  } else {
+    warning("Expected 1 'ecotaxa_export.tsv' file, but found ", length(tsv_file), ".")
+  }
+  
+  # Clean up the temporary directory
+  unlink(temp_dir, recursive = TRUE)
+}
+
+cat("\nValidation complete!\n")
+cat("------------------------------------------------------------\n")
+
+```
 
