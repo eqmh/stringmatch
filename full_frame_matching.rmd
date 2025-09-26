@@ -1,0 +1,220 @@
+---
+title: "full_frame_matching"
+author: "E. Montes"
+date: "2025-09-26"
+output: null
+---
+
+# R Script to find matching filenames between two directories by ignoring the final extension.
+```{r setup, include=FALSE}
+# --- 1. Setup Paths ---
+# Define the paths to the two directories you want to compare.
+# path.expand() is used to correctly interpret the '~' shortcut for the home directory.
+dir1_path <- path.expand("~/Desktop/cpics_img/")
+dir2_path <- path.expand("~/Desktop/cpics_img_other/full_frames/")
+
+# --- 2. List All Files Recursively ---
+# list.files() with recursive = TRUE will scan through all folders and subfolders
+# to get a complete list of all files in each directory.
+cat("Scanning for files in the first directory...\n")
+files_dir1 <- list.files(dir1_path, recursive = TRUE, full.names = FALSE) # Using FALSE to get relative paths
+
+cat("Scanning for files in the second directory...\n")
+files_dir2 <- list.files(dir2_path, recursive = TRUE, full.names = FALSE)
+
+# --- 3. Normalize Filenames ---
+# First, extract only the filename from the full path using basename().
+# For example: "20221204/20221204_0100/file.856.0" becomes "file.856.0".
+base_names1 <- basename(files_dir1)
+base_names2 <- basename(files_dir2)
+
+# Second, normalize the filenames by taking the first 19 characters.
+# This corresponds to the 'YYYYMMDD_HHMMSS.xxx' format.
+# For example, '20221204_010628.557.0' becomes '20221204_010628.557'.
+normalized_names1 <- substr(base_names1, 1, 19)
+normalized_names2 <- substr(base_names2, 1, 19)
+
+# --- 4. Find the Matching Filenames ---
+# The intersect() function takes two sets of data and returns the elements
+# that are common to both. We also use unique() to ensure we have a clean list
+# in case of any duplicate normalized names within the same directory.
+matching_filenames <- intersect(unique(normalized_names1), unique(normalized_names2))
+
+# --- 5. Print the Results ---
+if (length(matching_filenames) > 0) {
+  cat("\n------------------------------------------------------------\n")
+  cat("Found", length(matching_filenames), "matching filenames between the two directories:\n\n")
+  
+  # Print each matching filename stem
+  for (name in matching_filenames) {
+    cat(" -", name, "\n")
+  }
+  
+  cat("\n------------------------------------------------------------\n")
+  
+} else {
+  cat("\nNo matching filenames were found between the two directories.\n")
+}
+
+# The variable 'matching_filenames' now holds the list of common names.
+
+```
+
+# # Extract matching files from each directory
+```{r}
+# R Script to copy matching files into new directories.
+# IMPORTANT: This script assumes you have already run the 'r_find_matching_files.R' script
+# and that the following variables are available in your R environment:
+# - matching_filenames: The list of common filename stems.
+# - files_dir1: The list of all relative file paths from the first directory.
+# - dir1_path: The full path to the first directory.
+# - files_dir2: The list of all relative file paths from the second directory.
+# - dir2_path: The full path to the second directory.
+
+# --- 1. Check for Required Variables ---
+if (!exists("matching_filenames")) {
+  stop("Error: 'matching_filenames' not found. Please run the previous script first.")
+}
+
+# --- 2. Setup Destination Directories ---
+# Define and create the destination folders on your Desktop.
+segments_dest_dir <- path.expand("~/Desktop/segments_matched/")
+full_frame_dest_dir <- path.expand("~/Desktop/full_frame_matched/")
+
+dir.create(segments_dest_dir, showWarnings = FALSE, recursive = TRUE)
+dir.create(full_frame_dest_dir, showWarnings = FALSE, recursive = TRUE)
+
+cat("Destination folders are ready.\n")
+
+# --- 3. Copy Matching Files from Directory 1 (segments) ---
+cat("\nProcessing files from:", dir1_path, "\n")
+copied_count_1 <- 0
+for (relative_path in files_dir1) {
+  # Normalize the current filename to check if it's in our matching list
+  current_normalized_name <- substr(basename(relative_path), 1, 19)
+  
+  if (current_normalized_name %in% matching_filenames) {
+    # Construct the full source and destination paths
+    source_file <- file.path(dir1_path, relative_path)
+    dest_file <- file.path(segments_dest_dir, relative_path)
+    
+    # Create the necessary subdirectories in the destination folder
+    dir.create(dirname(dest_file), showWarnings = FALSE, recursive = TRUE)
+    
+    # Copy the file
+    file.copy(source_file, dest_file, overwrite = TRUE)
+    copied_count_1 <- copied_count_1 + 1
+  }
+}
+cat(" - Copied", copied_count_1, "matching files to:", segments_dest_dir, "\n")
+
+
+# --- 4. Copy Matching Files from Directory 2 (full frame) ---
+cat("\nProcessing files from:", dir2_path, "\n")
+copied_count_2 <- 0
+for (relative_path in files_dir2) {
+  # Normalize the current filename
+  current_normalized_name <- substr(basename(relative_path), 1, 19)
+  
+  if (current_normalized_name %in% matching_filenames) {
+    # Construct paths
+    source_file <- file.path(dir2_path, relative_path)
+    dest_file <- file.path(full_frame_dest_dir, relative_path)
+    
+    # Create subdirectories
+    dir.create(dirname(dest_file), showWarnings = FALSE, recursive = TRUE)
+    
+    # Copy the file
+    file.copy(source_file, dest_file, overwrite = TRUE)
+    copied_count_2 <- copied_count_2 + 1
+  }
+}
+cat(" - Copied", copied_count_2, "matching files to:", full_frame_dest_dir, "\n")
+
+# --- 5. Completion Message ---
+cat("\n------------------------------------------------------------\n")
+cat("File copying process complete!\n")
+cat("Total files copied from first directory:", copied_count_1, "\n")
+cat("Total files copied from second directory:", copied_count_2, "\n")
+cat("------------------------------------------------------------\n")
+
+# R Script to find all .png files in subdirectories, move them to the parent folder,
+# and then delete the empty subdirectories.
+
+# --- 1. Define the Function to Flatten a Directory ---
+# This function encapsulates the logic so we can easily run it on multiple folders.
+flatten_and_clean <- function(target_dir) {
+  
+  cat("\n------------------------------------------------------------\n")
+  cat("Processing directory:", target_dir, "\n")
+  
+  # Check if the directory exists
+  if (!dir.exists(target_dir)) {
+    warning("Directory does not exist, skipping: ", target_dir)
+    return()
+  }
+  
+  # --- Step A: Find and Move all .png files ---
+  # Recursively list all files ending with .png (case-insensitive)
+  all_png_files <- list.files(target_dir, pattern = "\\.png$", recursive = TRUE, full.names = TRUE, ignore.case = TRUE)
+  
+  if (length(all_png_files) == 0) {
+    cat(" - No .png files found to move.\n")
+  } else {
+    cat(" - Found", length(all_png_files), ".png files to move.\n")
+    
+    # Loop through each found file and move it to the parent directory
+    moved_count <- 0
+    for (source_path in all_png_files) {
+      # Check if the file is already in the top-level directory
+      if (dirname(source_path) != normalizePath(target_dir)) {
+        dest_path <- file.path(target_dir, basename(source_path))
+        file.rename(from = source_path, to = dest_path)
+        moved_count <- moved_count + 1
+      }
+    }
+    cat(" - Successfully moved", moved_count, "files.\n")
+  }
+  
+  # --- Step B: Find and Delete all Subdirectories ---
+  # List all directories within the target folder
+  all_subdirs <- list.dirs(target_dir, recursive = FALSE, full.names = TRUE)
+  
+  if (length(all_subdirs) == 0) {
+    cat(" - No subdirectories found to delete.\n")
+  } else {
+    cat(" - Found", length(all_subdirs), "subdirectories to delete.\n")
+    
+    # Loop through and delete each subdirectory
+    deleted_count <- 0
+    for (subdir_path in all_subdirs) {
+      # The unlink function deletes files and directories
+      unlink(subdir_path, recursive = TRUE)
+      deleted_count <- deleted_count + 1
+    }
+    cat(" - Successfully deleted", deleted_count, "subdirectories.\n")
+  }
+  
+  cat("Processing complete for:", target_dir, "\n")
+}
+
+
+# --- 2. Define Target Directories ---
+# Set the paths to the two folders you want to process.
+segments_dir <- path.expand("~/Desktop/segments_matched/")
+full_frame_dir <- path.expand("~/Desktop/full_frame_matched/")
+
+
+# --- 3. Run the Function on Both Directories ---
+flatten_and_clean(segments_dir)
+flatten_and_clean(full_frame_dir)
+
+
+# --- 4. Final Completion Message ---
+cat("\n------------------------------------------------------------\n")
+cat("All specified folders have been processed and cleaned.\n")
+cat("------------------------------------------------------------\n")
+
+```
+
+
