@@ -12,28 +12,28 @@ library(ggplot2)
 df_all_taxa <- read.csv("enrique_calc_zoo_data_pre_obis_merg.csv", fill = TRUE)
 
 # Filter the df_all_taxa data frame to include only rows where class is "Copepoda"
-df_copepoda <- df_all_taxa %>%
-  filter(class == "Copepoda")
+df_class <- df_all_taxa %>%
+  filter(class == "Polychaeta")
 
 # Summarize ind_m3 values by size fraction, site, and date
-selected_net_tow <- df_copepoda %>%
-  filter(duplicate_mesh_col == 64 & site == "57" & cruise_id == "WS19028")
-selected_total = sum(selected_net_tow$ind_m3)
+# selected_net_tow <- df_class %>%
+#   filter(duplicate_mesh_col == 64 & site == "57" & cruise_id == "WS19028")
+# selected_total = sum(selected_net_tow$ind_m3)
 
 # Summarize ind_m3 values by size fraction, site, and date
-aggregated_data <- df_copepoda %>%
+aggregated_data <- df_class %>%
   group_by(duplicate_mesh_col, site, date, cruise_id) %>%
   summarise(total_ind_m3 = sum(ind_m3, na.rm = TRUE)) %>%
   ungroup()
 
 # Create the stacked area plot
 filtered_data <- aggregated_data %>%
-    filter(site == "LK")
+    filter(site != "57")
 
 # Create the stacked bar plot
 stacked_plot <- ggplot(filtered_data, aes(x = as.Date(date), y = total_ind_m3, fill = factor(duplicate_mesh_col))) +
   geom_bar(stat = "identity", position = "stack", alpha = 0.8) +
-  labs(title = "Total Individuals per Cubic Meter at Site LK",
+  labs(title = "Total Individuals per Cubic Meter",
        x = "Date",
        y = expression("Total ind. m"^"-3"),
        fill = "Size Fraction (µm)") +
@@ -43,6 +43,14 @@ stacked_plot <- ggplot(filtered_data, aes(x = as.Date(date), y = total_ind_m3, f
   theme(axis.text.x = element_text(angle = 45, hjust = 1))
 
 stacked_plot
+
+# Calculate the medians    
+stats_values <- filtered_data %>%
+group_by(date) %>%
+summarise(total = sum(total_ind_m3, na.rm = TRUE))
+
+# View the medians to verify
+print(stats_values)
 
 ```
 

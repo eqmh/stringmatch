@@ -242,8 +242,8 @@ all_stations_taxa <- unique(taxa_meta$Station)
 stations_not_in_taxa <- setdiff(all_stations_taxa, all_stations_bathy)
 
 # # filter the data using station lists and selected year
-# filtered_taxa_meta_long <- taxa_meta_long %>%
-#   filter(Station %in% station_list_fk) %>%
+filtered_taxa_meta_long <- taxa_meta_long %>%
+  filter(Station %in% station_list_fk) # %>%
 #   filter(year > 2023) %>%
 #   filter(species_concentration > 0)
 
@@ -252,7 +252,7 @@ stations_not_in_taxa <- setdiff(all_stations_taxa, all_stations_bathy)
 # filter(Station %in% station_list_bathy[, 2])
 
 # # Without filtering per group of stations but looking at the entire region
-filtered_taxa_meta_long <- taxa_meta_long
+# filtered_taxa_meta_long <- taxa_meta_long
 
 # Calculate mean and standard deviation of species concentration for each date
 summary_data <- filtered_taxa_meta_long %>%
@@ -293,7 +293,7 @@ spp_colors_phyto <- c("#B4B87FFF", "#9C913FFF", "#585B33FF", "#6EA8ABFF", "#3978
 # Acantharea, Copepods, Echinoderms, Jellies, Larvaceans, Chaetognaths, Polychaets, Pteropods, Ostracods
 # Centric,Ceratium,Chaetoceros,Chain2,Chain3,Guinardia,Neocalyptrella,Noctiluca,Tricho
 
-selected_group <- "Copepods"
+selected_group <- "Polychaets"
 
 summary_selected <- filtered_taxa_meta_long %>%
   filter(species == selected_group) %>%
@@ -334,6 +334,16 @@ custom_date_labels <- as.character(unique_dates)
     theme(axis.line = element_line(color = "black")) 
   sel_box
 
+# Calculate the medians    
+stats_values <- summary_selected %>%
+group_by(date) %>%
+summarise(median_val = median(species_concentration, na.rm = TRUE),
+          min_val = min(species_concentration, na.rm = TRUE),
+          max_val = max(species_concentration, na.rm = TRUE))
+
+# View the medians to verify
+print(stats_values)
+
 sel_bar <- ggplot(summary_selected, aes(x = as.factor(date), y = species_concentration)) +
   geom_bar(stat = "identity", alpha = 0.8, width = 0.4) +
   labs(title = "Total Copepod Density at Site WS",
@@ -366,7 +376,7 @@ summary_selected$season <- factor(summary_selected$season, levels = c("Winter", 
   season_boxplot <- ggplot(summary_selected, aes(x = season, y = species_concentration)) +
     geom_boxplot(fill = spp_colors_phyto[3], notch = TRUE) +
     labs(x = "Season", y = expression("Density (org. m"^"-3"~")")) +
-    scale_y_log10(labels = scales::trans_format("log10", scales::math_format(10^.x)), limits = c(1e2, 1e6)) +
+    scale_y_log10(labels = scales::trans_format("log10", scales::math_format(10^.x)), limits = c(1e2, 1e5)) +
     theme_minimal() +
     theme(axis.text.x = element_text(size = 32, color = "black"),
           axis.title = element_text(size = 32, color = "black"),
