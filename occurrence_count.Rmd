@@ -31,7 +31,7 @@ library(lubridate)
 
 dir_path2 <- "~/Library/CloudStorage/GoogleDrive-enriquemontes01@gmail.com/My Drive/GDrive/OCED_AOML/WS_cruises/plankton_imaging/CPICS/ws_cruise_ctd"
 
-file_name <- list.files(path = dir_path2, pattern = "ctd_meta_v4.csv", full.names = TRUE)
+file_name <- list.files(path = dir_path2, pattern = "ctd_meta_up_to_ws24314.csv", full.names = TRUE)
 ctd_meta <- read.csv(file_name, fill = TRUE)
 
 # USE WITH ctd_meta_v4.csv
@@ -517,28 +517,28 @@ concentration_ts
 ```{r}
 library(paletteer)
 
-spp_df <- taxa_meta[ , c("X8.day.seascapes", "total_vol_sampled", "date",
-                         "Acantharea",
-                         "Chaetognaths",
-                         "Copepods",
-                         "Decapods",
-                         "Echinoderms",
-                         "Jellies",
-                         "Larvaceans",
-                         "Ostracods",
-                         "Polychaets",
-                         "Pteropods")]
-
 # spp_df <- taxa_meta[ , c("X8.day.seascapes", "total_vol_sampled", "date",
-#                          "Centric",
-#                          "Ceratium",
-#                          "Chaetoceros",
-#                          "Chain2",
-#                          "Chain3",
-#                          "Guinardia",
-#                          "Neocalyptrella",
-#                          "Noctiluca",
-#                          "Tricho")]
+#                          "Acantharea",
+#                          "Chaetognaths",
+#                          "Copepods",
+#                          "Decapods",
+#                          "Echinoderms",
+#                          "Jellies",
+#                          "Larvaceans",
+#                          "Ostracods",
+#                          "Polychaets",
+#                          "Pteropods")]
+
+spp_df <- taxa_meta[ , c("X8.day.seascapes", "total_vol_sampled", "date",
+                         "Centric",
+                         "Ceratium",
+                         "Chaetoceros",
+                         "Chain2",
+                         "Chain3",
+                         "Guinardia",
+                         "Neocalyptrella",
+                         "Noctiluca",
+                         "Tricho")]
 
 # Remove rows with NaN values in X8.day.seascapes and total_vol_sampled
 spp_df <- subset(spp_df, !is.na(X8.day.seascapes) & !is.na(total_vol_sampled))
@@ -628,21 +628,21 @@ species_order <- avg_concentration_per_class %>%
 avg_concentration_per_class$species <- factor(avg_concentration_per_class$species, levels = species_order)
 
 # rename species as needed
-species_order <- recode(species_order,
-                        "Polychaets" = "Polychaetes",
-                        "Acantharea" = "Acantharea spp",
-                        "Jellies" = "Gelatinous")
-
 # species_order <- recode(species_order,
-#                         "Noctiluca" = "Hemidiscus spp",
-#                         "Ceratium" = "Neoceratium spp",
-#                         "Tricho" = "Trichodesmium spp",
-#                         "Neocalyptrella" = "Neocalyptrella spp",
-#                         "Chaetoceros" = "Chaetoceros spp",
-#                         "Centric" = "Coscinodiscus spp",
-#                         "Guinardia" = "Guinardia striata",
-#                         "Chain2" = "Mixed Chain Diatoms",
-#                         "Chain3" = "Skeletonema spp")
+#                         "Polychaets" = "Polychaetes",
+#                         "Acantharea" = "Acantharea spp",
+#                         "Jellies" = "Gelatinous")
+
+species_order <- recode(species_order,
+                        "Noctiluca" = "Hemidiscus spp",
+                        "Ceratium" = "Neoceratium spp",
+                        "Tricho" = "Trichodesmium spp",
+                        "Neocalyptrella" = "Neocalyptrella spp",
+                        "Chaetoceros" = "Chaetoceros spp",
+                        "Centric" = "Coscinodiscus spp",
+                        "Guinardia" = "Guinardia striata",
+                        "Chain2" = "Mixed Chain Diatoms",
+                        "Chain3" = "Skeletonema spp")
 
 spp_labels <- species_order
 spp_colors_zoopl <- c("#551F00FF", "#889D35FF", "#DF7700FF", "#F5B642FF","#FFF179FF","#C3F4F6FF", "#6AD5E8FF", "#32B2DAFF", "#7992A6FF", "#C0D1CEFF")
@@ -653,10 +653,10 @@ font_size = 32
 avg_stackplot <- ggplot(avg_concentration_per_class, aes(x = X8.day.seascapes, y = mean_concentration, fill = species)) +
   geom_bar(stat = "identity", width = 0.75) +
   scale_fill_manual(
-    values = spp_colors_zoopl,
-    # values = spp_colors_phyto,
+    # values = spp_colors_zoopl,
+    values = spp_colors_phyto,
     labels = spp_labels) +
-  ylim(0, 15) +
+  ylim(0, 100) +
   scale_x_discrete(labels = seascape_labels) +
   labs(x = "Seascape class", y = expression("Density (org. m"^"-3"~") × 10"^3)) +
   theme_minimal() +
@@ -669,7 +669,7 @@ avg_stackplot <- ggplot(avg_concentration_per_class, aes(x = X8.day.seascapes, y
         legend.position = "none")
 avg_stackplot
 
-ggsave("abund_zoopl_v3.svg", plot = avg_stackplot, width = 14, height = 8, device = "svg")
+# ggsave("abund_zoopl_v3.svg", plot = avg_stackplot, width = 14, height = 8, device = "svg")
 
 # Calculate percentages
 avg_concentration_percent <- avg_concentration_per_class %>%
@@ -679,8 +679,8 @@ avg_concentration_percent <- avg_concentration_per_class %>%
 avg_percent_stackplot <- ggplot(avg_concentration_percent, aes(x = X8.day.seascapes, y = mean_concentration_percent, fill = species)) +
   geom_bar(stat = "identity", width = 0.75) +
   scale_fill_manual(
-    values = spp_colors_zoopl,
-    # values = spp_colors_phyto,
+    # values = spp_colors_zoopl,
+    values = spp_colors_phyto,
     labels = spp_labels) +
   scale_x_discrete(labels = seascape_labels) +
   labs(x = "Seascape class", y = "Relative concentration (%)") +
@@ -1681,8 +1681,8 @@ summary_tbl_concentrations_seascapes <- taxa_meta_long_all_seascapes %>%
 
 # filter table by group of species
 summary_tbl_filtered <- summary_tbl_concentrations_seascapes %>%
-  # filter(species %in% c("Centric","Ceratium","Chaetoceros","Chain2","Chain3","Guinardia","Neocalyptrella", "Noctiluca","Tricho")) %>%
-    filter(species %in% c("Acantharea","Chaetognaths","Ostracods","Copepods","Decapods","Echinoderms","Jellies","Larvaceans","Polychaets","Pteropods")) %>%
+  filter(species %in% c("Centric","Ceratium","Chaetoceros","Chain2","Chain3","Guinardia","Neocalyptrella", "Noctiluca","Tricho")) %>%
+    # filter(species %in% c("Acantharea","Chaetognaths","Ostracods","Copepods","Decapods","Echinoderms","Jellies","Larvaceans","Polychaets","Pteropods")) %>%
   filter(!is.na(X8.day.seascapes)) %>%
   filter(!is.nan(mean_species_concentration))
 
@@ -1698,58 +1698,58 @@ coeff_var$seascape_class <- factor(coeff_var$X8.day.seascapes,
                                    levels = c(3, 11, 13, 15, 21, 27),
                                    labels = c("TST", "TSU", "SGMI", "TS", "WBHN", "HE"))
 
-# species_labels <- c(
-#   "Centric" = "Cos",
-#   "Ceratium" = "Cer",
-#   "Chaetoceros" = "Cha",
-#   "Chain2" = "Dia",
-#   "Chain3" = "Ske",
-#   "Guinardia" = "Gui",
-#   "Neocalyptrella" = "Neo",
-#   "Noctiluca" = "Hem",
-#   "Tricho" = "Tri"
-# )
-
 species_labels <- c(
-  "Acantharea" = "Aca",
-  "Chaetognaths" = "Cha",
-  "Copepods" = "Cop",
-  "Decapods" = "Dec",
-  "Echinoderms" = "Ech",
-  "Jellies" = "Gel",
-  "Larvaceans" = "Lar",
-  "Ostracods" = "Ost",
-  "Polychaets" = "Pol",
-  "Pteropods" = "Pte"
+  "Centric" = "Cos",
+  "Ceratium" = "Cer",
+  "Chaetoceros" = "Cha",
+  "Chain2" = "Dia",
+  "Chain3" = "Ske",
+  "Guinardia" = "Gui",
+  "Neocalyptrella" = "Neo",
+  "Noctiluca" = "Hem",
+  "Tricho" = "Tri"
 )
+
+# species_labels <- c(
+#   "Acantharea" = "Aca",
+#   "Chaetognaths" = "Cha",
+#   "Copepods" = "Cop",
+#   "Decapods" = "Dec",
+#   "Echinoderms" = "Ech",
+#   "Jellies" = "Gel",
+#   "Larvaceans" = "Lar",
+#   "Ostracods" = "Ost",
+#   "Polychaets" = "Pol",
+#   "Pteropods" = "Pte"
+# )
 
 coeff_var <- coeff_var %>%
   mutate(species = recode(species, !!!species_labels))
 
-# species_order <- c(
-#   "Hem",
-#   "Cer",
-#   "Tri",
-#   "Neo",
-#   "Cha",
-#   "Cos",
-#   "Gui",
-#   "Dia",
-#   "Ske"
-# )
-
 species_order <- c(
-  "Ost",
+  "Hem",
+  "Cer",
+  "Tri",
+  "Neo",
   "Cha",
-  "Pol",
-  "Dec",
-  "Gel",
-  "Pte",
-  "Aca",
-  "Lar",
-  "Ech",
-  "Cop"
+  "Cos",
+  "Gui",
+  "Dia",
+  "Ske"
 )
+
+# species_order <- c(
+#   "Ost",
+#   "Cha",
+#   "Pol",
+#   "Dec",
+#   "Gel",
+#   "Pte",
+#   "Aca",
+#   "Lar",
+#   "Ech",
+#   "Cop"
+# )
 
 coeff_var$species <- factor(coeff_var$species, levels = rev(species_order))
 

@@ -24,34 +24,34 @@ c_mh <- taxa_meta %>%
          focus_threshold,
          sampled_vol_per_min,
          total_vol_sampled,
-         # Centric,
-         # Ceratium,
-         # Chaetoceros,
-         # Chain2,
-         # Chain3,
-         # Guinardia,
-         # Neocalyptrella,
-         # Noctiluca,
-         # Tricho) %>%
-         Acantharea,
-         Chaetognaths,
-         Ostracods,
-         Copepods,
-         Decapods,
-         Echinoderms,
-         Jellies,
-         Larvaceans,
-         Polychaets,
-         Pteropods) %>%
+         Centric,
+         Ceratium,
+         Chaetoceros,
+         Chain2,
+         Chain3,
+         Guinardia,
+         Neocalyptrella,
+         Noctiluca,
+         Tricho) %>%
+         # Acantharea,
+         # Chaetognaths,
+         # Ostracods,
+         # Copepods,
+         # Decapods,
+         # Echinoderms,
+         # Jellies,
+         # Larvaceans,
+         # Polychaets,
+         # Pteropods) %>%
   filter(!is.na(total_vol_sampled)) %>%
   filter(!is.na(X8.day.seascapes))
 
 # # Transform taxa_meta_concentration to long format
 c_mh_long <- c_mh %>%
-# pivot_longer(cols = c(Centric,Ceratium,Chaetoceros,Chain2,Chain3,Guinardia,Neocalyptrella,
-#                   Noctiluca,Tricho),
-  pivot_longer(cols = c(Acantharea, Chaetognaths,Ostracods,Copepods,Decapods,
-                        Echinoderms, Jellies, Larvaceans,Polychaets, Pteropods),
+pivot_longer(cols = c(Centric,Ceratium,Chaetoceros,Chain2,Chain3,Guinardia,Neocalyptrella,
+                  Noctiluca,Tricho),
+  # pivot_longer(cols = c(Acantharea, Chaetognaths,Ostracods,Copepods,Decapods,
+  #                       Echinoderms, Jellies, Larvaceans,Polychaets, Pteropods),
                names_to = "species", values_to = "species_concentration")
 
 ```
@@ -271,6 +271,6 @@ similarity_hm <- ggplot(pairwise_similarity_updated, aes(x = factor(seascape_1),
     legend.title = element_text(size = 22, margin = margin(b = 15)))
 similarity_hm
 
-ggsave("seascape_similarity_zoopl.svg", plot = similarity_hm, width = 16, height = 8, device = "svg")
+# ggsave("seascape_similarity_zoopl.svg", plot = similarity_hm, width = 16, height = 8, device = "svg")
 ```
 
