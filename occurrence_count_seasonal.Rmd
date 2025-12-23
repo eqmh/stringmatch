@@ -600,10 +600,10 @@ sel_vars <- c(
 #               "Tricho")
 
 # Filter rows by month ranges to select specific seasons (e.g. month < 7 for winter-spring)
-df_filtered_pca <- filter(taxa_meta, month < 7)
+df_filtered_pca <- filter(taxa_meta, month >= 7)
 
 # filter out rows with NA values in column seascapes
-df_filtered_pca <- taxa_meta[complete.cases(taxa_meta[, sel_vars]), ]
+df_filtered_pca <- df_filtered_pca[complete.cases(df_filtered_pca[, sel_vars]), ]
 
 # exclude_seascapes <- c(5, 7, 11)
 exclude_seascapes <- 0
