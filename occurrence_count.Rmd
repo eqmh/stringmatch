@@ -635,7 +635,7 @@ avg_concentration_per_class$species <- factor(avg_concentration_per_class$specie
 
 species_order <- recode(species_order,
                         "Noctiluca" = "Hemidiscus spp",
-                        "Ceratium" = "Neoceratium spp",
+                        "Ceratium" = "Tripos spp",
                         "Tricho" = "Trichodesmium spp",
                         "Neocalyptrella" = "Neocalyptrella spp",
                         "Chaetoceros" = "Chaetoceros spp",
