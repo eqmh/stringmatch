@@ -600,7 +600,7 @@ sel_vars <- c(
 #               "Tricho")
 
 # Filter rows by month ranges to select specific seasons (e.g. month < 7 for winter-spring)
-df_filtered_pca <- filter(taxa_meta, month >= 7)
+df_filtered_pca <- filter(taxa_meta, month >= 1)
 
 # filter out rows with NA values in column seascapes
 df_filtered_pca <- df_filtered_pca[complete.cases(df_filtered_pca[, sel_vars]), ]
@@ -626,7 +626,11 @@ pca <- prcomp(filt_df_pca[, -1], scale. = TRUE)
 # pc_scores <- data.frame(seascape = df_subset$X8.day.seascapes, # for taxonomic analysis 
 pc_scores <- data.frame(seascape = as.character(filt_df_pca$X8.day.seascapes), # for hydrography
                         PC1 = pca$x[, 1], 
-                        PC2 = pca$x[, 2])
+                        PC2 = pca$x[, 2],
+                        PC2 = pca$x[, 3],
+                        PC2 = pca$x[, 4],
+                        PC2 = pca$x[, 5],
+                        PC2 = pca$x[, 6])
 
 # Create the plot
 pc_scores$seascape <- factor(pc_scores$seascape, levels = c("3", "13", "15", "21", "27"))
@@ -706,8 +710,8 @@ qq <- ggplot(filt_df_pca, aes(x = pc_scores2[,1], y = pc_scores2[,2], color = X8
                 label = paste("PC6 (", pc_var_percent[6], "%: Temperature)", sep = "")),
             vjust = -0.5, hjust = 0.5, color = "black", size = 6) +  # Add label for PC6
   labs(x = "PC1", y = "PC2", color = "Seascape class") +
-  xlim(-1.5, 1.5) +
-  ylim(-1.5, 1.5) +
+  xlim(-4, 4) +
+  ylim(-4, 4) +
   guides(colour = guide_legend(title = NULL, override.aes = list(size=7))) + 
   theme_classic() +
   theme(axis.text.x = element_text(size = font_size),  # Set X-axis label font size
@@ -827,7 +831,7 @@ qq
 #   theme(legend.text = element_text(size = 32)) 
 # qq3
 
-# ggsave("seascape_pca_hydro.jpeg", plot = qq, width = 14, height = 9, device = "jpeg")
+ggsave("seascape_pca_hydro.jpeg", plot = qq, width = 14, height = 9, device = "jpeg")
 
 ```
 
