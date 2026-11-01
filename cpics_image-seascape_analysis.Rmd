@@ -1,0 +1,678 @@
+---
+title: "R Notebook: CPICS plankton imaging and seascape analysis"
+output: none
+---
+
+
+# Load data files
+```{r}
+library(tidyverse)
+library(tidyplots)
+library(ggplot2)
+
+# specify the directory where the files are located
+dir_path <- "~/Library/CloudStorage/GoogleDrive-enriquemontes01@gmail.com/My Drive/GDrive/OCED_AOML/WS_cruises/plankton_imaging/CPICS/TS.Master_selection"
+
+# obtain a list of file names in the directory
+file_names <- list.files(path = dir_path, pattern = ".txt", full.names = TRUE)
+
+# loop over each file and import the tables (use this for DATES)
+for (file in file_names) {
+  table_name <- gsub(".txt", "", basename(file)) # get the name of the table from the file name
+  assign(table_name, read.table(file = file, header = FALSE, sep = "\t") %>%
+           mutate(date = as.POSIXct(substr(V1, start = 24, stop = 36), format="%Y%m%d_%H%M", tz="UTC")))
+}
+
+```
+
+
+# Match file name to cruise data using DATE 
+```{r}
+library(lubridate)
+library(dplyr)
+
+dir_path2 <- "~/Library/CloudStorage/GoogleDrive-enriquemontes01@gmail.com/My Drive/GDrive/OCED_AOML/WS_cruises/plankton_imaging/CPICS/ws_cruise_ctd"
+file_name <- list.files(path = dir_path2, pattern = "ctd_meta_up_to_ws24314.csv", full.names = TRUE)
+ctd_meta <- read.csv(file_name, fill = TRUE)
+
+# Parse dt_list securely and concisely
+dt_list <- as.POSIXct(
+  sprintf("%04d%02d%02d %s", ctd_meta$year, ctd_meta$month, ctd_meta$day, ctd_meta$time_gmt),
+  format = "%Y%m%d %I:%M:%S %p", 
+  tz = "UTC"
+)
+
+################################################################################
+# Detect short transit times between stations
+################################################################################
+# Vectorized difference calculation in mins
+time_differences_mins <- as.numeric(diff(dt_list), units = "mins")
+
+time_diff_df <- data.frame(
+  start_time = dt_list[-length(dt_list)],
+  end_time = dt_list[-1],
+  time_difference_mins = time_differences_mins
+)
+
+# CTD time stamps of consecutive stations within less than 20 min
+short_timestamps <- dt_list[which(time_differences_mins < 20)]
+
+################################################################################
+# Match CPICS records to CTD times & Check unaccounted records
+################################################################################
+class_names <- c("Acantharea", "Centric", "Ceratium", "Chaetoceros", "Chaetognaths", 
+                 "Chain2", "Chain3", "Ostracods", "Copepods", "Decapods", "Echinoderms", 
+                 "Guinardia", "Jellies", "Larvaceans", "Neocalyptrella", "Noctiluca", 
+                 "pellets", "Polychaets", "Pteropods", "Tricho")
+
+date_limit <- as.POSIXct("2024-11-30", tz = "UTC")
+buffer_sec <- 10 * 60 
+
+# Pre-calculate start and end intervals for fast vectorized comparisons
+interval_start <- dt_list - buffer_sec
+interval_end <- c(dt_list[-1] - buffer_sec, date_limit + 1)
+
+# Process classes in a single pass
+results <- setNames(lapply(class_names, function(cname) {
+  
+  # Fetch ALL data to ensure no unaccounted records slip by
+  dts_all <- get(paste0("class.", cname))$date
+  
+  counts <- integer(length(dt_list))
+  accounted <- logical(length(dts_all)) # Tracks if a date falls into any interval
+  
+  # Check all dates against intervals
+  for (i in seq_along(dt_list)) {
+    idx <- dts_all >= interval_start[i] & dts_all < interval_end[i]
+    counts[i] <- sum(idx & dts_all <= date_limit) # Apply date_limit ONLY to the final count
+    accounted[idx] <- TRUE
+  }
+  
+  list(counts = counts, unaccounted = dts_all[!accounted])
+  
+}), class_names)
+
+# Assemble the final concentration dataframe efficiently
+conc_occ_final <- data.frame(date = dt_list)
+for (cname in class_names) conc_occ_final[[cname]] <- results[[cname]]$counts
+
+# Combine with metadata and calculate volume
+taxa_meta <- cbind(ctd_meta, conc_occ_final) %>%
+  mutate(
+    sampled_vol_per_min = max(sampled_vol_per_min, na.rm = TRUE),
+    total_vol_sampled = sampled_vol_per_min * conc_deployDurMin
+  )
+
+################################################################################
+# Output Unaccounted Records & Summary Stats
+################################################################################
+# Print unaccounted dates per class
+for (cname in class_names) {
+  cat("Unaccounted dates for class:", cname, "\n")
+  print(results[[cname]]$unaccounted)
+  cat("\n")
+}
+
+# Pre-calculate boolean vectors to simplify stat logic
+has_vol <- !is.na(taxa_meta$total_vol_sampled)
+has_seascape <- !is.na(taxa_meta$X8.day.seascapes)
+
+sampling_events_img <- sum(has_vol)
+seascape_total <- sum(has_seascape)
+seascape_match <- sum(has_seascape & has_vol)
+total_casts <- nrow(taxa_meta)
+percent_match <- round((seascape_match / sampling_events_img) * 100, 0)
+
+# Calculates number of stations occupied during each cruise
+station_num_per_cruise <- tapply(taxa_meta$Station, taxa_meta$cruiseID, function(x) length(unique(x)))
+
+# Print stats
+cat("Total number CTD casts:", total_casts, "\n")
+cat("Percent of CTD casts with seascape match:", round((seascape_total / total_casts) * 100, 0), "%\n")
+cat("Percent of CTD casts with images (image profiles):", round((sampling_events_img / total_casts) * 100, 0), "%\n")
+cat("Percent of image profiles matched to seascapes:", percent_match, "%\n\n")
+
+print(as.table(station_num_per_cruise))
+```
+
+# # Calculate plankton concentration time series 
+```{r}
+library(dplyr)
+library(tidyr)
+library(ggplot2)
+library(ggpubr)
+library(scales)
+
+# ==========================================
+# 1. SETUP & TOGGLE (Phytoplankton or Zooplankton)
+# ==========================================
+analysis_mode <- "zoo" # Change to "phyto" of "zoo" for zooplankton
+
+phyto_cols <- c("Centric", "Ceratium", "Chaetoceros", "Chain2", "Chain3", 
+                "Guinardia", "Neocalyptrella", "Noctiluca", "Tricho")
+zoo_cols <- c("Acantharea", "Chaetognaths", "Ostracods", "Copepods", "Decapods", 
+              "Echinoderms", "Jellies", "Larvaceans", "Polychaets", "Pteropods")
+
+target_cols <- if(analysis_mode == "phyto") phyto_cols else zoo_cols
+selected_group <- if(analysis_mode == "phyto") "Chaetoceros" else "Copepods"
+
+# ==========================================
+# 2. DATA TRANSFORMATION
+# ==========================================
+taxa_meta_long <- taxa_meta %>%
+  filter(!is.na(total_vol_sampled)) %>%
+  mutate(across(all_of(target_cols), ~ (. / total_vol_sampled) * 1e6)) %>%
+  select(Station, dec_lat, dec_lon, year, month, date, Avg.chl.a..ug.L.,
+         temp..degC., salinity, total_vol_sampled, all_of(target_cols)) %>%
+  pivot_longer(cols = all_of(target_cols), names_to = "species", values_to = "species_concentration")
+
+# ==========================================
+# 3. FILTERING & DATE GROUPING
+# ==========================================
+summary_selected <- taxa_meta_long %>%
+  filter(species == selected_group, species_concentration > 0) %>%
+  group_by(year, month) %>%
+  # Extract earliest day of the month to build the date
+  mutate(earliest_day = min(as.numeric(format(date, "%d")), na.rm = TRUE)) %>%
+  ungroup() %>%
+  mutate(
+    date_grouped = as.Date(paste(year, month, earliest_day, sep = "-")),
+    season = factor(case_when(
+      month %in% 1:3 ~ "Winter",
+      month %in% 4:6 ~ "Spring",
+      month %in% 7:9 ~ "Summer",
+      month %in% 10:12 ~ "Fall"
+    ), levels = c("Winter", "Spring", "Summer", "Fall"))
+  ) %>%
+  select(-earliest_day)
+
+cat("Maximum concentration value:", max(summary_selected$species_concentration), "\n")
+cat("Maximum seawater temperature:", max(summary_selected$temp..degC.), "\n")
+cat("Minimum seawater temperature:", min(summary_selected$temp..degC.), "\n\n")
+
+# Print stats
+stats_values <- summary_selected %>%
+  group_by(date_grouped) %>%
+  summarise(
+    min_val = min(species_concentration, na.rm = TRUE),
+    median_val = median(species_concentration, na.rm = TRUE),
+    max_val = max(species_concentration, na.rm = TRUE)
+  )
+print("Medians per date:")
+print(stats_values)
+
+# ==========================================
+# 4. TIME SERIES PLOT (sel_box)
+# ==========================================
+custom_date_labels <- format(sort(unique(summary_selected$date_grouped)), "%Y-%m")
+
+sel_box <- ggplot(summary_selected, aes(x = factor(date_grouped), y = species_concentration)) +
+  geom_boxplot(fill = "white", notch = FALSE, outlier.shape = NA) +
+  geom_jitter(width = 0.25, aes(color = temp..degC.), size = 3, alpha = 0.6) +
+  scale_color_viridis_c(name = "Temperature (°C)", option = "inferno", limits = c(14, 34)) +
+  scale_y_log10(labels = trans_format("log10", math_format(10^.x)), limits = c(1e2, 1e5)) +
+  scale_x_discrete(labels = custom_date_labels) +
+  labs(x = "Date", y = expression("Density (org. m"^"-3"~")")) +
+  theme_minimal() +
+  theme(
+    axis.text.x = element_text(size = 18, color = "black", angle = 45, hjust = 1),
+    axis.text.y = element_text(size = 18, color = "black"),
+    axis.title.x = element_blank(),
+    axis.title.y = element_text(size = 18, color = "black"),
+    legend.title = element_text(size = 16, color = "black"),
+    legend.text = element_text(size = 14),
+    axis.line = element_line(color = "black")
+  )
+print(sel_box)
+
+# ==========================================
+# 5. SEASONAL PLOT WITH COUNTS (tidyplot aesthetic)
+# ==========================================
+obs_counts <- summary_selected %>% count(season)
+print("Number of observations per season:")
+print(obs_counts)
+
+# Create safe labels mapped to the season factor
+season_labels <- setNames(paste0(obs_counts$season, "\n(n=", obs_counts$n, ")"), obs_counts$season)
+
+# Apply the new labels directly to the dataframe so ggpubr can match them
+summary_selected$season_label <- factor(season_labels[as.character(summary_selected$season)], levels = season_labels)
+
+# Replicate the default tidyplot color palette
+tidy_colors <- c(
+  "#5fa2ce", # Winter (Blue)
+  "#78cbf0", # Spring (Light Blue)
+  "#f1d15a", # Summer (Yellow)
+  "#d68746"  # Fall (Orange)
+)
+names(tidy_colors) <- season_labels
+
+tidy_plot2 <- ggplot(summary_selected, aes(x = season_label, y = species_concentration, fill = season_label, color = season_label)) +
+  geom_boxplot(alpha = 0.6, linewidth = 0.5, outlier.size = 3) +
+  scale_fill_manual(values = tidy_colors) +
+  scale_color_manual(values = tidy_colors) +
+  
+  # Generate the significance brackets (Bypassing the tidyplot bug)
+  geom_pwc(
+    ref.group = season_labels["Summer"],
+    method = "t.test",
+    label = "{p.format}", # Uses unadjusted p-value format to avoid the rstatix bug
+    hide.ns = FALSE,
+    color = "black",
+    size = 0.5,
+    step.increase = 0.08
+  ) +
+  
+  scale_y_log10(labels = trans_format("log10", math_format(10^.x)), limits = c(1e2, 1e5)) +
+  labs(x = "Season", y = expression("Density (org. m"^"-3"~")")) +
+  theme_minimal() +
+  theme(
+    axis.text = element_text(size = 32, color = "black"),
+    axis.text.x = element_text(angle = 45, hjust = 1),
+    axis.title.x = element_blank(),
+    axis.title.y = element_text(size = 32, color = "black"),
+    axis.line = element_line(color = "black"),
+    panel.grid.major = element_line(color = "#f0f0f0", linewidth = 0.5), # Match tidyplot grid
+    panel.grid.minor = element_blank(),
+    legend.position = "none"
+  )
+print(tidy_plot2)
+```
+
+# # Calculate plankton concentrations per seascape class
+```{r}
+library(dplyr)
+library(tidyr)
+library(ggplot2)
+library(forcats)
+
+# ==========================================
+# 1. SETUP & TOGGLE (Phytoplankton or Zooplankton)
+# ==========================================
+analysis_mode <- "phyto" # Change to "zoo" for zooplankton
+
+phyto_cols <- c("Centric", "Ceratium", "Chaetoceros", "Chain2", "Chain3", 
+                "Guinardia", "Neocalyptrella", "Noctiluca", "Tricho")
+zoo_cols <- c("Acantharea", "Chaetognaths", "Ostracods", "Copepods", "Decapods", 
+              "Echinoderms", "Jellies", "Larvaceans", "Polychaets", "Pteropods")
+
+target_cols <- if(analysis_mode == "phyto") phyto_cols else zoo_cols
+
+# ==========================================
+# 2. DATA PIPELINE & AGGREGATION
+# ==========================================
+# Clean, filter, pivot, and calculate average concentrations directly
+avg_concentration_per_class <- taxa_meta %>%
+  select(X8.day.seascapes, total_vol_sampled, month, all_of(target_cols)) %>%
+  filter(!is.na(X8.day.seascapes), !is.na(total_vol_sampled), month >= 7) %>%
+  pivot_longer(cols = all_of(target_cols), names_to = "species", values_to = "count") %>%
+  mutate(concentration = (count / total_vol_sampled) * 1e6) %>%
+  filter(concentration > 0) %>%
+  group_by(species, X8.day.seascapes) %>%
+  summarize(mean_concentration = mean(concentration, na.rm = TRUE) / 1000, .groups = "drop") %>%
+  filter(X8.day.seascapes %in% c("3", "11", "13", "15", "21", "27"))
+
+# ==========================================
+# 3. FACTOR FORMATTING & COLOR MAPPING
+# ==========================================
+# Order seascapes
+avg_concentration_per_class$X8.day.seascapes <- factor(
+  avg_concentration_per_class$X8.day.seascapes, 
+  levels = c("3", "11", "13", "15", "21", "27")
+)
+
+# Order species by their overall sum of means
+avg_concentration_per_class <- avg_concentration_per_class %>%
+  mutate(species = fct_reorder(species, mean_concentration, .fun = sum))
+
+# Apply the appropriate labels and colors based on mode
+if(analysis_mode == "phyto") {
+  avg_concentration_per_class <- avg_concentration_per_class %>%
+    mutate(species = fct_recode(species,
+      "Hemidiscus spp" = "Noctiluca",
+      "Neoceratium spp" = "Ceratium",
+      "Trichodesmium spp" = "Tricho",
+      "Neocalyptrella spp" = "Neocalyptrella",
+      "Chaetoceros spp" = "Chaetoceros",
+      "Coscinodiscus spp" = "Centric",
+      "Guinardia striata" = "Guinardia",
+      "Mixed Chain Diatoms" = "Chain2",
+      "Skeletonema spp" = "Chain3"
+    ))
+  spp_colors <- c("#B4B87FFF", "#9C913FFF", "#585B33FF", "#6EA8ABFF", "#397893FF", 
+                  "#31333FFF", "#8F5715FF", "#BA9A44FF", "#CFBB83FF")
+} else {
+  avg_concentration_per_class <- avg_concentration_per_class %>%
+    mutate(species = fct_recode(species,
+      "Polychaetes" = "Polychaets",
+      "Acantharea spp" = "Acantharea",
+      "Gelatinous" = "Jellies"
+    ))
+  spp_colors <- c("#551F00FF", "#889D35FF", "#DF7700FF", "#F5B642FF", "#FFF179FF", 
+                  "#C3F4F6FF", "#6AD5E8FF", "#32B2DAFF", "#7992A6FF", "#C0D1CEFF")
+}
+
+# ==========================================
+# 4. PLOTS
+# ==========================================
+seascape_labels <- c("TST", "TSU", "SGMI", "TS", "WBHN", "HE")
+font_size <- 32
+
+# Plot 1: Absolute Mean Concentration
+avg_stackplot <- ggplot(avg_concentration_per_class, aes(x = X8.day.seascapes, y = mean_concentration, fill = species)) +
+  geom_col(width = 0.75) +
+  scale_fill_manual(values = spp_colors) +
+  scale_x_discrete(labels = seascape_labels) +
+  labs(x = "Seascape class", y = expression("Density (org. m"^"-3"~") × 10"^3)) +
+  theme_minimal() +
+  theme(
+    axis.text = element_text(size = font_size, color = "black"),
+    axis.title.x = element_text(size = font_size, color = "black"),
+    axis.title.y = element_text(size = font_size, color = "black", margin = margin(r = 24)), 
+    axis.line = element_line(color = "black"),
+    legend.text = element_text(size = font_size),
+    legend.position = "none"
+  )
+print(avg_stackplot)
+
+# Calculate Relative Percentages
+avg_concentration_percent <- avg_concentration_per_class %>%
+  group_by(X8.day.seascapes) %>%
+  mutate(mean_concentration_percent = mean_concentration / sum(mean_concentration) * 100) %>%
+  ungroup()
+
+# Plot 2: Relative Concentration
+avg_percent_stackplot <- ggplot(avg_concentration_percent, aes(x = X8.day.seascapes, y = mean_concentration_percent, fill = species)) +
+  geom_col(width = 0.75) +
+  scale_fill_manual(values = spp_colors) +
+  scale_x_discrete(labels = seascape_labels) +
+  labs(x = "Seascape class", y = "Relative concentration (%)") +
+  theme_minimal() +
+  theme(
+    axis.text = element_text(size = font_size, color = "black"),
+    axis.title = element_text(size = font_size, color = "black"),
+    axis.line = element_line(color = "black"),
+    legend.text = element_text(size = font_size)
+  )
+print(avg_percent_stackplot)
+```
+
+# Generate plots 
+```{r}
+library(hrbrthemes)
+library(viridis)
+
+# filter out rows with NA values in column seascapes
+df_filtered <- taxa_meta[complete.cases(taxa_meta$X8.day.seascapes),]
+
+# Filter rows by month ranges to select specific seasons (e.g. month < 7 for winter-spring)
+df_filtered <- filter(df_filtered, month < 7)
+
+# Convert the 'x' column to character
+df_filtered$X8.day.seascapes <- as.character(df_filtered$X8.day.seascapes)
+
+# # Reorder seascape categories in X axis
+df_filtered$X8.day.seascapes <- factor(df_filtered$X8.day.seascapes, levels = c("3", "11", "13", "15","21","27"))
+
+custom_colors <- c("3" = "#2A3F6E", "11" = "#3E92E0", "13" = "#B6E7E0FF", "15" = "#61BEA4", "21" = "#FFB651FF", "27" = "#D85A44FF")
+
+seascape_labels = c("TST", "TSU", "SGMI", "TS", "WBHN", "HE")
+
+# Plot
+# See https://cran.r-project.org/web/packages/viridis/vignettes/intro-to-viridis.html for color palette options
+font_size = 36
+pp <- df_filtered %>%
+  ggplot( aes(x=X8.day.seascapes, y=Avg.chl.a..ug.L., fill=X8.day.seascapes)) +
+    geom_boxplot() +
+    scale_fill_manual(values = custom_colors) +
+    geom_jitter(color="grey", size=3, alpha=0.4) +
+    scale_x_discrete(labels = seascape_labels) +
+    scale_y_continuous(
+        breaks = seq(0, 6, by = 1.5),
+        labels = scales::label_number(accuracy = 1),
+        limits = c(0, 6)
+    ) +
+    labs(x = "Seascape class") +
+    labs(y = expression("["*Chl-a*"]"~ mu*"g"~L^-1)) +
+    # labs(y = expression("Salinity")) +
+    # labs(y = expression(paste("Temperature (", degree, "C)"))) +
+    # labs(y = expression("["*DO*"]"~mg~L^-1)) +
+    # labs(y = expression("["*NO["x"]*"]" ~ mu*"M")) +
+    # labs(y = expression("["*PO[4]^"3-"*"]" ~ mu*"M")) +
+    # labs(y = expression("["*NH[4]^"+"*"]" ~ mu*"M")) +
+    # labs(y = expression("["*Si*"]" ~ mu*"M")) +
+    # theme(axis.title.y = element_text(hjust = 1))
+  theme_minimal() +
+  theme(axis.text.x = element_text(size = font_size, color = "black"),
+    axis.title = element_text(size = font_size, color = "black"),
+    axis.text.y = element_text(size = font_size, color = "black"),
+    axis.title.y = element_text(size = font_size, color = "black", margin = margin(r = 23))) +
+  theme(axis.line = element_line(color = "black")) +
+  theme(legend.position = "none")
+pp
+
+# ggsave("temperature.svg", plot = pp, width = 14, height = 8, device = "svg")
+```
+
+# # Prepare data frames for CV analysis below with mean plankton densities per seascape using station data (same results as above)
+```{r}
+taxa_meta_concentration_all_seascapes <- taxa_meta %>%
+  mutate(across(c(Centric,Ceratium,Chaetoceros,Chain2,Chain3,Guinardia,Neocalyptrella,
+                   Noctiluca,Tricho,Acantharea,Chaetognaths,Ostracods,Copepods,Decapods,Echinoderms,Jellies,
+    Larvaceans,Polychaets,Pteropods), ~ ./total_vol_sampled * 1e6)) %>%
+  select(Station, dec_lat, dec_lon, year, month, date, total_vol_sampled,Avg.chl.a..ug.L.,
+         temp..degC., salinity, DO..mg.L.,NH4...uM.,PO4...uM.,NO3.NO2..uM., Si.....uM.,X8.day.seascapes,
+         Centric,Ceratium,Chaetoceros,Chain2,Chain3,Guinardia,Neocalyptrella,
+                   Noctiluca,Tricho,Acantharea,Chaetognaths,Ostracods,Copepods,Decapods,Echinoderms,
+         Jellies,Larvaceans,Polychaets,Pteropods) %>%
+  filter(!is.na(total_vol_sampled)) 
+
+# # Transform taxa_meta_concentration to long format
+taxa_meta_long_all_seascapes <- taxa_meta_concentration_all_seascapes %>%
+  pivot_longer(cols = c(Centric,Ceratium,Chaetoceros,Chain2,Chain3,Guinardia,Neocalyptrella,
+                   Noctiluca,Tricho,Acantharea, Chaetognaths,Ostracods,Copepods,Decapods,
+                        Echinoderms, Jellies, Larvaceans,Polychaets, Pteropods),
+               names_to = "species", values_to = "species_concentration")
+
+summary_tbl_concentrations_seascapes <- taxa_meta_long_all_seascapes %>%
+  group_by(X8.day.seascapes, species) %>%
+  summarise(
+    mean_species_concentration = mean(species_concentration[species_concentration != 0], na.rm = TRUE), 
+    sd_species_concentration = sd(species_concentration[species_concentration != 0], na.rm = TRUE)
+  ) %>%
+  ungroup()
+
+# filter table by group of species
+summary_tbl_filtered <- summary_tbl_concentrations_seascapes %>%
+  filter(species %in% c("Centric","Ceratium","Chaetoceros","Chain2","Chain3","Guinardia","Neocalyptrella", "Noctiluca","Tricho")) %>%
+    # filter(species %in% c("Acantharea","Chaetognaths","Ostracods","Copepods","Decapods","Echinoderms","Jellies","Larvaceans","Polychaets","Pteropods")) %>%
+  filter(!is.na(X8.day.seascapes)) %>%
+  filter(!is.nan(mean_species_concentration))
+
+print(summary_tbl_filtered)
+```
+
+# # Create plots showing coefficient of variation of plankton ABUNDANCE per seascape
+```{r}
+coeff_var <- summary_tbl_filtered %>%
+  mutate(coef_var = sd_species_concentration / mean_species_concentration)
+
+coeff_var$seascape_class <- factor(coeff_var$X8.day.seascapes,
+                                   levels = c(3, 11, 13, 15, 21, 27),
+                                   labels = c("TST", "TSU", "SGMI", "TS", "WBHN", "HE"))
+
+species_labels <- c(
+  "Centric" = "Cos",
+  "Ceratium" = "Cer",
+  "Chaetoceros" = "Cha",
+  "Chain2" = "Dia",
+  "Chain3" = "Ske",
+  "Guinardia" = "Gui",
+  "Neocalyptrella" = "Neo",
+  "Noctiluca" = "Hem",
+  "Tricho" = "Tri"
+)
+
+# species_labels <- c(
+#   "Acantharea" = "Aca",
+#   "Chaetognaths" = "Cha",
+#   "Copepods" = "Cop",
+#   "Decapods" = "Dec",
+#   "Echinoderms" = "Ech",
+#   "Jellies" = "Gel",
+#   "Larvaceans" = "Lar",
+#   "Ostracods" = "Ost",
+#   "Polychaets" = "Pol",
+#   "Pteropods" = "Pte"
+# )
+
+coeff_var <- coeff_var %>%
+  mutate(species = recode(species, !!!species_labels))
+
+species_order <- c(
+  "Hem",
+  "Cer",
+  "Tri",
+  "Neo",
+  "Cha",
+  "Cos",
+  "Gui",
+  "Dia",
+  "Ske"
+)
+
+# species_order <- c(
+#   "Ost",
+#   "Cha",
+#   "Pol",
+#   "Dec",
+#   "Gel",
+#   "Pte",
+#   "Aca",
+#   "Lar",
+#   "Ech",
+#   "Cop"
+# )
+
+coeff_var$species <- factor(coeff_var$species, levels = rev(species_order))
+
+heatmap <- ggplot(coeff_var, aes(x = seascape_class, y = species, fill = coef_var)) +
+  geom_tile(color = "white") +
+  scale_fill_gradient(low = "white", high = "darkred", limits = c(0.02,4.5), name = "CV") + 
+  theme_minimal() +
+  labs(x = NULL, y = NULL) +
+  theme(
+    axis.text.x  = element_text(size = 32, angle = 0, color = "black"),
+    # axis.text.y  = element_text(size = 22, color = "black"),
+    panel.grid = element_blank()
+  ) +
+  theme(legend.text = element_text(size = 18)) +
+  theme(legend.title = element_text(size = 22)) 
+heatmap
+
+# ggsave("phyto_cv_v3.svg", plot = heatmap, width = 16, height = 7.25, device = "svg")
+# ggsave("zoopl_cv_v3.svg", plot = heatmap, width = 16, height = 8, device = "svg")
+```
+
+
+# # Create plots showing coefficient of variation of plankton RELATIVE CONCENTRATION per seascape
+```{r}
+# Calculate relative abundances per class for each cruise using year and month
+tmp_summary_relabund <- taxa_meta_long_all_seascapes %>%
+    # filter(species %in% c("Centric","Ceratium","Chaetoceros","Chain2","Chain3","Guinardia","Neocalyptrella", "Noctiluca","Tricho")) %>%
+      filter(species %in% c("Acantharea","Chaetognaths","Ostracods","Copepods","Decapods","Echinoderms","Jellies","Larvaceans","Polychaets","Pteropods")) %>%
+  group_by(year, month, X8.day.seascapes) %>%
+  mutate(relative_abundance = species_concentration / sum(species_concentration, na.rm = TRUE)) %>%
+  group_by(year, month, X8.day.seascapes, species) %>%
+  summarise(total_relative_abundance = sum(relative_abundance, na.rm = TRUE)) %>%
+  ungroup()
+
+
+# Calculate mean, sd, and cv of relative abundance per seascape
+cv_summary_relabund <- tmp_summary_relabund %>%
+  group_by(X8.day.seascapes, species) %>%
+  summarise(
+    mean_relabund = mean(total_relative_abundance[total_relative_abundance != 0], na.rm = TRUE),
+    sd_relabund = sd(total_relative_abundance[total_relative_abundance != 0], na.rm = TRUE),
+    coef_var_relabund = sd_relabund / mean_relabund
+  ) %>%
+  ungroup() %>%
+  filter(!is.na(X8.day.seascapes)) %>%
+  filter(!is.nan(mean_relabund))
+
+cv_summary_relabund$seascape_class <- factor(cv_summary_relabund$X8.day.seascapes,
+                                   levels = c(3, 11, 13, 15, 21, 27),
+                                   labels = c("TST", "TSU", "SGMI", "TS", "WBHN", "HE"))
+
+# species_labels <- c(
+#   "Centric" = "Cos",
+#   "Ceratium" = "Cer",
+#   "Chaetoceros" = "Cha",
+#   "Chain2" = "Dia",
+#   "Chain3" = "Ske",
+#   "Guinardia" = "Gui",
+#   "Neocalyptrella" = "Neo",
+#   "Noctiluca" = "Hem",
+#   "Tricho" = "Tri"
+# )
+
+species_labels <- c(
+  "Acantharea" = "Aca",
+  "Chaetognaths" = "Cha",
+  "Copepods" = "Cop",
+  "Decapods" = "Dec",
+  "Echinoderms" = "Ech",
+  "Jellies" = "Gel",
+  "Larvaceans" = "Lar",
+  "Ostracods" = "Ost",
+  "Polychaets" = "Pol",
+  "Pteropods" = "Pte"
+)
+
+cv_summary_relabund <- cv_summary_relabund %>%
+  mutate(species = recode(species, !!!species_labels))
+
+# species_order <- c(
+#   "Hem",
+#   "Cer",
+#   "Tri",
+#   "Neo",
+#   "Cha",
+#   "Cos",
+#   "Gui",
+#   "Dia",
+#   "Ske"
+# )
+
+species_order <- c(
+  "Ost",
+  "Cha",
+  "Pol",
+  "Dec",
+  "Gel",
+  "Pte",
+  "Aca",
+  "Lar",
+  "Ech",
+  "Cop"
+)
+
+cv_summary_relabund$species <- factor(cv_summary_relabund$species, levels = rev(species_order))
+
+heatmap <- ggplot(cv_summary_relabund, aes(x = seascape_class, y = species, fill = coef_var_relabund)) +
+  geom_tile(color = "white") +
+  scale_fill_gradient(low = "white", high = "darkgreen", limits = c(0.02,3), name = "CV") +
+  theme_minimal() +
+  labs(x = NULL, y = NULL) +
+  theme(
+    axis.text.x  = element_text(size = 32, angle = 0, color = "black"),
+    # axis.text.y  = element_text(size = 22, color = "black"),
+    panel.grid = element_blank()
+  ) +
+  theme(legend.text = element_text(size = 18)) +
+  theme(legend.title = element_text(size = 22))
+heatmap
+
+# ggsave("phyto_cv_relabund_v3.svg", plot = heatmap, width = 16, height = 7.25, device = "svg")
+# ggsave("zoopl_cv_relabund_v3.svg", plot = heatmap, width = 16, height = 8, device = "svg")
+```

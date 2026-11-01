@@ -1,6 +1,5 @@
 ---
-title: "R Notebook: Stringmatch for seasonal analysis"
-# output: html_notebook
+title: "R Notebook: CPICS plankton imaging and seascape analysis"
 output: none
 ---
 
@@ -27,7 +26,7 @@ for (file in file_names) {
 ```
 
 
-# Match file name using DATE values
+# Match file name to cruise data using DATE 
 ```{r}
 library(lubridate)
 
