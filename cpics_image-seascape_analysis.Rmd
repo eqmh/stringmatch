@@ -1,5 +1,5 @@
 ---
-title: "R Notebook: CPICS plankton imaging and seascape analysis"
+title: "CPICS plankton imaging and seascape analysis (clean version of occurrence_counts_seasonal.Rmd for publication)"
 output: none
 ---
 
